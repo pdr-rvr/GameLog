@@ -24,6 +24,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
     });
 
+builder.Services.AddScoped<EmpresaSeeder>();
+
 builder.Services.AddDbContext<GameLogContext>(options =>
     options.UseSqlServer(completeConnectionString));
 
@@ -32,6 +34,32 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    try
+    {
+        var context = services.GetRequiredService<GameLogContext>();
+
+        // Aplica as migrations automaticamente
+        context.Database.Migrate();
+
+        // Executa os seeders na ordem correta
+        new EmpresaSeeder(context).Seed();
+        new GeneroSeeder(context).Seed();
+        new JogoSeeder(context).Seed();
+        new JogoGeneroSeeder(context).Seed();
+
+        Console.WriteLine("Seeders executados com sucesso!");
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Ocorreu um erro ao executar os seeders");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
