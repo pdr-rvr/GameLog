@@ -1,5 +1,6 @@
 using DotNetEnv;
 using GameLog_Backend.Database;
+using GameLog_Backend.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +29,8 @@ builder.Services.AddScoped<EmpresaSeeder>();
 
 builder.Services.AddDbContext<GameLogContext>(options =>
     options.UseSqlServer(completeConnectionString));
+
+builder.Services.AddScoped<JogoServices>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
