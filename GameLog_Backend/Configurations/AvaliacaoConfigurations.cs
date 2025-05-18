@@ -26,6 +26,9 @@ namespace GameLog_Backend.Configurations
                 .HasMaxLength(500)
                 .IsRequired();
 
+            builder.Property(p => p.DataPublicacao)
+                .IsRequired();
+
             builder.HasMany(e => e.CurtidasDeAvaliacao)
                 .WithOne()
                 .IsRequired();
