@@ -48,17 +48,19 @@ namespace GameLog_Backend.Services
 
             var claims = new[]
             {
-            new Claim(JwtRegisteredClaimNames.Sub, usuario.NomeUsuario),
-            new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("userId", usuario.Id.ToString())
-        };
+                new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()), 
+        
+                new Claim("nomeUsuario", usuario.NomeUsuario), 
+                new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        
+            };
 
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
                 claims: claims,
-                expires: DateTime.Now.AddHours(_jwtSettings.ExpireHours),
+                expires: DateTime.UtcNow.AddHours(_jwtSettings.ExpireHours), 
                 signingCredentials: credentials
             );
 

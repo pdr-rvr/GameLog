@@ -55,7 +55,6 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
-    // Garante que TODOS os endpoints requerem autenticação por padrão
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
@@ -71,6 +70,8 @@ builder.Services.AddScoped<JogoServices>();
 
 builder.Services.AddAutoMapper(typeof(UsuarioProfile));
 builder.Services.AddScoped<UsuarioServices>();
+builder.Services.AddAutoMapper(typeof(AvaliacaoProfile));
+builder.Services.AddScoped<AvaliacaoServices>();
 
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

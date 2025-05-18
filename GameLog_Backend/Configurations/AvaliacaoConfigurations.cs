@@ -18,6 +18,15 @@ namespace GameLog_Backend.Configurations
             builder.Property(e => e.Nota)
                 .IsRequired();
 
+            builder.ToTable(t => t.HasCheckConstraint(
+                "CK_Avaliacao_Nota_Range",
+                "[Nota] >= 0 AND [Nota] <= 5" 
+            ));
+
+            builder.Property(e => e.Nota)
+            .IsRequired()
+            .HasAnnotation("Range", new[] { 0, 5 });
+
             builder.HasOne(e => e.Jogo)
                 .WithMany()
                 .IsRequired();
