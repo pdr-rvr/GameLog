@@ -84,12 +84,12 @@ namespace GameLog_Backend.Services
 
         public async Task<UsuarioDTO> CriarUsuario(CriarUsuarioDTO usuarioDTO)
         {
-            if (await _context.Usuarios.AnyAsync(u => u.Email == usuarioDTO.Email))
+            if (await EmailEmUso(usuarioDTO.Email))
             {
                 throw new Exception("Email já está em uso");
             }
 
-            if (await _context.Usuarios.AnyAsync(u => u.NomeUsuario == usuarioDTO.NomeUsuario))
+            if (await NomeUsuarioEmUso(usuarioDTO.NomeUsuario))
             {
                 throw new Exception("Nome de usuário já está em uso");
             }
@@ -114,6 +114,61 @@ namespace GameLog_Backend.Services
         private bool VerificarSenha(string senha, string senhaHash)
         {
             return HashSenha(senha) == senhaHash;
+        }
+
+        public async Task<bool> EmailEmUso(string email)
+        {
+            return await _context.Usuarios
+                .AnyAsync(u => u.Email == email);
+        }
+
+        public async Task<bool> NomeUsuarioEmUso(string nomeUsuario)
+        {
+            return await _context.Usuarios
+                .AnyAsync(u => u.NomeUsuario == nomeUsuario);
+        }
+
+        public async Task<UsuarioDTO?> EditarUsuario(int id, string senhaAtual, EditarUsuarioDTO usuarioDTO)
+        {
+            var usuarioExistente = await _context.Usuarios.FindAsync(id);
+            if (usuarioExistente == null || !VerificarSenha(senhaAtual, usuarioExistente.Senha))
+            {
+                return null;
+            }
+
+            if (usuarioDTO.Email != usuarioExistente.Email && await EmailEmUso(usuarioDTO.Email))
+            {
+                throw new Exception("O novo email já está em uso por outro usuário");
+            }
+
+            if (usuarioDTO.NomeUsuario != usuarioExistente.NomeUsuario && await NomeUsuarioEmUso(usuarioDTO.NomeUsuario))
+            {
+                throw new Exception("O novo nome de usuário já está em uso");
+            }
+
+            _mapper.Map(usuarioDTO, usuarioExistente);
+
+            if (!string.IsNullOrEmpty(usuarioDTO.SenhaAtual))
+            {
+                usuarioExistente.Senha = HashSenha(usuarioDTO.NovaSenha);
+            }
+
+            await _context.SaveChangesAsync();
+            return _mapper.Map<UsuarioDTO>(usuarioExistente);
+        }
+
+        public async Task<bool> DeletarUsuario(int id, string senhaAtual)
+        {
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null || !VerificarSenha(senhaAtual, usuario.Senha))
+            {
+                return false;
+            }
+
+            usuario.EstaAtivo = false;
+            await _context.SaveChangesAsync();
+
+            return true;
         }
     }
 }
