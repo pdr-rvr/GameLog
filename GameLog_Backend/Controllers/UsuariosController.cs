@@ -83,5 +83,48 @@ namespace GameLog_Backend.Controllers
                 return StatusCode(500, new { message = ex.Message });
             }
         }
-    }
+
+		[HttpPut("{id}")]
+		public async Task<IActionResult> EditarUsuario(int id, [FromBody] EditarUsuarioDTO editarUsuarioDTO)
+		{
+			try
+			{
+				var usuarioAtualizado = await _usuarioServices.EditarUsuario(
+					id,
+					editarUsuarioDTO.SenhaAtual,
+					editarUsuarioDTO); // ← Passa o DTO diretamente
+
+				if (usuarioAtualizado == null)
+				{
+					return Unauthorized(new { message = "Senha incorreta ou usuário não encontrado" });
+				}
+
+				return Ok(usuarioAtualizado);
+			}
+			catch (Exception ex)
+			{
+				return BadRequest(new { message = ex.Message });
+			}
+		}
+
+		[HttpDelete("{id}")]
+		public async Task<IActionResult> DeletarUsuario(int id, [FromBody] DeletarUsuarioDTO deletarUsuarioDTO)
+		{
+			try
+			{
+				var sucesso = await _usuarioServices.DeletarUsuario(id, deletarUsuarioDTO.Senha);
+
+				if (!sucesso)
+				{
+					return Unauthorized(new { message = "Senha incorreta ou usuário não encontrado" });
+				}
+
+				return NoContent();
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, new { message = "Erro interno: " + ex.Message });
+			}
+		}
+	}
 }
