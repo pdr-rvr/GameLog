@@ -24,4 +24,18 @@ namespace GameLog_Backend.DTOs
         public string Email { get; set; }
         public string Senha { get; set; }
     }
+
+	public class EditarUsuarioDTO
+	{
+		public string NomeUsuario { get; set; }
+		public string Email { get; set; }
+		public string SenhaAtual { get; set; }
+		public string? NovaSenha { get; set; }
+		public string? FotoDePerfil { get; set; }
+	}
+
+	public class DeletarUsuarioDTO
+	{
+		public string Senha { get; set; }
+	}
 }
