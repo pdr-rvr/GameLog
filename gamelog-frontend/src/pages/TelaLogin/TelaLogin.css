@@ -1,0 +1,105 @@
+.login-page {
+  position: relative; /* Container principal */
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(86, 56, 106, 0.6);
+  z-index: 2; /* Fica ENTRE o fundo e o formulário */
+}
+
+.form-container {
+  z-index: 5;
+  width: 900px;
+  height: 650px;
+  transform: translateY(-110px); /* Move 50px para cima */
+}
+
+
+.form-content{
+  width: 80%;
+  height: 80%;
+}
+
+.login-title {
+  top: -80px;
+  font-family: 'Modak';
+  font-size: 80px;
+  color: #ffffff;
+  text-align: center;
+  letter-spacing:4px;
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Campos do formulário */
+.form-group {
+  margin-bottom: 3.5rem;
+}
+
+.form-group label {
+  font-size: 26px;
+  padding: 10px;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #3C3A3A;
+  font-weight: 600;
+  margin-left: 30px;
+  transform: translateY(40px);
+}
+
+.form-group input {
+  width: 85%;
+  margin: 30px;
+  border: none;
+  border-bottom: 2px solid #3C3A3A;
+  background: transparent;
+  font-size: 26px;
+  text-align: center;
+  transform: translateY(40px);
+  outline: none;
+  color: #000;
+}
+
+/* Botão estilizado */
+.login-button {
+  width: 50%;
+  padding: 30px;
+  background-color: #56386A;
+  color: white;
+  border-radius: 8px;
+  font-size: 30px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+  align-items: center;
+  margin: 0 auto;
+  transform: translateY(80px);
+}
+
+.login-button:hover {
+  background-color: #3a2549;
+}
+
+.form-box {
+  transform: translateY(-60px);
+  background-color: white;
+  border-radius: 50px;
+  height: 550px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  width: 900px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
