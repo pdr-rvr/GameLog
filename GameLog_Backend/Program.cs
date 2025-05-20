@@ -23,6 +23,14 @@ var completeConnectionString = baseConnectionString
     .Replace("{DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
     .Replace("{DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"));
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp",
+        builder => builder
+            .WithOrigins("http://localhost:3000")
+            .AllowAnyMethod()
+            .AllowAnyHeader());
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -79,6 +87,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseCors("AllowReactApp");
 
 using (var scope = app.Services.CreateScope())
 {
