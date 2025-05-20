@@ -2,27 +2,31 @@ import React, { useState } from 'react';
 import Background from '../../components/Background/Background';
 import FundoForm from '../../components/FundoForm/FundoFormLogin';
 import './TelaLogin.css';
+import { useNavigate } from 'react-router-dom';
+import { AuthService } from '../../services/authService';
 
 function TelaLogin() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
 
-    // Simulação de login
-    setTimeout(() => {
-      if (email === 'admin@exemplo.com' && senha === '123456') {
-        setMessage('Login bem-sucedido! (simulado)');
-      } else {
-        setMessage('Credenciais inválidas! Tente novamente.');
-      }
+    try {
+      await AuthService.login(email, senha);
+      setMessage('Login bem-sucedido!');
+      // Redireciona após 1 segundo
+      setTimeout(() => navigate('/dashboard'), 1000);
+    } catch (error) {
+      setMessage(error.message || 'Credenciais inválidas! Tente novamente.');
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (

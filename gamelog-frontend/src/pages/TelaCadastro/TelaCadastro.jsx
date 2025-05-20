@@ -2,28 +2,45 @@ import React, { useState } from 'react';
 import Background from '../../components/Background/Background';
 import FundoForm from '../../components/FundoForm/FundoFormCadastro';
 import './TelaCadastro.css';
+import { useNavigate } from 'react-router-dom';
+import { AuthService } from '../../services/authService';
 
-function TelaLogin() {
+function TelaCadastro() {
   const [email, setEmail] = useState('');
+  const [confEmail, setConfEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [confSenha, setConfSenha] = useState('');
+  const [nick, setNick] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [nick, setNick] = useState('');
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validações
+    if (email !== confEmail) {
+      setMessage('Os e-mails não coincidem!');
+      return;
+    }
+    
+    if (senha !== confSenha) {
+      setMessage('As senhas não coincidem!');
+      return;
+    }
+    
     setLoading(true);
     setMessage('');
 
-    // Simulação de login
-    setTimeout(() => {
-      if (email === 'admin@exemplo.com' && senha === '123456') {
-        setMessage('Login bem-sucedido! (simulado)');
-      } else {
-        setMessage('Credenciais inválidas! Tente novamente.');
-      }
+    try {
+      await AuthService.register(nick, email, senha);
+      setMessage('Cadastro realizado com sucesso! Faça login.');
+      setTimeout(() => navigate('/login'), 1500);
+    } catch (error) {
+      setMessage(error.message || 'Erro ao cadastrar. Tente novamente.');
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -113,4 +130,4 @@ function TelaLogin() {
   );
 }
 
-export default TelaLogin;
+export default TelaCadastro;
