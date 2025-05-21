@@ -1,5 +1,6 @@
 ﻿using GameLog_Backend.DTOs;
 using GameLog_Backend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 
@@ -16,6 +17,7 @@ namespace GameLog_Backend.Controllers
             _jogoServices = jogoServices;
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult ListarTodosJogos()
         {
