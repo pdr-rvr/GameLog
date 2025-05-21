@@ -1,105 +1,133 @@
-.login-page-cad {
-  position: relative; /* Container principal */
+.auth-page {
+  position: relative;
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.login-overlay-cad {
+.auth-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   background-color: rgba(86, 56, 106, 0.6);
-  z-index: 2; /* Fica ENTRE o fundo e o formulário */
+  z-index: 2;
 }
 
-.form-container-cad {
+.auth-container {
   z-index: 5;
   width: 900px;
   height: 650px;
-  transform: translateY(-160px);
+  transform: translateY(-110px);
 }
 
-.form-content-cad{
+.auth-content {
   width: 80%;
   height: 80%;
+  margin: 0 auto;
 }
 
-
-.login-title-cad {
-  top: -80px;
+.auth-title {
   font-family: 'Modak';
   font-size: 80px;
   color: #ffffff;
   text-align: center;
   letter-spacing: 4px;
   text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
 }
 
-
-.form-group-cad {
-  margin-bottom: 1px;
-}
-
-.form-group-cad label {
-  font-size: 18px;
-  padding: 2px;
-  display: block;
-  margin-bottom: 0.2rem;
-  color: #3C3A3A;
-  font-weight: 600;
-  margin-left: 30px;
-  transform: translateY(40px);
-}
-
-.form-group-cad input {
-  width: 85%;
-  margin: 30px;
-  border: none;
-  border-bottom: 2px solid #3C3A3A;
-  background: transparent;
-  font-size: 18px;
-  text-align: center;
-  transform: translateY(10px);
-  outline: none;
-  color: #000;
-}
-
-.login-button-cad {
-  width: 50%;
-  padding: 30px;
-  background-color: #56386A;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 30px;
-  font-weight: bold;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: all 0.3s;
-  align-items: center;
-  margin: 0 auto;
-  transform: translateY(10px);
-}
-
-.login-button-cad:hover {
-  background-color: #3a2549;
-}
-
-.form-box-cad {
-  transform: translateY(-60px);
+.auth-box {
   background-color: white;
   border-radius: 50px;
   height: 650px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  width: 900px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.button-container-cad {
-  display: flex;
-  justify-content: center;
+.form-group {
+  height: 68px;
+  margin-bottom: 2.5rem;
+}
+
+.form-group label {
+  font-size: 26px;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #3C3A3A;
+  font-weight: 600;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-bottom: 2px solid #3C3A3A;
+  background: transparent;
+  font-size: 22px;
+  color: #000;
+  outline: none;
+}
+
+.auth-button {
+  width: 100%;
+  padding: 20px;
+  background-color: #56386A;
+  color: white;
+  border-radius: 8px;
+  font-size: 26px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 30px;
+  transition: background-color 0.3s;
+}
+
+.auth-button:hover {
+  background-color: #3a2549;
+}
+
+.auth-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.auth-message {
   margin-top: 20px;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.auth-message.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.auth-message.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.auth-link {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 18px;
+  color: #3C3A3A;
+}
+
+.auth-link a {
+  color: #56386A;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.auth-link a:hover {
+  text-decoration: underline;
 }
