@@ -30,8 +30,8 @@ function TelaLogin() {
         senha: formData.senha
       });
       
-      setMessage({ text: 'Login bem-sucedido! Redirecionando...', type: 'success' });
-      setTimeout(() => navigate('/dashboard'), 1000);
+      setMessage({ text: 'Login bem-sucedido!', type: 'success' });
+      setTimeout(() => navigate('/home'), 1000);
     } catch (error) {
       setMessage({ text: error.message || 'Credenciais inválidas! Tente novamente.', type: 'error' });
     } finally {

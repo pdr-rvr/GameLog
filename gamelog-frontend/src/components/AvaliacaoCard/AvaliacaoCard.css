@@ -1,0 +1,49 @@
+.avaliacao-card {
+  background-color: white;
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.jogo-nome {
+  font-weight: 600;
+  color: #56386A;
+  font-size: 18px;
+}
+
+.avaliacao-data {
+  color: #777;
+  font-size: 14px;
+}
+
+.card-estrelas {
+  margin-bottom: 10px;
+}
+
+.estrela {
+  font-size: 20px;
+  color: #FFD700;
+  margin-right: 3px;
+}
+
+.card-texto {
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.usuario-nome {
+  font-style: italic;
+  color: #555;
+}

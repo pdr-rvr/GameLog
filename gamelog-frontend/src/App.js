@@ -1,7 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/TelaLogin/TelaLogin';
-import Cadastro from './pages/TelaCadastro/TelaCadastro.jsx'
+import Cadastro from './pages/TelaCadastro/TelaCadastro';
+import Home from './pages/TelaHome/TelaHome';
+import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
 function App() {
   return (
@@ -9,8 +11,15 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Cadastro />} />
-        {/* Você pode adicionar uma rota padrão para redirecionar */}
-        <Route path="/" element={<Login />} />
+        <Route 
+          path="/home" 
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="/" element={<Navigate to="/home" replace />} />
       </Routes>
     </Router>
   );
