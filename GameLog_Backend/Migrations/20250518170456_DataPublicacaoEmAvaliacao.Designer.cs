@@ -4,6 +4,7 @@ using GameLog_Backend.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GameLog_Backend.Migrations
 {
     [DbContext(typeof(GameLogContext))]
-    partial class GameLogContextModelSnapshot : ModelSnapshot
+    [Migration("20250518170456_DataPublicacaoEmAvaliacao")]
+    partial class DataPublicacaoEmAvaliacao
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,8 +44,7 @@ namespace GameLog_Backend.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Nota")
-                        .HasColumnType("int")
-                        .HasAnnotation("Range", new[] { 0, 5 });
+                        .HasColumnType("int");
 
                     b.Property<string>("TextoAvaliacao")
                         .IsRequired()
@@ -58,10 +60,7 @@ namespace GameLog_Backend.Migrations
 
                     b.HasIndex("UsuarioId");
 
-                    b.ToTable("Avaliacoes", t =>
-                        {
-                            t.HasCheckConstraint("CK_Avaliacao_Nota_Range", "[Nota] >= 0 AND [Nota] <= 5");
-                        });
+                    b.ToTable("Avaliacoes");
                 });
 
             modelBuilder.Entity("GameLog_Backend.Entities.CurtidaDeAvaliacao", b =>
