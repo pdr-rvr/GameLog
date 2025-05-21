@@ -65,38 +65,67 @@ namespace GameLog_Backend.Services
 
         public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoes()
         {
-            var avaliacoes = await _context.Avaliacoes
+            return await _context.Avaliacoes
                 .Where(a => a.EstaAtivo)
                 .OrderByDescending(a => a.DataPublicacao)
-                .Include(a => a.CurtidasDeAvaliacao)
+                .Select(a => new AvaliacaoDTO
+                {
+                    AvaliacaoId = a.Id,
+                    Nota = a.Nota,
+                    JogoId = a.Jogo.Id,
+                    NomeJogo = a.Jogo.Titulo,
+                    NomeUsuario = _context.Usuarios
+                        .Where(u => u.Avaliacoes.Any(av => av.Id == a.Id))
+                        .Select(u => u.NomeUsuario)
+                        .FirstOrDefault(),
+                    TextoAvaliacao = a.TextoAvaliacao,
+                    DataPublicacao = a.DataPublicacao,
+                    TotalCurtidas = a.CurtidasDeAvaliacao.Count
+                })
                 .ToListAsync();
-
-            return _mapper.Map<IEnumerable<AvaliacaoDTO>>(avaliacoes);
         }
 
         public async Task<AvaliacaoDTO?> ObterAvaliacaoPorId(int id)
         {
-            var avaliacao = await _context.Avaliacoes
-                .Include(a => a.CurtidasDeAvaliacao)
-                .FirstOrDefaultAsync(a => a.Id == id && a.EstaAtivo);
-
-            return avaliacao != null ? _mapper.Map<AvaliacaoDTO>(avaliacao) : null;
+            return await _context.Avaliacoes
+                .Where(a => a.Id == id && a.EstaAtivo)
+                .Select(a => new AvaliacaoDTO
+                {
+                    AvaliacaoId = a.Id,
+                    Nota = a.Nota,
+                    JogoId = a.Jogo.Id,
+                    NomeJogo = a.Jogo.Titulo,
+                    NomeUsuario = _context.Usuarios
+                        .Where(u => u.Avaliacoes.Any(av => av.Id == a.Id))
+                        .Select(u => u.NomeUsuario)
+                        .FirstOrDefault(),
+                    TextoAvaliacao = a.TextoAvaliacao,
+                    DataPublicacao = a.DataPublicacao,
+                    TotalCurtidas = a.CurtidasDeAvaliacao.Count
+                })
+                .FirstOrDefaultAsync();
         }
-
         public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorUsuario(int usuarioId)
         {
+            var NomeUsuario = _context.Usuarios
+                .Where(u => u.Id == usuarioId)
+                .Select(u => u.NomeUsuario)
+                .FirstOrDefault();
+
             var avaliacoes = await _context.Usuarios
                 .Where(u => u.Id == usuarioId)
                 .SelectMany(u => u.Avaliacoes)
                 .Where(a => a.EstaAtivo)
                 .OrderByDescending(a => a.DataPublicacao)
-                .Include(a => a.Jogo)  
+                .Include(a => a.Jogo)
                 .Include(a => a.CurtidasDeAvaliacao)
                 .Select(a => new AvaliacaoDTO
                 {
                     AvaliacaoId = a.Id,
                     Nota = a.Nota,
                     JogoId = a.Jogo.Id,
+                    NomeJogo = a.Jogo.Titulo,  
+                    NomeUsuario = NomeUsuario,  
                     TextoAvaliacao = a.TextoAvaliacao,
                     DataPublicacao = a.DataPublicacao,
                     TotalCurtidas = a.CurtidasDeAvaliacao.Count

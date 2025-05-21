@@ -6,6 +6,8 @@
         public int Nota { get; set; }
         public int JogoId { get; set; }
         public string TextoAvaliacao { get; set; }
+        public string NomeJogo { get; set; } 
+        public string NomeUsuario { get; set; }
         public DateTime DataPublicacao { get; set; }
         public int TotalCurtidas { get; set; }
     }
