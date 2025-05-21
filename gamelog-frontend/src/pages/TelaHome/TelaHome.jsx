@@ -14,6 +14,7 @@ function TelaHome() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [usuario, setUsuario] = useState(null);
+  const [showForm, setShowForm] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -65,7 +66,8 @@ function TelaHome() {
     try {
       setLoading(true);
       await criarAvaliacao(avaliacaoData);
-      await carregarDados();
+      await carregarDados(); 
+      setShowForm(false);
       setError('');
     } catch (err) {
       setError(err.message || 'Erro ao criar avaliação');
@@ -83,13 +85,31 @@ function TelaHome() {
       />
 
       <div className="home-content">
-        <FormAvaliacao 
-          jogos={jogos} 
-          onSubmit={handleSubmitAvaliacao} 
-          loading={loading}
-          error={error}
-        />
+        {/* Botão flutuante para nova avaliação */}
+        {!showForm && (
+          <button 
+            className="floating-button"
+            onClick={() => setShowForm(true)}
+            aria-label="Criar nova avaliação"
+          >
+            +
+          </button>
+        )}
 
+        {/* Formulário sobreposto quando aberto */}
+        {showForm && (
+          <div className="form-overlay">
+            <FormAvaliacao 
+              jogos={jogos} 
+              onSubmit={handleSubmitAvaliacao} 
+              loading={loading}
+              error={error}
+              onCancel={() => setShowForm(false)}
+            />
+          </div>
+        )}
+
+        {/* Feed de avaliações - sempre visível */}
         <div className="avaliacoes-feed">
           {loading && <div className="loading">Carregando...</div>}
           
@@ -101,16 +121,12 @@ function TelaHome() {
             </div>
           )}
 
-          {avaliacoes.map(avaliacao => {
-            const jogo = jogos.find(j => j.jogoId === avaliacao.jogoId);
-            return (
-              <AvaliacaoCard 
-                key={avaliacao.avaliacaoId} 
-                avaliacao={avaliacao} 
-                jogo={jogo} 
-              />
-            );
-          })}
+          {avaliacoes.map(avaliacao => (
+            <AvaliacaoCard 
+              key={avaliacao.avaliacaoId} 
+              avaliacao={avaliacao} 
+            />
+          ))}
         </div>
       </div>
     </div>

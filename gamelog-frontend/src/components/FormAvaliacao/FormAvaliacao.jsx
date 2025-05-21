@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './FormAvaliacao.css';
 
-const FormAvaliacao = ({ jogos, onSubmit, loading, error }) => {
+const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
   const [avaliacao, setAvaliacao] = useState({
     jogoId: '',
     nota: 0,
@@ -13,25 +13,48 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error }) => {
     onSubmit(avaliacao);
   };
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setAvaliacao(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleNotaChange = (nota) => {
+    setAvaliacao(prev => ({ ...prev, nota }));
+  };
+
   return (
     <div className="form-avaliacao">
-      <h3>Criar Nova Avaliação</h3>
+      <div className="form-header">
+        <h3>Criar Nova Avaliação</h3>
+        <button 
+          className="close-button" 
+          onClick={onCancel}
+          aria-label="Fechar formulário"
+        >
+          &times;
+        </button>
+      </div>
+
       <form onSubmit={handleSubmit}>
         <div className="form-group">
+          <label htmlFor="jogoId">Selecione um jogo:</label>
           <select
+            id="jogoId"
+            name="jogoId"
             value={avaliacao.jogoId}
-            onChange={(e) => setAvaliacao({...avaliacao, jogoId: e.target.value})}
+            onChange={handleChange}
             required
+            disabled={loading}
           >
             <option value="">Selecione um jogo</option>
-            {jogos.map(jogo => (
+            {Array.isArray(jogos) && jogos.map(jogo => (
               <option key={jogo.jogoId} value={jogo.jogoId}>
                 {jogo.titulo}
               </option>
             ))}
           </select>
         </div>
-        
+
         <div className="form-group">
           <label>Nota:</label>
           <div className="estrelas-container">
@@ -39,33 +62,61 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error }) => {
               <span 
                 key={i}
                 className={`estrela ${i <= avaliacao.nota ? 'preenchida' : ''}`}
-                onClick={() => setAvaliacao({...avaliacao, nota: i})}
+                onClick={() => !loading && handleNotaChange(i)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    !loading && handleNotaChange(i);
+                  }
+                }}
+                tabIndex={0}
+                aria-label={`Nota ${i}`}
               >
                 {i <= avaliacao.nota ? '★' : '☆'}
               </span>
             ))}
           </div>
         </div>
-        
+
         <div className="form-group">
+          <label htmlFor="textoAvaliacao">Escreva sua avaliação:</label>
           <textarea
-            placeholder="Escreva sua avaliação (máx. 500 caracteres)"
+            id="textoAvaliacao"
+            name="textoAvaliacao"
+            placeholder="Digite sua avaliação (máx. 500 caracteres)"
             value={avaliacao.textoAvaliacao}
             onChange={(e) => {
               if (e.target.value.length <= 500) {
-                setAvaliacao({...avaliacao, textoAvaliacao: e.target.value});
+                handleChange(e);
               }
             }}
             maxLength="500"
             required
+            disabled={loading}
           />
-          <small>{avaliacao.textoAvaliacao.length}/500 caracteres</small>
+          <div className="contador-caracteres">
+            {avaliacao.textoAvaliacao.length}/500 caracteres
+          </div>
         </div>
-        
-        <button type="submit" disabled={loading}>
-          {loading ? 'Publicando...' : 'Publicar Avaliação'}
-        </button>
+
         {error && <div className="error-message">{error}</div>}
+
+        <div className="form-actions">
+          <button
+            type="submit"
+            className="submit-button"
+            disabled={loading || !avaliacao.jogoId || !avaliacao.textoAvaliacao}
+          >
+            {loading ? (
+              <>
+                <span className="spinner"></span>
+                Publicando...
+              </>
+            ) : (
+              'Publicar Avaliação'
+            )}
+          </button>
+        </div>
       </form>
     </div>
   );
