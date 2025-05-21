@@ -8,8 +8,18 @@
 
 .card-header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   margin-bottom: 10px;
+}
+
+.card-jogo-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.card-usuario-info {
+  text-align: right;
 }
 
 .jogo-nome {
@@ -23,19 +33,26 @@
   font-size: 14px;
 }
 
+.usuario-nome {
+  color: #555;
+  font-style: italic;
+  font-size: 14px;
+}
+
 .card-estrelas {
-  margin-bottom: 10px;
+  margin: 10px 0;
 }
 
 .estrela {
-  font-size: 20px;
   color: #FFD700;
+  font-size: 20px;
   margin-right: 3px;
 }
 
 .card-texto {
   margin-bottom: 15px;
   line-height: 1.5;
+  color: #333;
 }
 
 .card-footer {
@@ -43,7 +60,7 @@
   justify-content: flex-end;
 }
 
-.usuario-nome {
-  font-style: italic;
-  color: #555;
+.curtidas {
+  color: #777;
+  font-size: 14px;
 }

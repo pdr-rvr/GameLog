@@ -1,9 +1,23 @@
 import api from '../../../services/api';
 
-export const buscarAvaliacoes = async () => {
+export const buscarAvaliacoes = async (usuarioId = null) => {
   try {
-    const response = await api.get('/Avaliacoes');
-    return response.data.$values || Array.isArray(response.data) ? response.data : [];
+    const endpoint = usuarioId 
+      ? `/Avaliacoes/usuario/${usuarioId}`
+      : '/Avaliacoes';
+    
+    const response = await api.get(endpoint);
+    const dados = response.data.$values || response.data;
+    
+    return Array.isArray(dados) 
+      ? dados.map(avaliacao => ({
+          ...avaliacao,
+          avaliacaoId: avaliacao.avaliacaoId || avaliacao.id,
+          jogoId: avaliacao.jogoId,
+          usuarioId: avaliacao.usuarioId,
+          usuarioNome: avaliacao.usuarioNome || "Usuário Anônimo"
+        }))
+      : [];
   } catch (error) {
     console.error('Erro ao buscar avaliações:', error);
     throw new Error('Não foi possível carregar as avaliações');
@@ -14,13 +28,7 @@ export const buscarJogos = async () => {
   try {
     const response = await api.get('/Jogos');
     const dados = response.data.$values || response.data;
-    return Array.isArray(dados) 
-      ? dados.map(jogo => ({
-          jogoId: jogo.jogoId,
-          titulo: jogo.titulo,
-          descricao: jogo.descricao,
-        }))
-      : [];
+    return Array.isArray(dados) ? dados : [];
   } catch (error) {
     console.error('Erro ao buscar jogos:', error);
     throw new Error('Não foi possível carregar a lista de jogos');

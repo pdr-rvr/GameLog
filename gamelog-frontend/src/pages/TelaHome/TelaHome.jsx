@@ -35,31 +35,33 @@ function TelaHome() {
   }, [navigate]);
 
   const carregarDados = async () => {
-    setLoading(true);
-    try {
-      const [avaliacoesData, jogosData] = await Promise.all([
-        buscarAvaliacoes(),
-        buscarJogos()
-      ]);
-      
-      console.log('Jogos recebidos:', jogosData);
-      
-      setAvaliacoes(Array.isArray(avaliacoesData) ? avaliacoesData : []);
-      setJogos(Array.isArray(jogosData) ? jogosData : []);
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err);
-      setError('Erro ao carregar dados');
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  try {
+    const [jogosData, avaliacoesData] = await Promise.all([
+      buscarJogos(),
+      buscarAvaliacoes(activeTab === 'minhas' ? usuario?.userId : null)
+    ]);
+    
+    console.log('Dados recebidos - Jogos:', jogosData);
+    console.log('Dados recebidos - Avaliações:', avaliacoesData);
+    
+    setJogos(jogosData);
+    setAvaliacoes(avaliacoesData);
+  } catch (err) {
+    console.error('Erro ao carregar dados:', err);
+    setError('Erro ao carregar dados');
+  } finally {
+    setLoading(false);
+  }
+};
+
+  useEffect(() => {
+    if (usuario) {
+      carregarDados();
     }
-  };
+  }, [activeTab]);
 
   const handleSubmitAvaliacao = async (avaliacaoData) => {
-    if (!avaliacaoData.jogoId || !avaliacaoData.textoAvaliacao) {
-      setError('Preencha todos os campos');
-      return;
-    }
-
     try {
       setLoading(true);
       await criarAvaliacao(avaliacaoData);
@@ -71,12 +73,6 @@ function TelaHome() {
       setLoading(false);
     }
   };
-
-  const avaliacoesFiltradas = Array.isArray(avaliacoes) 
-    ? (activeTab === 'home' 
-        ? avaliacoes 
-        : avaliacoes.filter(av => av.usuarioId === usuario?.userId))
-    : [];
 
   return (
     <div className="home-container">
@@ -97,7 +93,7 @@ function TelaHome() {
         <div className="avaliacoes-feed">
           {loading && <div className="loading">Carregando...</div>}
           
-          {avaliacoesFiltradas.length === 0 && !loading && (
+          {avaliacoes.length === 0 && !loading && (
             <div className="sem-avaliacoes">
               {activeTab === 'home' 
                 ? 'Nenhuma avaliação encontrada' 
@@ -105,14 +101,11 @@ function TelaHome() {
             </div>
           )}
 
-          {avaliacoesFiltradas.map(avaliacao => {
-            const jogo = Array.isArray(jogos) 
-              ? jogos.find(j => j.jogoId === avaliacao.jogoId)
-              : null;
-              
+          {avaliacoes.map(avaliacao => {
+            const jogo = jogos.find(j => j.jogoId === avaliacao.jogoId);
             return (
               <AvaliacaoCard 
-                key={avaliacao.avaliacaoId || avaliacao.id} 
+                key={avaliacao.avaliacaoId} 
                 avaliacao={avaliacao} 
                 jogo={jogo} 
               />

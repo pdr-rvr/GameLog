@@ -15,18 +15,6 @@ const Navbar = ({ activeTab, setActiveTab, usuario }) => {
         >
           Home
         </button>
-        <button 
-          className={`tab-button ${activeTab === 'minhas' ? 'active' : ''}`}
-          onClick={() => setActiveTab('minhas')}
-        >
-          Minhas Avaliações
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'perfil' ? 'active' : ''}`}
-          onClick={() => navigate('/perfil')}
-        >
-          Perfil
-        </button>
       </div>
       <div className="navbar-user">
         {usuario?.nomeUsuario || 'Usuário'}
