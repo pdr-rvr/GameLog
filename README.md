@@ -106,10 +106,7 @@ cd GameLog-FrontEnd/gamelog-frontend
 2. Instale as dependências do projeto:
 npm install
 
-3. Crie um arquivo .env na raiz da pasta gamelog-frontend com o seguinte conteúdo:
-REACT_APP_API_URL=http://localhost:7096
-
-4. Inicie o servidor de desenvolvimento:
+3. Inicie o servidor de desenvolvimento:
 npm start
 
 O navegador abrirá automaticamente em:
