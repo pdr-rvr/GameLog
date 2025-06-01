@@ -6,11 +6,5 @@
         public string Email { get; set; }
         public string Senha { get; set; }
         public string FotoDePerfil { get; set; }
-        public virtual ICollection<Avaliacao> Avaliacoes { get; set; }
-
-        public Usuario()
-        {
-            Avaliacoes = new List<Avaliacao>();
-        }
     }
 }

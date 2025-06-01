@@ -31,6 +31,10 @@ namespace GameLog_Backend.Configurations
                 .WithMany()
                 .IsRequired();
 
+            builder.HasOne(e => e.Usuario)
+                .WithMany()
+                .IsRequired();
+
             builder.Property(p => p.TextoAvaliacao)
                 .HasMaxLength(500)
                 .IsRequired();
