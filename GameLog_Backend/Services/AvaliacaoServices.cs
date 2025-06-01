@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using AutoMapper;
+﻿using AutoMapper;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
@@ -31,19 +27,13 @@ namespace GameLog_Backend.Services
 
         private async Task VerificarAvaliacaoDuplicada(int usuarioId, int jogoId)
         {
-            var usuarioComAvaliacoes = await _context.Usuarios
-                .Include(u => u.Avaliacoes)
-                .ThenInclude(a => a.Jogo)
-                .FirstOrDefaultAsync(u => u.Id == usuarioId);
+            var avaliacaoExistente = await _context.Avaliacoes
+                .AnyAsync(a => a.Usuario.Id == usuarioId &&
+                              a.Jogo.Id == jogoId &&
+                              a.EstaAtivo);
 
-            if (usuarioComAvaliacoes == null)
-                throw new Exception("Usuário não encontrado");
-
-            if (usuarioComAvaliacoes.Avaliacoes.Any(a =>
-                a.Jogo != null && a.Jogo.Id == jogoId && a.EstaAtivo))
-            {
+            if (avaliacaoExistente)
                 throw new Exception("Você já possui uma avaliação ativa para este jogo");
-            }
         }
 
         public async Task<AvaliacaoDTO> CriarAvaliacao(CriarAvaliacaoDTO avaliacaoDTO, int usuarioId)
@@ -55,12 +45,12 @@ namespace GameLog_Backend.Services
             avaliacao.DataPublicacao = DateTime.UtcNow;
             avaliacao.EstaAtivo = true;
             avaliacao.Jogo = await _context.Jogos.FindAsync(avaliacaoDTO.JogoId);
+            avaliacao.Usuario = await _context.Usuarios.FindAsync(usuarioId);
 
-            var usuario = await _context.Usuarios.FindAsync(usuarioId);
-            usuario?.Avaliacoes.Add(avaliacao);
-
+            _context.Avaliacoes.Add(avaliacao);
             await _context.SaveChangesAsync();
-            return _mapper.Map<AvaliacaoDTO>(avaliacao);
+
+            return await ObterAvaliacaoDto(avaliacao.Id);
         }
 
         public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoes()
@@ -74,10 +64,7 @@ namespace GameLog_Backend.Services
                     Nota = a.Nota,
                     JogoId = a.Jogo.Id,
                     NomeJogo = a.Jogo.Titulo,
-                    NomeUsuario = _context.Usuarios
-                        .Where(u => u.Avaliacoes.Any(av => av.Id == a.Id))
-                        .Select(u => u.NomeUsuario)
-                        .FirstOrDefault(),
+                    NomeUsuario = a.Usuario.NomeUsuario,
                     TextoAvaliacao = a.TextoAvaliacao,
                     DataPublicacao = a.DataPublicacao,
                     TotalCurtidas = a.CurtidasDeAvaliacao.Count
@@ -95,52 +82,39 @@ namespace GameLog_Backend.Services
                     Nota = a.Nota,
                     JogoId = a.Jogo.Id,
                     NomeJogo = a.Jogo.Titulo,
-                    NomeUsuario = _context.Usuarios
-                        .Where(u => u.Avaliacoes.Any(av => av.Id == a.Id))
-                        .Select(u => u.NomeUsuario)
-                        .FirstOrDefault(),
+                    NomeUsuario = a.Usuario.NomeUsuario,
                     TextoAvaliacao = a.TextoAvaliacao,
                     DataPublicacao = a.DataPublicacao,
                     TotalCurtidas = a.CurtidasDeAvaliacao.Count
                 })
                 .FirstOrDefaultAsync();
         }
+
         public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorUsuario(int usuarioId)
         {
-            var NomeUsuario = _context.Usuarios
-                .Where(u => u.Id == usuarioId)
-                .Select(u => u.NomeUsuario)
-                .FirstOrDefault();
-
-            var avaliacoes = await _context.Usuarios
-                .Where(u => u.Id == usuarioId)
-                .SelectMany(u => u.Avaliacoes)
-                .Where(a => a.EstaAtivo)
+            return await _context.Avaliacoes
+                .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
                 .OrderByDescending(a => a.DataPublicacao)
-                .Include(a => a.Jogo)
-                .Include(a => a.CurtidasDeAvaliacao)
                 .Select(a => new AvaliacaoDTO
                 {
                     AvaliacaoId = a.Id,
                     Nota = a.Nota,
                     JogoId = a.Jogo.Id,
-                    NomeJogo = a.Jogo.Titulo,  
-                    NomeUsuario = NomeUsuario,  
+                    NomeJogo = a.Jogo.Titulo,
+                    NomeUsuario = a.Usuario.NomeUsuario,
                     TextoAvaliacao = a.TextoAvaliacao,
                     DataPublicacao = a.DataPublicacao,
                     TotalCurtidas = a.CurtidasDeAvaliacao.Count
                 })
                 .ToListAsync();
-
-            return avaliacoes;
         }
 
         public async Task<AvaliacaoDTO?> EditarAvaliacao(int id, EditarAvaliacaoDTO avaliacaoDTO, int usuarioId)
         {
-            var avaliacao = await _context.Usuarios
-                .Where(u => u.Id == usuarioId)
-                .SelectMany(u => u.Avaliacoes)
-                .FirstOrDefaultAsync(a => a.Id == id && a.EstaAtivo);
+            var avaliacao = await _context.Avaliacoes
+                .FirstOrDefaultAsync(a => a.Id == id &&
+                                        a.Usuario.Id == usuarioId &&
+                                        a.EstaAtivo);
 
             if (avaliacao == null)
                 return null;
@@ -148,23 +122,41 @@ namespace GameLog_Backend.Services
             _mapper.Map(avaliacaoDTO, avaliacao);
             await _context.SaveChangesAsync();
 
-            return _mapper.Map<AvaliacaoDTO>(avaliacao);
+            return await ObterAvaliacaoDto(avaliacao.Id);
         }
 
         public async Task<bool> DeletarAvaliacao(int id, int usuarioId)
         {
-            var avaliacao = await _context.Usuarios
-                .Where(u => u.Id == usuarioId)
-                .SelectMany(u => u.Avaliacoes)
-                .FirstOrDefaultAsync(a => a.Id == id && a.EstaAtivo);
+            var avaliacao = await _context.Avaliacoes
+                .FirstOrDefaultAsync(a => a.Id == id &&
+                                        a.Usuario.Id == usuarioId &&
+                                        a.EstaAtivo);
 
             if (avaliacao == null)
                 return false;
 
-            avaliacao.EstaAtivo = false; 
+            avaliacao.EstaAtivo = false;
             await _context.SaveChangesAsync();
 
             return true;
+        }
+
+        private async Task<AvaliacaoDTO> ObterAvaliacaoDto(int id)
+        {
+            return await _context.Avaliacoes
+                .Where(a => a.Id == id)
+                .Select(a => new AvaliacaoDTO
+                {
+                    AvaliacaoId = a.Id,
+                    Nota = a.Nota,
+                    JogoId = a.Jogo.Id,
+                    NomeJogo = a.Jogo.Titulo,
+                    NomeUsuario = a.Usuario.NomeUsuario,
+                    TextoAvaliacao = a.TextoAvaliacao,
+                    DataPublicacao = a.DataPublicacao,
+                    TotalCurtidas = a.CurtidasDeAvaliacao.Count
+                })
+                .FirstAsync();
         }
     }
 }
