@@ -297,13 +297,15 @@ namespace GameLog_Backend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("GameLog_Backend.Entities.Usuario", null)
-                        .WithMany("Avaliacoes")
+                    b.HasOne("GameLog_Backend.Entities.Usuario", "Usuario")
+                        .WithMany()
                         .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Jogo");
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("GameLog_Backend.Entities.CurtidaDeAvaliacao", b =>
@@ -374,11 +376,6 @@ namespace GameLog_Backend.Migrations
                     b.Navigation("CurtidasDeAvaliacao");
 
                     b.Navigation("RespostasDeAvaliacao");
-                });
-
-            modelBuilder.Entity("GameLog_Backend.Entities.Usuario", b =>
-                {
-                    b.Navigation("Avaliacoes");
                 });
 #pragma warning restore 612, 618
         }

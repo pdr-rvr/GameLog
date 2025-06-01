@@ -126,5 +126,20 @@ namespace GameLog_Backend.Controllers
 				return StatusCode(500, new { message = "Erro interno: " + ex.Message });
 			}
 		}
-	}
+
+        [HttpGet("{id}/recomendacoes")]
+        [Authorize]
+        public async Task<IActionResult> ObterRecomendacoes(int id)
+        {
+            try
+            {
+                var recomendacoes = await _usuarioServices.RecomendarJogos(id);
+                return Ok(recomendacoes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao gerar recomendações: " + ex.Message });
+            }
+        }
+    }
 }

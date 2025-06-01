@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace GameLog_Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class PrimeiraMigration : Migration
+    public partial class Estrutura : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -116,13 +116,15 @@ namespace GameLog_Backend.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Nota = table.Column<int>(type: "int", nullable: false),
                     JogoId = table.Column<int>(type: "int", nullable: false),
-                    TextoAvaliacao = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     UsuarioId = table.Column<int>(type: "int", nullable: false),
+                    TextoAvaliacao = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    DataPublicacao = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EstaAtivo = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Avaliacoes", x => x.AvaliacaoId);
+                    table.CheckConstraint("CK_Avaliacao_Nota_Range", "[Nota] >= 0 AND [Nota] <= 5");
                     table.ForeignKey(
                         name: "FK_Avaliacoes_Jogos_JogoId",
                         column: x => x.JogoId,

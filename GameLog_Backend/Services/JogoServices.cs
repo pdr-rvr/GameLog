@@ -34,5 +34,30 @@ namespace GameLog_Backend.Services
 
             return jogos;
         }
+
+        public IEnumerable<JogoDTO> ListarTop3JogosMelhorAvaliados()
+        {
+            var topJogos = context.Avaliacoes
+                .Where(a => a.EstaAtivo && a.Jogo.EstaAtivo)
+                .GroupBy(a => a.Jogo)
+                .Select(g => new JogoDTO
+                {
+                    JogoId = g.Key.Id,
+                    Titulo = g.Key.Titulo,
+                    Descricao = g.Key.Descricao,
+                    Imagem = g.Key.Imagem,
+                    DataLancamento = g.Key.DataLancamento,
+                    ClassificacaoIndicativa = g.Key.ClassificacaoIndicativa,
+                    EmpresaId = g.Key.Empresa.Id,
+                    EstaAtivo = g.Key.EstaAtivo,
+                    MediaAvaliacoes = g.Average(a => a.Nota)
+                })
+                .OrderByDescending(j => j.MediaAvaliacoes)
+                .ThenByDescending(j => j.DataLancamento) 
+                .Take(3)
+                .ToList();
+
+            return topJogos;
+        }
     }
 }
