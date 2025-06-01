@@ -31,5 +31,20 @@ namespace GameLog_Backend.Controllers
                 return StatusCode(500, new { message = "Internal server error: " + ex.Message });
             }
         }
+
+        [AllowAnonymous]
+        [HttpGet("top-3-avaliados")]
+        public IActionResult ListarTop3MelhorAvaliados()
+        {
+            try
+            {
+                var jogos = _jogoServices.ListarTop3JogosMelhorAvaliados();
+                return Ok(jogos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error: " + ex.Message });
+            }
+        }
     }
 }

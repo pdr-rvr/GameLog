@@ -12,5 +12,6 @@ namespace GameLog_Backend.DTOs
         public int ClassificacaoIndicativa { get; set; }
         public int EmpresaId { get; set; }
         public bool EstaAtivo { get; set; }
+        public double? MediaAvaliacoes { get; set; }
     }
 }
