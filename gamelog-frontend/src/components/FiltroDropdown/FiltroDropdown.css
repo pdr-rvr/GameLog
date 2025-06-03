@@ -1,0 +1,101 @@
+.filtro-dropdown {
+    position: relative;
+    display: inline-block;
+    margin-right: 15px; 
+}
+
+.dropdown-toggle {
+    background-color: #4a4a4a; 
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-toggle:hover {
+    background-color: #5a5a5a;
+}
+
+.dropdown-toggle .arrow {
+    font-size: 0.8em;
+    transition: transform 0.2s ease;
+}
+
+.dropdown-toggle.open .arrow {
+    transform: rotate(180deg); 
+}
+
+.dropdown-menu {
+    position: absolute;
+    background-color: #3a3a3a; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    border-radius: 5px;
+    min-width: 200px;
+    max-height: 300px; 
+    overflow-y: auto; 
+    z-index: 50; 
+    margin-top: 5px;
+    left: 0; 
+    padding: 5px 0;
+}
+
+.dropdown-option {
+    color: white;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-option:hover {
+    background-color: #56386A; 
+}
+
+.dropdown-year-input {
+    width: calc(100% - 30px); 
+    padding: 8px 15px;
+    margin: 5px 15px;
+    border: 1px solid #5a5a5a;
+    border-radius: 4px;
+    background-color: #2a2a2a;
+    color: white;
+    font-size: 1em;
+    box-sizing: border-box;
+}
+
+.dropdown-year-input::placeholder {
+    color: #ccc;
+}
+
+.dropdown-options-group-title {
+    color: #ccc;
+    font-size: 0.8em;
+    padding: 10px 15px 5px;
+    font-weight: bold;
+    border-top: 1px solid #5a5a5a;
+    margin-top: 5px;
+}
+.dropdown-options-group-title:first-child {
+    border-top: none;
+    margin-top: 0;
+}
+
+
+@media (max-width: 768px) {
+    .filtro-dropdown {
+        margin-right: 10px;
+        margin-bottom: 10px; 
+    }
+    .dropdown-menu {
+        min-width: unset; 
+        width: 100%;
+        left: 0;
+        right: 0;
+        margin: 5px auto; 
+    }
+}
