@@ -1,23 +1,20 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { jwtDecode } from 'jwt-decode';
-import './ProtectedRoute.css';
 
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  
-  try {
-    if (!token) throw new Error('No token');
-    
-    const decoded = jwtDecode(token);
-    if (Date.now() >= decoded.exp * 1000) {
-      throw new Error('Token expired');
+    const { isAuthenticated, loadingAuth } = useAuth();
+
+    if (loadingAuth) {
+        return <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '1.5em'}}>Carregando autenticação...</div>;
     }
-    
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
     return children;
-  } catch (error) {
-    return <Navigate to="/login" replace />;
-  }
 };
 
 export default ProtectedRoute;

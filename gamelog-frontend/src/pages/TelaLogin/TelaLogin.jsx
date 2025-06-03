@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Background from '../../components/Background/Background';
 import FundoForm from '../../components/FundoForm/FundoFormLogin';
-import { loginUsuario } from './actions/TelaLoginActions';
+import { useAuth } from '../../context/AuthContext';
 import './TelaLogin.css';
 
 function TelaLogin() {
@@ -13,6 +13,7 @@ function TelaLogin() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,13 +26,9 @@ function TelaLogin() {
     setMessage({ text: '', type: '' });
 
     try {
-      await loginUsuario({
-        email: formData.email,
-        senha: formData.senha
-      });
-      
-      setMessage({ text: 'Login bem-sucedido!', type: 'success' });
-      setTimeout(() => navigate('/home'), 1000);
+      await login(formData.email, formData.senha);
+      setMessage({ text: 'Login bem-sucedido! Redirecionando...', type: 'success' });
+      setTimeout(() => navigate('/home'), 500); 
     } catch (error) {
       setMessage({ text: error.message || 'Credenciais inválidas! Tente novamente.', type: 'error' });
     } finally {

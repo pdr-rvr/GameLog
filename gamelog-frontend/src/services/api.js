@@ -1,13 +1,12 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://localhost:7096/api', // Porta do seu backend
+  baseURL: 'https://localhost:7096/api',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Interceptor para adicionar o token às requisições após login
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {

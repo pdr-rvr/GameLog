@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Background from '../../components/Background/Background';
 import FundoForm from '../../components/FundoForm/FundoFormCadastro';
-import { cadastrarUsuario } from './actions/TelaCadastroActions';
+import { useAuth } from '../../context/AuthContext';
 import './TelaCadastro.css';
 
 function TelaCadastro() {
@@ -16,6 +16,7 @@ function TelaCadastro() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -39,11 +40,7 @@ function TelaCadastro() {
     setMessage({ text: '', type: '' });
 
     try {
-      await cadastrarUsuario({
-        nick: formData.nick,
-        email: formData.email,
-        senha: formData.senha
-      });
+      await register(formData.nick, formData.email, formData.senha);
       
       setMessage({ 
         text: 'Cadastro realizado com sucesso! Redirecionando para login...', 
