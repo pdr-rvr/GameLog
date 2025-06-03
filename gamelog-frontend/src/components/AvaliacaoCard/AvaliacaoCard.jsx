@@ -15,14 +15,14 @@ const AvaliacaoCard = ({ avaliacao }) => {
       <div className="card-header">
         <div className="card-jogo-info">
           <span className="jogo-nome">
-            {avaliacao.jogo?.titulo || 'Jogo desconhecido'}
+            {avaliacao.nomeJogo || 'Jogo desconhecido'}
           </span>
           <span className="avaliacao-data">
             {new Date(avaliacao.dataPublicacao).toLocaleDateString('pt-BR')}
           </span>
         </div>
         <div className="card-usuario-info">
-          <span className="usuario-nome">Por: {avaliacao.usuarioNome}</span>
+          <span className="usuario-nome">Por: {avaliacao.nomeUsuario}</span>
         </div>
       </div>
       
