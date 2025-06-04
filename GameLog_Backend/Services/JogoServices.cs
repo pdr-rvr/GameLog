@@ -8,36 +8,70 @@ namespace GameLog_Backend.Services
 {
     public class JogoServices
     {
-        protected readonly GameLogContext context;
+        protected readonly GameLogContext _context;
 
         public JogoServices(GameLogContext context)
         {
-            this.context = context;
+            _context = context;
         }
 
         public IEnumerable<JogoDTO> ListarJogos()
         {
-            var jogos = context.Jogos
-                .Include(j => j.Generos) 
-                .Include(j => j.Empresa)  
-                .Select(g => new JogoDTO
+            return _context.Jogos
+                .Where(j => j.EstaAtivo)
+                .Include(j => j.Generos)
+                .Include(j => j.Empresa)
+                .Select(j => new JogoDTO
                 {
-                    JogoId = g.Id,
-                    Titulo = g.Titulo,
-                    Descricao = g.Descricao,
-                    Imagem = g.Imagem,
-                    DataLancamento = g.DataLancamento,
-                    ClassificacaoIndicativa = g.ClassificacaoIndicativa,
-                    EmpresaId = g.Empresa.Id,
-                    EstaAtivo = g.EstaAtivo
-                }).ToList();
-
-            return jogos;
+                    JogoId = j.Id,
+                    Titulo = j.Titulo,
+                    Descricao = j.Descricao,
+                    Imagem = j.Imagem,
+                    DataLancamento = j.DataLancamento,
+                    ClassificacaoIndicativa = j.ClassificacaoIndicativa,
+                    EmpresaId = j.Empresa.Id,
+                    NomeEmpresa = j.Empresa.NomeEmpresa,
+                    EstaAtivo = j.EstaAtivo,
+                    Generos = j.Generos.Select(g => g.TituloGenero).ToList(),
+                    MediaAvaliacoes = _context.Avaliacoes
+                        .Where(a => a.Jogo.Id == j.Id && a.EstaAtivo)
+                        .Average(a => (double?)a.Nota),
+                    TotalAvaliacoes = _context.Avaliacoes
+                        .Count(a => a.Jogo.Id == j.Id && a.EstaAtivo)
+                })
+                .ToList();
         }
 
-        public IEnumerable<JogoDTO> ListarTop3JogosMelhorAvaliados()
+        public JogoDTO ObterJogoPorId(int id)
         {
-            var topJogos = context.Avaliacoes
+            return _context.Jogos
+                .Where(j => j.Id == id && j.EstaAtivo)
+                .Include(j => j.Generos)
+                .Include(j => j.Empresa)
+                .Select(j => new JogoDTO
+                {
+                    JogoId = j.Id,
+                    Titulo = j.Titulo,
+                    Descricao = j.Descricao,
+                    Imagem = j.Imagem,
+                    DataLancamento = j.DataLancamento,
+                    ClassificacaoIndicativa = j.ClassificacaoIndicativa,
+                    EmpresaId = j.Empresa.Id,
+                    NomeEmpresa = j.Empresa.NomeEmpresa,
+                    EstaAtivo = j.EstaAtivo,
+                    Generos = j.Generos.Select(g => g.TituloGenero).ToList(),
+                    MediaAvaliacoes = _context.Avaliacoes
+                        .Where(a => a.Jogo.Id == j.Id && a.EstaAtivo)
+                        .Average(a => (double?)a.Nota),
+                    TotalAvaliacoes = _context.Avaliacoes
+                        .Count(a => a.Jogo.Id == j.Id && a.EstaAtivo)
+                })
+                .FirstOrDefault();
+        }
+
+        public IEnumerable<JogoDTO> ListarTop10JogosMelhorAvaliados()
+        {
+            return _context.Avaliacoes
                 .Where(a => a.EstaAtivo && a.Jogo.EstaAtivo)
                 .GroupBy(a => a.Jogo)
                 .Select(g => new JogoDTO
@@ -49,15 +83,16 @@ namespace GameLog_Backend.Services
                     DataLancamento = g.Key.DataLancamento,
                     ClassificacaoIndicativa = g.Key.ClassificacaoIndicativa,
                     EmpresaId = g.Key.Empresa.Id,
+                    NomeEmpresa = g.Key.Empresa.NomeEmpresa,
                     EstaAtivo = g.Key.EstaAtivo,
-                    MediaAvaliacoes = g.Average(a => a.Nota)
+                    MediaAvaliacoes = g.Average(a => a.Nota),
+                    TotalAvaliacoes = g.Count(),
+                    Generos = g.Key.Generos.Select(ge => ge.TituloGenero).ToList()
                 })
                 .OrderByDescending(j => j.MediaAvaliacoes)
-                .ThenByDescending(j => j.DataLancamento) 
-                .Take(3)
+                .ThenByDescending(j => j.DataLancamento)
+                .Take(10)
                 .ToList();
-
-            return topJogos;
         }
     }
 }
