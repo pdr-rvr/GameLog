@@ -53,7 +53,7 @@ namespace GameLog_Backend.Services
             return await ObterAvaliacaoDto(avaliacao.Id);
         }
 
-        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoes()
+        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoes(int? usuarioId = null)
         {
             return await _context.Avaliacoes
                 .Where(a => a.EstaAtivo)
@@ -67,12 +67,17 @@ namespace GameLog_Backend.Services
                     NomeUsuario = a.Usuario.NomeUsuario,
                     TextoAvaliacao = a.TextoAvaliacao,
                     DataPublicacao = a.DataPublicacao,
-                    TotalCurtidas = a.CurtidasDeAvaliacao.Count
+                    TotalCurtidas = a.CurtidasDeAvaliacao.Count(c => c.Curtida && c.EstaAtivo),
+                    CurtidaPorMim = usuarioId.HasValue &&
+                                  a.CurtidasDeAvaliacao.Any(c =>
+                                      Convert.ToInt32(_context.Entry(c).Property("UsuarioId").CurrentValue) == usuarioId &&
+                                      c.Curtida &&
+                                      c.EstaAtivo)
                 })
                 .ToListAsync();
         }
 
-        public async Task<AvaliacaoDTO?> ObterAvaliacaoPorId(int id)
+        public async Task<AvaliacaoDTO?> ObterAvaliacaoPorId(int id, int? usuarioId = null)
         {
             return await _context.Avaliacoes
                 .Where(a => a.Id == id && a.EstaAtivo)
@@ -85,12 +90,17 @@ namespace GameLog_Backend.Services
                     NomeUsuario = a.Usuario.NomeUsuario,
                     TextoAvaliacao = a.TextoAvaliacao,
                     DataPublicacao = a.DataPublicacao,
-                    TotalCurtidas = a.CurtidasDeAvaliacao.Count
+                    TotalCurtidas = a.CurtidasDeAvaliacao.Count(c => c.Curtida && c.EstaAtivo),
+                    CurtidaPorMim = usuarioId.HasValue &&
+                                  a.CurtidasDeAvaliacao.Any(c =>
+                                      Convert.ToInt32(_context.Entry(c).Property("UsuarioId").CurrentValue) == usuarioId &&
+                                      c.Curtida &&
+                                      c.EstaAtivo)
                 })
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorUsuario(int usuarioId)
+        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorUsuario(int usuarioId, int? usuarioSolicitanteId = null)
         {
             return await _context.Avaliacoes
                 .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
@@ -104,7 +114,12 @@ namespace GameLog_Backend.Services
                     NomeUsuario = a.Usuario.NomeUsuario,
                     TextoAvaliacao = a.TextoAvaliacao,
                     DataPublicacao = a.DataPublicacao,
-                    TotalCurtidas = a.CurtidasDeAvaliacao.Count
+                    TotalCurtidas = a.CurtidasDeAvaliacao.Count(c => c.Curtida && c.EstaAtivo),
+                    CurtidaPorMim = usuarioSolicitanteId.HasValue &&
+                                  a.CurtidasDeAvaliacao.Any(c =>
+                                      Convert.ToInt32(_context.Entry(c).Property("UsuarioId").CurrentValue) == usuarioSolicitanteId &&
+                                      c.Curtida &&
+                                      c.EstaAtivo)
                 })
                 .ToListAsync();
         }
@@ -141,7 +156,7 @@ namespace GameLog_Backend.Services
             return true;
         }
 
-        private async Task<AvaliacaoDTO> ObterAvaliacaoDto(int id)
+        private async Task<AvaliacaoDTO> ObterAvaliacaoDto(int id, int? usuarioId = null)
         {
             return await _context.Avaliacoes
                 .Where(a => a.Id == id)
@@ -154,9 +169,64 @@ namespace GameLog_Backend.Services
                     NomeUsuario = a.Usuario.NomeUsuario,
                     TextoAvaliacao = a.TextoAvaliacao,
                     DataPublicacao = a.DataPublicacao,
-                    TotalCurtidas = a.CurtidasDeAvaliacao.Count
+                    TotalCurtidas = a.CurtidasDeAvaliacao.Count(c => c.Curtida && c.EstaAtivo),
+                    CurtidaPorMim = usuarioId.HasValue &&
+                                  a.CurtidasDeAvaliacao.Any(c =>
+                                      Convert.ToInt32(_context.Entry(c).Property("UsuarioId").CurrentValue) == usuarioId &&
+                                      c.Curtida &&
+                                      c.EstaAtivo)
                 })
                 .FirstAsync();
+        }
+
+        public async Task<bool> AdicionarCurtida(int avaliacaoId, int usuarioId)
+        {
+            if (await UsuarioCurtiu(avaliacaoId, usuarioId))
+            {
+                return false; 
+            }
+
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $@"INSERT INTO CurtidasDeAvaliacao 
+           (Curtida, AvaliacaoId, UsuarioId, EstaAtivo) 
+           VALUES (1, {avaliacaoId}, {usuarioId}, 1)");
+
+            return true;
+        }
+
+        public async Task<bool> RemoverCurtida(int avaliacaoId, int usuarioId)
+        {
+            if (!await UsuarioCurtiu(avaliacaoId, usuarioId))
+            {
+                return false; 
+            }
+
+            var curtida = await _context.CurtidasDeAvaliacoes
+        .FirstOrDefaultAsync(c => c.Id == avaliacaoId &&
+                                Convert.ToInt32(_context.Entry(c).Property("UsuarioId").CurrentValue) == usuarioId);
+
+            _context.CurtidasDeAvaliacoes.Remove(curtida);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+
+        public async Task<int> ContarCurtidas(int avaliacaoId)
+        {
+            return await _context.CurtidasDeAvaliacoes
+                .CountAsync(c => c.Id == avaliacaoId &&
+                               c.Curtida &&
+                               c.EstaAtivo);
+        }
+
+        public async Task<bool> UsuarioCurtiu(int avaliacaoId, int usuarioId)
+        {
+            return await _context.CurtidasDeAvaliacoes
+                .AnyAsync(c => c.Id == avaliacaoId &&
+                             Convert.ToInt32(_context.Entry(c).Property("UsuarioId").CurrentValue) == usuarioId &&
+                             c.Curtida &&
+                             c.EstaAtivo);
         }
     }
 }
