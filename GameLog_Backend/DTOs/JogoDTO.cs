@@ -11,7 +11,10 @@ namespace GameLog_Backend.DTOs
         public DateOnly DataLancamento { get; set; }
         public int ClassificacaoIndicativa { get; set; }
         public int EmpresaId { get; set; }
+        public string NomeEmpresa { get; set; }
         public bool EstaAtivo { get; set; }
         public double? MediaAvaliacoes { get; set; }
+        public List<string> Generos { get; set; } = new List<string>(); 
+        public int TotalAvaliacoes { get; set; }
     }
 }
