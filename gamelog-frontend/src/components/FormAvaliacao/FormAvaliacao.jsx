@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './FormAvaliacao.css';
 
 const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
@@ -7,6 +7,24 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
     nota: 0,
     textoAvaliacao: ''
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredJogos, setFilteredJogos] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    if (searchTerm) {
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      const suggestions = (jogos || []).filter(jogo =>
+        jogo.titulo.toLowerCase().includes(lowerCaseSearchTerm)
+      );
+      setFilteredJogos(suggestions);
+      setShowSuggestions(true);
+    } else {
+      setFilteredJogos([]);
+      setShowSuggestions(false);
+    }
+  }, [searchTerm, jogos]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -22,12 +40,35 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
     setAvaliacao(prev => ({ ...prev, nota }));
   };
 
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setAvaliacao(prev => ({ ...prev, jogoId: '' })); 
+  };
+
+  const handleSelectGame = (jogo) => {
+    setAvaliacao(prev => ({ ...prev, jogoId: jogo.jogoId }));
+    setSearchTerm(jogo.titulo);
+    setShowSuggestions(false); 
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className="form-avaliacao">
       <div className="form-header">
         <h3>Criar Nova Avaliação</h3>
-        <button 
-          className="close-button" 
+        <button
+          className="close-button"
           onClick={onCancel}
           aria-label="Fechar formulário"
         >
@@ -36,30 +77,42 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
+        <div className="form-group" ref={searchInputRef}>
           <label htmlFor="jogoId">Selecione um jogo:</label>
-          <select
+          <input
+            type="text"
             id="jogoId"
             name="jogoId"
-            value={avaliacao.jogoId}
-            onChange={handleChange}
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Digite o nome do jogo..."
             required
             disabled={loading}
-          >
-            <option value="">Selecione um jogo</option>
-            {Array.isArray(jogos) && jogos.map(jogo => (
-              <option key={jogo.jogoId} value={jogo.jogoId}>
-                {jogo.titulo}
-              </option>
-            ))}
-          </select>
+            onFocus={() => setShowSuggestions(true)}
+            autoComplete="off"
+          />
+          {showSuggestions && filteredJogos.length > 0 && searchTerm && (
+            <ul className="suggestions-list">
+              {filteredJogos.map(jogo => (
+                <li key={jogo.jogoId} onClick={() => handleSelectGame(jogo)}>
+                  {jogo.titulo}
+                </li>
+              ))}
+            </ul>
+          )}
+          {showSuggestions && filteredJogos.length === 0 && searchTerm && (
+            <div className="no-suggestions">Nenhum jogo encontrado.</div>
+          )}
+          {!avaliacao.jogoId && searchTerm && filteredJogos.length > 0 && (
+            <div className="select-game-message">Selecione um jogo da lista.</div>
+          )}
         </div>
 
         <div className="form-group">
           <label>Nota:</label>
           <div className="estrelas-container">
             {[1, 2, 3, 4, 5].map(i => (
-              <span 
+              <span
                 key={i}
                 className={`estrela ${i <= avaliacao.nota ? 'preenchida' : ''}`}
                 onClick={() => !loading && handleNotaChange(i)}
@@ -70,6 +123,7 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
                   }
                 }}
                 tabIndex={0}
+                role="button"
                 aria-label={`Nota ${i}`}
               >
                 {i <= avaliacao.nota ? '★' : '☆'}
@@ -105,7 +159,7 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
           <button
             type="submit"
             className="submit-button"
-            disabled={loading || !avaliacao.jogoId || !avaliacao.textoAvaliacao}
+            disabled={loading || !avaliacao.jogoId || !avaliacao.textoAvaliacao || avaliacao.nota === 0}
           >
             {loading ? (
               <>

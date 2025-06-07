@@ -12,32 +12,32 @@ const AvaliacaoCard = ({ avaliacao }) => {
 
   return (
     <div className="avaliacao-card">
-      <div className="card-header">
-        <div className="card-jogo-info">
-          <span className="jogo-nome">
-            {avaliacao.nomeJogo || 'Jogo desconhecido'}
-          </span>
-          <span className="avaliacao-data">
+      {/* img de avaliação ????? */}
+      <div className="card-image-placeholder">
+        {/* Aqui você pode adicionar uma imagem padrão ou um ícone para a avaliação */}
+        <span className="material-icons-outlined">rate_review</span> {/* Exemplo de ícone */}
+      </div>
+      <div className="card-content">
+        <h4 className="card-title">
+          {avaliacao.nomeJogo || 'Jogo desconhecido'}
+        </h4>
+        <div className="card-meta">
+          <span className="card-user">Por: {avaliacao.nomeUsuario}</span>
+          <span className="card-date">
             {new Date(avaliacao.dataPublicacao).toLocaleDateString('pt-BR')}
           </span>
         </div>
-        <div className="card-usuario-info">
-          <span className="usuario-nome">Por: {avaliacao.nomeUsuario}</span>
+        <div className="card-rating">
+          {renderEstrelas(avaliacao.nota)}
         </div>
-      </div>
-      
-      <div className="card-estrelas">
-        {renderEstrelas(avaliacao.nota)}
-      </div>
-      
-      <div className="card-texto">
-        {avaliacao.textoAvaliacao}
-      </div>
-      
-      <div className="card-footer">
-        <span className="curtidas">
-          {avaliacao.totalCurtidas || 0} curtida{avaliacao.totalCurtidas !== 1 ? 's' : ''}
-        </span>
+        <p className="card-description">
+          {avaliacao.textoAvaliacao}
+        </p>
+        <div className="card-footer">
+          <span className="card-likes">
+            {avaliacao.totalCurtidas || 0} curtida{avaliacao.totalCurtidas !== 1 ? 's' : ''}
+          </span>
+        </div>
       </div>
     </div>
   );

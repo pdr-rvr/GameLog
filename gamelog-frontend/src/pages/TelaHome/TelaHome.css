@@ -1,10 +1,15 @@
-/* Estilos para o feed de avaliações */
-.avaliacoes-feed {
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+.home-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f8f8f8;
 }
+
+.home-content {
+  flex-grow: 1;
+  padding-top: 20px; 
+}
+
 
 .loading, .sem-avaliacoes {
   text-align: center;
@@ -13,7 +18,6 @@
   font-size: 1.1rem;
 }
 
-/* Estilos para o botão flutuante */
 .floating-button {
   position: fixed;
   bottom: 30px;
@@ -39,7 +43,6 @@
   transform: scale(1.1);
 }
 
-/* Estilos para o overlay do formulário */
 .form-overlay {
   position: fixed;
   top: 0;
@@ -53,6 +56,7 @@
   z-index: 100;
   padding: 20px;
   animation: fadeIn 0.3s ease-out;
+  overflow-y: auto;
 }
 
 @keyframes fadeIn {

@@ -7,6 +7,18 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   position: relative;
   animation: fadeIn 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+
+  align-self: stretch; 
+  max-height: calc(70vh - 40px); 
+  overflow-y: auto;
+}
+
+.form-avaliacao form {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
 }
 
 @keyframes fadeIn {
@@ -43,16 +55,31 @@
 
 .form-group {
   margin-bottom: 1.5rem;
+  position: relative;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.7rem;
   font-weight: 600;
   color: #333;
 }
 
-.form-group select,
+.form-group input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.form-group input[type="text"]:focus {
+  outline: none;
+  border-color: #56386A;
+}
+
 .form-group textarea {
   width: 100%;
   padding: 12px;
@@ -60,17 +87,57 @@
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s;
+  min-height: 120px;
+  max-height: 250px;
+  overflow-y: auto;
+  resize: none;
+  box-sizing: border-box;
+  line-height: 1.5;
 }
 
-.form-group select:focus,
 .form-group textarea:focus {
   outline: none;
   border-color: #56386A;
 }
 
-.form-group textarea {
-  min-height: 120px;
-  resize: vertical;
+.suggestions-list {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 10;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  list-style: none;
+  padding: 0;
+  margin-top: 0;
+}
+
+.suggestions-list li {
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.suggestions-list li:hover {
+  background-color: #f0f0f0;
+}
+
+.no-suggestions, .select-game-message {
+  font-size: 0.9rem;
+  color: #777;
+  margin-top: 5px;
+  text-align: center;
+}
+
+.select-game-message {
+  color: #e67e22;
 }
 
 .estrelas-container {
@@ -119,7 +186,8 @@
   display: flex;
   justify-content: flex-end;
   gap: 15px;
-  margin-top: 25px;
+  margin-top: auto;
+  padding-top: 15px;
 }
 
 .cancel-button,
