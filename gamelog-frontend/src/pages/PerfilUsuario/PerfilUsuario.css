@@ -1,0 +1,253 @@
+.profile-page-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    box-sizing: border-box;
+}
+
+.header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.page-title {
+    font-size: 2em;
+    color: #56386A;
+    font-weight: 600;
+    margin: 0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.cancel-button {
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.cancel-button:hover:not(:disabled) {
+    background-color: #e0e0e0;
+}
+
+.save-button {
+    background-color: #56386A;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.save-button:hover:not(:disabled) {
+    background-color: #3a2549;
+}
+
+.save-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.profile-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-content {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+}
+
+.left-column {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+}
+
+.right-column {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding-top: 38px;
+}
+
+.form-section {
+    margin-bottom: 25px;
+}
+
+.label {
+    display: block;
+    margin-bottom: 0.7rem;
+    font-weight: 600;
+    color: #333;
+    font-size: 1rem;
+}
+
+.input-field {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #333;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: #56386A;
+}
+
+.input-field::placeholder {
+    color: #aaa;
+}
+
+.image-input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.image-input-group .input-field {
+    flex-grow: 1;
+    background-color: #f9f9f9;
+    cursor: default;
+}
+
+.select-button {
+    background-color: #56386A;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 1em;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    white-space: nowrap;
+}
+
+.select-button:hover {
+    background-color: #3a2549;
+}
+
+.profile-image-preview {
+    width: 200px;
+    height: 200px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.profile-placeholder-icon-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.profile-placeholder-icon-container svg {
+    width: 80px;
+    height: 80px;
+    color: #ccc;
+}
+
+.profile-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.error-message {
+    color: #e74c3c;
+    background-color: #fdecea;
+    border: 1px solid #e74c3c;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.success-message {
+    text-align: center;
+    color: #27ae60;
+    background-color: #e6ffee;
+    border: 1px solid #27ae60;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.loading-message {
+    text-align: center;
+    font-size: 1.2em;
+    color: #555;
+    margin-top: 50px;
+}
+
+@media (max-width: 768px) {
+    .profile-page-container {
+        margin: 20px;
+        padding: 20px;
+    }
+
+    .header-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .action-buttons {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .cancel-button,
+    .save-button {
+        flex: 1;
+    }
+
+    .form-content {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .right-column {
+        justify-content: center;
+        padding-top: 0;
+    }
+
+    .profile-image-preview {
+        margin-top: 20px;
+    }
+}

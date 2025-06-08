@@ -8,26 +8,41 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loadingAuth, setLoadingAuth] = useState(true);
+
     const loadUserFromToken = useCallback(() => {
         const token = localStorage.getItem('token');
+        setLoadingAuth(true);
         if (token) {
             try {
                 const decodedToken = jwtDecode(token);
+                
                 if (decodedToken.exp * 1000 > Date.now()) {
+                    let userFromStorage = null;
                     const storedUser = localStorage.getItem('user');
                     if (storedUser) {
-                        setUser(JSON.parse(storedUser));
-                    } else {
-                        setUser({ id: decodedToken.sub, nomeUsuario: decodedToken.nomeUsuario || 'Usuário' });
+                        try {
+                            userFromStorage = JSON.parse(storedUser);
+                        } catch (parseError) {
+                            localStorage.removeItem('user');
+                        }
                     }
+
+                    const userObject = {
+                        id: decodedToken.sub,
+                        nomeUsuario: userFromStorage?.nomeUsuario || decodedToken.nomeUsuario || 'Usuário',
+                        email: userFromStorage?.email || decodedToken.email || '',
+                        fotoDePerfil: userFromStorage?.fotoDePerfil || '',
+                    };
+
+                    setUser(userObject);
                     setIsAuthenticated(true);
+
                 } else {
                     AuthService.logout();
                     setUser(null);
                     setIsAuthenticated(false);
                 }
             } catch (error) {
-                console.error("Erro ao decodificar token ou token inválido:", error);
                 AuthService.logout();
                 setUser(null);
                 setIsAuthenticated(false);
@@ -59,7 +74,6 @@ export const AuthProvider = ({ children }) => {
             loadUserFromToken();
             return response;
         } finally {
-            setLoadingAuth(false);
         }
     };
 
