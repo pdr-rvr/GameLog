@@ -1,42 +1,33 @@
 import React from 'react';
+import { FaEdit, FaTrashAlt, FaStar } from 'react-icons/fa';
 import './AvaliacaoCard.css';
 
-const AvaliacaoCard = ({ avaliacao }) => {
-  const renderEstrelas = (nota) => {
-    return [1, 2, 3, 4, 5].map(i => (
-      <span key={i} className={`estrela ${i <= nota ? 'preenchida' : ''}`}>
-        {i <= nota ? '★' : '☆'}
-      </span>
-    ));
-  };
+const AvaliacaoCard = ({ avaliacao, onEdit, onDelete }) => {
+  const reviewDate = avaliacao.dataPublicacao ? new Date(avaliacao.dataPublicacao).toLocaleDateString('pt-BR') : 'Data Indisponível';
 
   return (
     <div className="avaliacao-card">
-      {/* img de avaliação ????? */}
-      <div className="card-image-placeholder">
-        {/* Aqui você pode adicionar uma imagem padrão ou um ícone para a avaliação */}
-        <span className="material-icons-outlined">rate_review</span> {/* Exemplo de ícone */}
+      <div className="avaliacao-card-header">
+        <h3 className="game-title">{avaliacao.nomeJogo || 'Jogo Desconhecido'}</h3>
+        <div className="review-actions">
+          <button className="edit-button" onClick={() => onEdit(avaliacao.avaliacaoId)} title="Editar Avaliação">
+            <FaEdit />
+          </button>
+          <button className="delete-button" onClick={() => onDelete(avaliacao.avaliacaoId)} title="Excluir Avaliação">
+            <FaTrashAlt />
+          </button>
+        </div>
       </div>
-      <div className="card-content">
-        <h4 className="card-title">
-          {avaliacao.nomeJogo || 'Jogo desconhecido'}
-        </h4>
-        <div className="card-meta">
-          <span className="card-user">Por: {avaliacao.nomeUsuario}</span>
-          <span className="card-date">
-            {new Date(avaliacao.dataPublicacao).toLocaleDateString('pt-BR')}
-          </span>
-        </div>
-        <div className="card-rating">
-          {renderEstrelas(avaliacao.nota)}
-        </div>
-        <p className="card-description">
-          {avaliacao.textoAvaliacao}
-        </p>
-        <div className="card-footer">
-          <span className="card-likes">
-            {avaliacao.totalCurtidas || 0} curtida{avaliacao.totalCurtidas !== 1 ? 's' : ''}
-          </span>
+      <div className="avaliacao-card-body">
+        <div className="review-content">
+          <div className="review-rating">
+            {[...Array(5)].map((_, i) => (
+              <FaStar key={i} className={i < avaliacao.nota ? 'star-filled' : 'star-empty'} />
+            ))}
+            <span className="rating-text">{avaliacao.nota}/5</span>
+          </div>
+          <p className="review-comment">{avaliacao.textoAvaliacao || 'Sem comentário.'}</p>
+          <span className="review-date">Avaliado em: {reviewDate}</span>
         </div>
       </div>
     </div>

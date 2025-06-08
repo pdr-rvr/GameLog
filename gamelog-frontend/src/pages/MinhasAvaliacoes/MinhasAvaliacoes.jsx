@@ -1,56 +1,116 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from '../../components/Navbar/Navbar';
-import AvaliacaoCard from '../../components/AvaliacaoCard/AvaliacaoCard';
-//import { buscarAvaliacoes } from '../../services/AvaliacoesService'; 
-import { useAuth } from '../../context/AuthContext'; 
-import './MinhasAvaliacoes.css'; 
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { fetchUserReviews, deleteReview } from './actions/MinhasAvaliacoesActions';
+import AvaliacaoCarrossel from '../../components/AvaliacaoCarrossel/AvaliacaoCarrossel';
+import './MinhasAvaliacoes.css';
 
 const MinhasAvaliacoes = () => {
-  /*const { user } = useAuth();
-  const [avaliacoes, setAvaliacoes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const { user, loadingAuth, isAuthenticated } = useAuth();
+  const [reviews, setReviews] = useState([]);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+
+  const loadReviews = async () => {
+    setError(null);
+    setSuccessMessage(null);
+    setPageLoading(true);
+
+    if (loadingAuth) {
+      return; 
+    }
+
+    const token = localStorage.getItem('token');
+
+    if (!isAuthenticated || !user?.id || !token) {
+      setError('Você precisa estar logado para ver suas avaliações.');
+      setPageLoading(false);
+      navigate('/login');
+      return;
+    }
+    
+    try {
+      const fetchedReviewsData = await fetchUserReviews(user.id, token);
+      
+      if (fetchedReviewsData && Array.isArray(fetchedReviewsData.$values)) {
+        setReviews(fetchedReviewsData.$values);
+      } else {
+        console.warn("Resposta da API de avaliações não está no formato esperado ($values não é um array):", fetchedReviewsData);
+        setReviews([]);
+        setError("Formato de resposta inesperado da API de avaliações.");
+      }
+      setError(null);
+    } catch (err) {
+      setError(err.message || 'Ocorreu um erro ao carregar suas avaliações.');
+      setReviews([]);
+    } finally {
+      setPageLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchMinhasAvaliacoes = async () => {
-      if (!user?.id) {
-        setError("Usuário não logado ou ID não encontrado.");
-        setLoading(false);
-        return;
-      }
+    loadReviews();
+  }, [loadingAuth, user, isAuthenticated, navigate]);
 
-      setLoading(true);
-      try {
-        const data = await buscarAvaliacoes(user.id); 
-        setAvaliacoes(data);
-      } catch (err) {
-        console.error("Erro ao buscar minhas avaliações:", err);
-        setError("Não foi possível carregar suas avaliações.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMinhasAvaliacoes();
-  }, [user]);
+  const handleEditReview = (reviewId) => {
+    navigate(`/avaliacoes/editar/${reviewId}`); 
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta avaliação?')) {
+      return;
+    }
+
+    setPageLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    const token = localStorage.getItem('token');
+
+    try {
+      await deleteReview(reviewId, token);
+      setSuccessMessage('Avaliação excluída com sucesso!');
+      setReviews(prevReviews => prevReviews.filter(review => review.avaliacaoId !== reviewId));
+    } catch (err) {
+      setError(err.message || 'Erro ao excluir avaliação.');
+    } finally {
+      setPageLoading(false);
+    }
+  };
+
+  if (loadingAuth || pageLoading) {
+    return <div className="loading-message">Carregando suas avaliações...</div>;
+  }
+
+  if (!isAuthenticated || !user?.id) {
+    return <div className="error-message">{error || 'Você não está logado para ver esta página.'}</div>;
+  }
 
   return (
-    <div className="page-container">
-      <Navbar />
-      <div className="content-area" style={{ padding: '20px' }}>
-        <h2>Minhas Avaliações</h2>
-        {loading && <div className="loading">Carregando suas avaliações...</div>}
-        {error && <div className="error-message">{error}</div>}
-        {!loading && avaliacoes.length === 0 && (
-          <div className="no-data-message">Você ainda não publicou nenhuma avaliação.</div>
-        )}
-        <div className="avaliacoes-grid">
-          {avaliacoes.map(avaliacao => (
-            <AvaliacaoCard key={avaliacao.avaliacaoId} avaliacao={avaliacao} />
-          ))}
-        </div>
+    <div className="minhas-avaliacoes-page-container">
+      <div className="header-bar">
+        <h1 className="page-title">Minhas Avaliações</h1>
       </div>
+      
+      {error && <div className="error-message">{error}</div>}
+      {successMessage && <div className="success-message">{successMessage}</div>}
+
+      {reviews.length === 0 ? (
+        <div className="no-reviews-message">
+          Você ainda não fez nenhuma avaliação. Que tal explorar alguns jogos?
+          <button className="explore-games-button" onClick={() => navigate('/jogos')}>Explorar Jogos</button>
+        </div>
+      ) : (
+        <AvaliacaoCarrossel 
+          title="Suas Avaliações Recentes" 
+          avaliacoes={reviews} 
+          onEditReview={handleEditReview} 
+          onDeleteReview={handleDeleteReview} 
+        />
+      )}
     </div>
-  );*/
+  );
 };
 
 export default MinhasAvaliacoes;

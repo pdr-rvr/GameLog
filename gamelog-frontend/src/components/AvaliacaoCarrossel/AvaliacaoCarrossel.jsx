@@ -1,18 +1,15 @@
 import React, { useRef } from 'react';
 import AvaliacaoCard from '../AvaliacaoCard/AvaliacaoCard';
-import './AvaliacaoCarrossel'; 
+import './AvaliacaoCarrossel.css';
 
-const AvaliacoesCarrossel = ({ title, avaliacoes }) => {
+const AvaliacaoCarrossel = ({ title, avaliacoes, onEditReview, onDeleteReview }) => {
   const carouselRef = useRef(null);
 
   const scroll = (direction) => {
     if (carouselRef.current) {
-      const scrollAmount = carouselRef.current.clientWidth / 2;
-      if (direction === 'left') {
-        carouselRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-      } else {
-        carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-      }
+      const cardContainerWidth = 330; 
+      const scrollAmount = direction === 'left' ? -cardContainerWidth : cardContainerWidth;
+      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
@@ -28,7 +25,11 @@ const AvaliacoesCarrossel = ({ title, avaliacoes }) => {
         <div className="avaliacoes-carrossel-track" ref={carouselRef}>
           {avaliacoes.map(avaliacao => (
             <div key={avaliacao.avaliacaoId} className="avaliacoes-carrossel-item">
-              <AvaliacaoCard avaliacao={avaliacao} />
+              <AvaliacaoCard
+                avaliacao={avaliacao}
+                onEdit={onEditReview}
+                onDelete={onDeleteReview}
+              />
             </div>
           ))}
         </div>
@@ -38,4 +39,4 @@ const AvaliacoesCarrossel = ({ title, avaliacoes }) => {
   );
 };
 
-export default AvaliacoesCarrossel;
+export default AvaliacaoCarrossel;
