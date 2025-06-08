@@ -10,7 +10,7 @@ const Navbar = ({ onPublishClick }) => {
 
     const handleLogout = () => {
         logout();
-        navigate('/login'); 
+        navigate('/'); 
     };
 
     const profileContent = user?.profilePictureUrl ? (

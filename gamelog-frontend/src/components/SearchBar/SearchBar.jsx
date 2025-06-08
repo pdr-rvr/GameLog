@@ -9,6 +9,7 @@ const SearchBar = ({ onSearch, suggestions = [], onSelectSuggestion }) => {
     const handleChange = (e) => {
         const value = e.target.value;
         setQuery(value);
+        onSearch(value);
         if (value.length > 0) {
             onSearch(value);
             setShowSuggestions(true);

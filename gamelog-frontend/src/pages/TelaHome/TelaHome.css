@@ -1,8 +1,9 @@
 .home-container {
+  background-color: #1a1a1a; 
+  min-height: 100vh;
+  color: white;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background-color: #f8f8f8;
 }
 
 .home-content {

@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { buscarAvaliacoes, buscarJogos, criarAvaliacao } from './actions/TelaHomeActions';
 import Navbar from '../../components/Navbar/Navbar';
 import FormAvaliacao from '../../components/FormAvaliacao/FormAvaliacao';
-import JogosCarrossel from '../../components/JogosCarrossel/JogosCarrossel'; // Mantenha este
-import AvaliacoesCarrossel from '../../components/AvaliacaoCarrossel/AvaliacaoCarrossel'; // Novo import
+import JogosCarrossel from '../../components/JogosCarrossel/JogosCarrossel'; 
+import AvaliacoesCarrossel from '../../components/AvaliacaoCarrossel/AvaliacaoCarrossel'; 
 import './TelaHome.css';
 import { useAuth } from '../../context/AuthContext';
 
