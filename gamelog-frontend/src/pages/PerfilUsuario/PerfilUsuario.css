@@ -1,4 +1,13 @@
-.profile-page-container {
+.profile-page-container-wrapper {
+    background-color: #1a1a1a;
+    min-height: 100vh;
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-page-content {
+    flex-grow: 1;
     max-width: 1000px;
     margin: 40px auto;
     padding: 30px;
@@ -216,7 +225,7 @@
 }
 
 @media (max-width: 768px) {
-    .profile-page-container {
+    .profile-page-content {
         margin: 20px;
         padding: 20px;
     }

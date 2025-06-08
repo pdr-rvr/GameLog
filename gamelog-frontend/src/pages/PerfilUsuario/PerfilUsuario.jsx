@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { fetchUserProfile, updateUserProfile } from './actions/PerfilUsuarioActions';
+import Navbar from '../../components/Navbar/Navbar';
 import './PerfilUsuario.css';
 
 const PerfilUsuario = () => {
   const navigate = useNavigate();
   const { user, loadingAuth, isAuthenticated } = useAuth();
+
+  const [activeTab, setActiveTab] = useState('perfil');
 
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [profileImageUrl, setProfileImageUrl] = useState('/images/default_profile.png');
@@ -33,6 +36,7 @@ const PerfilUsuario = () => {
       if (!isAuthenticated || !user?.id || !token) {
         setError('Você precisa estar logado para editar seu perfil.');
         setPageLoading(false);
+        navigate('/login');
         return;
       }
       
@@ -134,6 +138,14 @@ const PerfilUsuario = () => {
     navigate(-1);
   };
 
+  const handleOpenPublishForm = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    navigate('/avaliacoes/criar');
+  };
+
   if (loadingAuth || pageLoading) {
     return <div className="loading-message">Carregando perfil...</div>;
   }
@@ -143,119 +155,127 @@ const PerfilUsuario = () => {
   }
 
   return (
-    <div className="profile-page-container">
-      <div className="header-bar">
-        <h1 className="page-title">Meu Perfil</h1>
-        <div className="action-buttons">
-          <button type="button" className="cancel-button" onClick={handleCancel} disabled={pageLoading}>Cancelar</button>
-          <button type="submit" className="save-button" onClick={handleSave} disabled={pageLoading}>
-            {pageLoading ? 'Salvando...' : 'Salvar'}
-          </button>
+    <div className="profile-page-container-wrapper">
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        usuario={user}
+        onPublishClick={handleOpenPublishForm}
+      />
+      <div className="profile-page-content">
+        <div className="header-bar">
+          <h1 className="page-title">Meu Perfil</h1>
+          <div className="action-buttons">
+            <button type="button" className="cancel-button" onClick={handleCancel} disabled={pageLoading}>Cancelar</button>
+            <button type="submit" className="save-button" onClick={handleSave} disabled={pageLoading}>
+              {pageLoading ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
         </div>
-      </div>
-      
-      {error && <div className="error-message">{error}</div>}
-      {successMessage && <div className="success-message">{successMessage}</div>}
+        
+        {error && <div className="error-message">{error}</div>}
+        {successMessage && <div className="success-message">{successMessage}</div>}
 
-      <form className="profile-form" onSubmit={handleSave}>
-        <div className="form-content">
-          <div className="left-column">
-            <div className="form-section image-upload-section">
-              <label htmlFor="avatar-upload" className="label">Inserir avatar</label>
-              <div className="image-input-group">
+        <form className="profile-form" onSubmit={handleSave}>
+          <div className="form-content">
+            <div className="left-column">
+              <div className="form-section image-upload-section">
+                <label htmlFor="avatar-upload" className="label">Inserir avatar</label>
+                <div className="image-input-group">
+                  <input
+                    type="text"
+                    readOnly
+                    className="input-field"
+                    value={profileImageFile ? profileImageFile.name : (profileImageUrl && profileImageUrl !== '/images/default_profile.png' ? 'Imagem atual' : 'Adicione um avatar')}
+                    placeholder="Adicione um avatar"
+                    disabled={pageLoading}
+                  />
+                  <input
+                    type="file"
+                    id="avatar-upload"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="avatar-upload" className="select-button">
+                    SELECIONAR
+                  </label>
+                </div>
+              </div>
+
+              <div className="form-section">
+                <label htmlFor="nomeUsuario" className="label">Nome de Usuário</label>
                 <input
                   type="text"
-                  readOnly
+                  id="nomeUsuario"
                   className="input-field"
-                  value={profileImageFile ? profileImageFile.name : (profileImageUrl && profileImageUrl !== '/images/default_profile.png' ? 'Imagem atual' : 'Adicione um avatar')}
-                  placeholder="Adicione um avatar"
+                  placeholder="Seu nome de usuário"
+                  value={nomeUsuario}
+                  onChange={(e) => setNomeUsuario(e.target.value)}
+                  required
                   disabled={pageLoading}
                 />
+              </div>
+
+              <div className="form-section">
+                <label htmlFor="email" className="label">Email</label>
                 <input
-                  type="file"
-                  id="avatar-upload"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  style={{ display: 'none' }}
+                  type="email"
+                  id="email"
+                  className="input-field"
+                  placeholder="seu.email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={pageLoading}
                 />
-                <label htmlFor="avatar-upload" className="select-button">
-                  SELECIONAR
-                </label>
+              </div>
+
+              <div className="form-section">
+                <label htmlFor="senhaAtual" className="label">Senha Atual (para alterar a senha)</label>
+                <input
+                  type="password"
+                  id="senhaAtual"
+                  className="input-field"
+                  placeholder="********"
+                  value={senhaAtual}
+                  onChange={(e) => setSenhaAtual(e.target.value)}
+                  disabled={pageLoading}
+                />
+              </div>
+
+              <div className="form-section">
+                <label htmlFor="novaSenha" className="label">Nova Senha (deixe em branco se não for alterar)</label>
+                <input
+                  type="password"
+                  id="novaSenha"
+                  className="input-field"
+                  placeholder="********"
+                  value={novaSenha}
+                  onChange={(e) => setNovaSenha(e.target.value)}
+                  disabled={pageLoading}
+                />
+              </div>
+
+            </div>
+            
+            <div className="right-column">
+              <div className="profile-image-preview">
+                {profileImageUrl ? (
+                  <img src={profileImageUrl} alt="Preview do Avatar" className="profile-preview-image" />
+                ) : (
+                  <div className="profile-placeholder-icon-container">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="7" r="4"></circle>
+                      <path d="M2 21v-2a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v2"></path>
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
-
-            <div className="form-section">
-              <label htmlFor="nomeUsuario" className="label">Nome de Usuário</label>
-              <input
-                type="text"
-                id="nomeUsuario"
-                className="input-field"
-                placeholder="Seu nome de usuário"
-                value={nomeUsuario}
-                onChange={(e) => setNomeUsuario(e.target.value)}
-                required
-                disabled={pageLoading}
-              />
-            </div>
-
-            <div className="form-section">
-              <label htmlFor="email" className="label">Email</label>
-              <input
-                type="email"
-                id="email"
-                className="input-field"
-                placeholder="seu.email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={pageLoading}
-              />
-            </div>
-
-            <div className="form-section">
-              <label htmlFor="senhaAtual" className="label">Senha Atual (para alterar a senha)</label>
-              <input
-                type="password"
-                id="senhaAtual"
-                className="input-field"
-                placeholder="********"
-                value={senhaAtual}
-                onChange={(e) => setSenhaAtual(e.target.value)}
-                disabled={pageLoading}
-              />
-            </div>
-
-            <div className="form-section">
-              <label htmlFor="novaSenha" className="label">Nova Senha (deixe em branco se não for alterar)</label>
-              <input
-                type="password"
-                id="novaSenha"
-                className="input-field"
-                placeholder="********"
-                value={novaSenha}
-                onChange={(e) => setNovaSenha(e.target.value)}
-                disabled={pageLoading}
-              />
-            </div>
-
           </div>
-          
-          <div className="right-column">
-            <div className="profile-image-preview">
-              {profileImageUrl ? (
-                <img src={profileImageUrl} alt="Preview do Avatar" className="profile-preview-image" />
-              ) : (
-                <div className="profile-placeholder-icon-container">
-                  <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="7" r="4"></circle>
-                    <path d="M2 21v-2a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v2"></path>
-                  </svg>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { fetchUserReviews, deleteReview } from './actions/MinhasAvaliacoesActions';
 import AvaliacaoCarrossel from '../../components/AvaliacaoCarrossel/AvaliacaoCarrossel';
+import Navbar from '../../components/Navbar/Navbar';
 import './MinhasAvaliacoes.css';
 
 const MinhasAvaliacoes = () => {
@@ -12,6 +13,7 @@ const MinhasAvaliacoes = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [activeTab, setActiveTab] = useState('minhas');
 
   const loadReviews = async () => {
     setError(null);
@@ -71,12 +73,20 @@ const MinhasAvaliacoes = () => {
     try {
       await deleteReview(reviewId, token);
       setSuccessMessage('Avaliação excluída com sucesso!');
-      setReviews(prevReviews => prevReviews.filter(review => review.avaliacaoId !== reviewId));
+      setReviews(prevReviews => prevReviews.filter(review => review.avaliacaoId !== reviewId)); 
     } catch (err) {
       setError(err.message || 'Erro ao excluir avaliação.');
     } finally {
       setPageLoading(false);
     }
+  };
+
+  const handleOpenPublishForm = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    navigate('/avaliacoes/criar');
   };
 
   if (loadingAuth || pageLoading) {
@@ -89,26 +99,31 @@ const MinhasAvaliacoes = () => {
 
   return (
     <div className="minhas-avaliacoes-page-container">
-      <div className="header-bar">
-        <h1 className="page-title">Minhas Avaliações</h1>
-      </div>
-      
-      {error && <div className="error-message">{error}</div>}
-      {successMessage && <div className="success-message">{successMessage}</div>}
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        usuario={user}
+        onPublishClick={handleOpenPublishForm}
+      />
+      <div className="minhas-avaliacoes-content">
+        
+        {error && <div className="error-message">{error}</div>}
+        {successMessage && <div className="success-message">{successMessage}</div>}
 
-      {reviews.length === 0 ? (
-        <div className="no-reviews-message">
-          Você ainda não fez nenhuma avaliação. Que tal explorar alguns jogos?
-          <button className="explore-games-button" onClick={() => navigate('/jogos')}>Explorar Jogos</button>
-        </div>
-      ) : (
-        <AvaliacaoCarrossel 
-          title="Suas Avaliações Recentes" 
-          avaliacoes={reviews} 
-          onEditReview={handleEditReview} 
-          onDeleteReview={handleDeleteReview} 
-        />
-      )}
+        {reviews.length === 0 ? (
+          <div className="no-reviews-message">
+            Você ainda não fez nenhuma avaliação. Que tal explorar alguns jogos?
+            <button className="explore-games-button" onClick={() => navigate('/jogos')}>Explorar Jogos</button>
+          </div>
+        ) : (
+          <AvaliacaoCarrossel 
+            title="Suas Avaliações Recentes" 
+            avaliacoes={reviews} 
+            onEditReview={handleEditReview} 
+            onDeleteReview={handleDeleteReview} 
+          />
+        )}
+      </div>
     </div>
   );
 };
