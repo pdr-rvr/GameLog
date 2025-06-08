@@ -38,4 +38,19 @@ namespace GameLog_Backend.DTOs
 	{
 		public string Senha { get; set; }
 	}
+
+    public class GeneroFavoritoDTO
+    {
+        public string Genero {  get; set; }
+    }
+
+    public class JogoRecomendacaoDTO
+    {
+        public int JogoId { get; set; }
+        public string Titulo { get; set; }
+        public string Descricao { get; set; }
+        public string Imagem { get; set; }
+        public DateOnly DataLancamento { get; set; }
+        public string GeneroFavorito { get; set; }
+    }
 }

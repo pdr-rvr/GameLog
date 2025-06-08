@@ -4,6 +4,7 @@
     {
         public int Nota {  get; set; }
         public Jogo Jogo { get; set; }
+        public Usuario Usuario { get; set; }
         public string TextoAvaliacao { get; set; }
         public DateTime DataPublicacao { get; set; }
         public virtual ICollection<CurtidaDeAvaliacao> CurtidasDeAvaliacao { get; set; }

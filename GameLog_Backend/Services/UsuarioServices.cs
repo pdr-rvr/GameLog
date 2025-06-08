@@ -172,5 +172,68 @@ namespace GameLog_Backend.Services
 
             return true;
         }
+
+        public async Task<GeneroFavoritoDTO?> IdentificaGeneroFavorito(int id)
+        {
+            var generoFavorito = await _context.Avaliacoes
+                .Where(a => a.Usuario.Id == id && a.EstaAtivo)
+                .SelectMany(a => a.Jogo.Generos)
+                .GroupBy(g => g.TituloGenero)
+                .Select(g => new
+                {
+                    Genero = g.Key,
+                    MediaNotas = _context.Avaliacoes
+                        .Where(a => a.Usuario.Id == id &&
+                                   a.EstaAtivo &&
+                                   a.Jogo.Generos.Any(gen => gen.TituloGenero == g.Key))
+                        .Average(a => a.Nota),
+                    QuantidadeJogos = g.Count()
+                })
+                .OrderByDescending(x => x.MediaNotas)
+                .ThenByDescending(x => x.QuantidadeJogos)
+                .FirstOrDefaultAsync();
+
+            if (generoFavorito == null)
+                return null;
+
+            return new GeneroFavoritoDTO
+            {
+                Genero = generoFavorito.Genero
+            };
+        }
+
+        public async Task<IEnumerable<JogoRecomendacaoDTO>> RecomendarJogos(int usuarioId)
+        {
+            var generoFavorito = await IdentificaGeneroFavorito(usuarioId);
+
+            if (generoFavorito == null)
+            {
+                return Enumerable.Empty<JogoRecomendacaoDTO>();
+            }
+
+            var jogosAvaliados = await _context.Avaliacoes
+                .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
+                .Select(a => a.Jogo.Id)
+                .ToListAsync();
+
+            var jogosRecomendados = await _context.Jogos
+                .Where(j => j.Generos.Any(g => g.TituloGenero == generoFavorito.Genero) &&
+                            !jogosAvaliados.Contains(j.Id) &&
+                            j.EstaAtivo)
+                .OrderByDescending(j => j.DataLancamento) 
+                .Take(3) 
+                .Select(j => new JogoRecomendacaoDTO
+                {
+                    JogoId = j.Id,
+                    Titulo = j.Titulo,
+                    Descricao = j.Descricao,
+                    Imagem = j.Imagem,
+                    DataLancamento = j.DataLancamento,
+                    GeneroFavorito = generoFavorito.Genero
+                })
+                .ToListAsync();
+
+            return jogosRecomendados;
+        }
     }
 }

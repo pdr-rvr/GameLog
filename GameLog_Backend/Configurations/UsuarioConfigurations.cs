@@ -37,10 +37,6 @@ namespace GameLog_Backend.Configurations
                 .HasColumnType("varchar(MAX)")
                 .IsRequired(false);
 
-            builder.HasMany(e => e.Avaliacoes)
-                .WithOne()
-                .IsRequired();
-
             builder.Property(p => p.EstaAtivo)
                 .IsRequired();
         }
