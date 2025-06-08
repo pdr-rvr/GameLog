@@ -12,7 +12,12 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 
-Env.Load();
+
+if (builder.Environment.IsDevelopment())
+{
+    DotNetEnv.Env.Load();
+}
+
 
 
 var baseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
