@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { buscarAvaliacoes, buscarJogos, criarAvaliacao, buscarRecomendacoes } from './actions/TelaHomeActions';
+import { buscarAvaliacoes, criarAvaliacao, buscarRecomendacoes } from './actions/TelaHomeActions';
+import { buscarJogos as buscarTodosOsJogos } from '../PaginaJogos/actions/PaginaJogosActions'; // Importa do local correto e renomeia
+
 import Navbar from '../../components/Navbar/Navbar';
 import FormAvaliacao from '../../components/FormAvaliacao/FormAvaliacao';
-import JogosCarrossel from '../../components/JogosCarrossel/JogosCarrossel'; 
-import AvaliacoesCarrossel from '../../components/AvaliacaoCarrossel/AvaliacaoCarrossel'; 
-import RecomendacoesCarrossel from '../../components/RecomendacoesCarrossel/RecomendacoesCarrossel'; 
+import JogosCarrossel from '../../components/JogosCarrossel/JogosCarrossel';
+import AvaliacoesCarrossel from '../../components/AvaliacaoCarrossel/AvaliacaoCarrossel';
+import RecomendacoesCarrossel from '../../components/RecomendacoesCarrossel/RecomendacoesCarrossel';
 import './TelaHome.css';
 import { useAuth } from '../../context/AuthContext';
 
@@ -13,7 +15,7 @@ function TelaHome() {
   const { user, isAuthenticated, loadingAuth } = useAuth();
   const [activeTab, setActiveTab] = useState('home');
   const [avaliacoes, setAvaliacoes] = useState([]);
-  const [jogos, setJogos] = useState([]);
+  const [jogos, setJogos] = useState([]); // Este é o estado que queremos garantir que seja populado
   const [recomendacoes, setRecomendacoes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,41 +23,57 @@ function TelaHome() {
 
   const navigate = useNavigate();
 
+  // NOVO useEffect para carregar TODOS os jogos, independente do login
   useEffect(() => {
-    carregarDados();
-  }, [activeTab, user, isAuthenticated]);
-
-  const carregarDados = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const promises = [
-        buscarJogos(),
-        buscarAvaliacoes(activeTab === 'minhas' && isAuthenticated && user ? user.id : null)
-      ];
-
-      if (isAuthenticated && user?.id) {
-        promises.push(buscarRecomendacoes(user.id));
+    const loadAllGames = async () => {
+      try {
+        const data = await buscarTodosOsJogos();
+        setJogos(data); // Popula o estado de jogos aqui
+      } catch (err) {
+        console.error('Erro ao carregar todos os jogos:', err);
+        // Pode definir um erro específico para jogos se quiser
       }
+    };
+    loadAllGames();
+  }, []); // Array de dependências vazio para carregar apenas uma vez ao montar
 
-      const results = await Promise.all(promises);
+  // useEffect para carregar avaliações e recomendações (dependente do login e tab)
+  useEffect(() => {
+    const carregarConteudoAutenticado = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const promises = [
+          buscarAvaliacoes(activeTab === 'minhas' && isAuthenticated && user ? user.id : null)
+        ];
 
-      setJogos(results[0]);
-      setAvaliacoes(results[1]);
+        if (isAuthenticated && user?.id) {
+          promises.push(buscarRecomendacoes(user.id));
+        }
 
-      if (isAuthenticated && user?.id && results.length > 2) {
-        setRecomendacoes(results[2]);
-      } else {
-        setRecomendacoes([]);
+        const results = await Promise.all(promises);
+
+        setAvaliacoes(results[0]);
+
+        if (isAuthenticated && user?.id && results.length > 1) { // Mudou para results.length > 1, pois jogos não está mais aqui
+          setRecomendacoes(results[1]);
+        } else {
+          setRecomendacoes([]);
+        }
+
+      } catch (err) {
+        console.error('Erro ao carregar dados de usuário/avaliações:', err);
+        setError('Erro ao carregar dados. Tente novamente mais tarde.');
+      } finally {
+        setLoading(false);
       }
+    };
 
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err);
-      setError('Erro ao carregar dados. Tente novamente mais tarde.');
-    } finally {
-      setLoading(false);
+    // Só carrega conteúdo autenticado se não estiver carregando a autenticação e houver uma mudança relevante
+    if (!loadingAuth) {
+        carregarConteudoAutenticado();
     }
-  };
+  }, [activeTab, user, isAuthenticated, loadingAuth]); // Mantenha as dependências para o conteúdo do usuário
 
   const handleSubmitAvaliacao = async (avaliacaoData) => {
     if (!isAuthenticated) {
@@ -65,8 +83,17 @@ function TelaHome() {
     setLoading(true);
     setError('');
     try {
-      await criarAvaliacao(avaliacaoData); 
-      await carregarDados();
+      await criarAvaliacao(avaliacaoData);
+      // Após criar avaliação, recarregue apenas as avaliações (e talvez recomendações se for o caso)
+      // Não precisa recarregar todos os jogos novamente
+      const updatedAvaliacoes = await buscarAvaliacoes(activeTab === 'minhas' && isAuthenticated && user ? user.id : null);
+      setAvaliacoes(updatedAvaliacoes);
+
+      if (isAuthenticated && user?.id) {
+        const updatedRecomendacoes = await buscarRecomendacoes(user.id);
+        setRecomendacoes(updatedRecomendacoes);
+      }
+
       setShowForm(false);
       setError('');
     } catch (err) {
@@ -109,7 +136,7 @@ function TelaHome() {
         {showForm && isAuthenticated && (
           <div className="form-overlay">
             <FormAvaliacao
-              jogos={jogos}
+              jogos={jogos} // 'jogos' virá agora do useEffect que carrega apenas jogos
               onSubmit={handleSubmitAvaliacao}
               loading={loading}
               error={error}
@@ -120,9 +147,15 @@ function TelaHome() {
           </div>
         )}
 
+        {/* Renderiza o JogosCarrossel se houver jogos */}
         {jogos.length > 0 && (
           <JogosCarrossel title="Jogos em Destaque" jogos={jogos} />
         )}
+        {/* Adicione uma mensagem se não houver jogos e não estiver carregando */}
+        {!loading && jogos.length === 0 && (
+            <div className="sem-jogos">Nenhum jogo em destaque disponível.</div>
+        )}
+
 
         {isAuthenticated && user?.id && loadingAuth === false && !loading && recomendacoes.length > 0 && (
           <RecomendacoesCarrossel title="Recomendações para você" recomendacoes={recomendacoes} />
