@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:7096/api';
+const API_BASE_URL = 'https://localhost:7096/api';
 
 export const fetchUserProfile = async (userId, token) => {
   if (!token) {
