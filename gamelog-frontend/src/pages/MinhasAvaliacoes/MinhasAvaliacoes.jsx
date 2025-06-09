@@ -13,7 +13,7 @@ const MinhasAvaliacoes = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-  const [activeTab, setActiveTab] = useState('minhas');
+  const [activeTab, setActiveTab] = useState('minhas'); // Mantido 'minhas' ou o valor padrão que você usa para MinhasAvaliacoes
 
   const loadReviews = async () => {
     setError(null);
@@ -56,6 +56,7 @@ const MinhasAvaliacoes = () => {
     loadReviews();
   }, [loadingAuth, user, isAuthenticated, navigate]);
 
+  // Modificação aqui: A rota agora é '/avaliacoes/editar/:reviewId'
   const handleEditReview = (reviewId) => {
     navigate(`/avaliacoes/editar/${reviewId}`); 
   };
@@ -73,6 +74,7 @@ const MinhasAvaliacoes = () => {
     try {
       await deleteReview(reviewId, token);
       setSuccessMessage('Avaliação excluída com sucesso!');
+      // Usando avaliacaoId para filtrar, como no seu modelo de dados
       setReviews(prevReviews => prevReviews.filter(review => review.avaliacaoId !== reviewId)); 
     } catch (err) {
       setError(err.message || 'Erro ao excluir avaliação.');
@@ -86,7 +88,7 @@ const MinhasAvaliacoes = () => {
       navigate('/login');
       return;
     }
-    navigate('/avaliacoes/criar');
+    navigate('/avaliacoes/criar'); // Mantido como você já tem
   };
 
   if (loadingAuth || pageLoading) {
@@ -99,6 +101,7 @@ const MinhasAvaliacoes = () => {
 
   return (
     <div className="minhas-avaliacoes-page-container">
+      {/* Navbar será a mesma que você já usa */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -116,6 +119,7 @@ const MinhasAvaliacoes = () => {
             <button className="explore-games-button" onClick={() => navigate('/jogos')}>Explorar Jogos</button>
           </div>
         ) : (
+          // AvaliacaoCarrossel já tem props onEditReview e onDeleteReview
           <AvaliacaoCarrossel 
             title="Suas Avaliações Recentes" 
             avaliacoes={reviews} 

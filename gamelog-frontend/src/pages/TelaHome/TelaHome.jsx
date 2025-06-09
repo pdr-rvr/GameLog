@@ -101,12 +101,10 @@ function TelaHome() {
           </div>
         )}
 
-        {/* Carrossel de Jogos (mantido) */}
         {jogos.length > 0 && (
           <JogosCarrossel title="Jogos em Destaque" jogos={jogos} />
         )}
 
-        {/* Carrossel de Avaliações (novo) */}
         {loading && <div className="loading">Carregando avaliações...</div>}
         {!loading && avaliacoes.length === 0 && (
           <div className="sem-avaliacoes">

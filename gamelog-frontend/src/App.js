@@ -8,6 +8,7 @@ import TelaJogo from './pages/TelaJogo/TelaJogo';
 import PaginaAvaliacoes from './pages/PaginaAvaliacoes/PaginaAvaliacoes';
 import PerfilUsuario from './pages/PerfilUsuario/PerfilUsuario';
 import MinhasAvaliacoes from './pages/MinhasAvaliacoes/MinhasAvaliacoes';
+import EditarAvaliacao from './pages/EditarAvaliacao/EditarAvaliacao'; // Importa a nova página
 
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext'; 
@@ -42,6 +43,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <MinhasAvaliacoes />
+              </ProtectedRoute>
+            } 
+          />
+          {/* Nova Rota Protegida para edição de avaliação */}
+          <Route 
+            path="/avaliacoes/editar/:reviewId" 
+            element={
+              <ProtectedRoute>
+                <EditarAvaliacao />
               </ProtectedRoute>
             } 
           />

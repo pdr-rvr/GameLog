@@ -1,19 +1,33 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './FormAvaliacao.css';
 
-const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
+const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel, initialData = {}, isEditing = false }) => {
   const [avaliacao, setAvaliacao] = useState({
-    jogoId: '',
-    nota: 0,
-    textoAvaliacao: ''
+    jogoId: initialData.jogoId || '',
+    nota: initialData.nota || 0,
+    textoAvaliacao: initialData.textoAvaliacao || ''
   });
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialData.tituloJogo || '');
   const [filteredJogos, setFilteredJogos] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchInputRef = useRef(null);
 
   useEffect(() => {
-    if (searchTerm) {
+    if (isEditing && initialData) {
+      setAvaliacao({
+        jogoId: initialData.jogoId || '',
+        nota: initialData.nota || 0,
+        textoAvaliacao: initialData.textoAvaliacao || ''
+      });
+      setSearchTerm(initialData.tituloJogo || '');
+    } else if (!isEditing) {
+      setAvaliacao({ jogoId: '', nota: 0, textoAvaliacao: '' });
+      setSearchTerm('');
+    }
+  }, [initialData, isEditing]);
+
+  useEffect(() => {
+    if (searchTerm && !isEditing) {
       const lowerCaseSearchTerm = searchTerm.toLowerCase();
       const suggestions = (jogos || []).filter(jogo =>
         jogo.titulo.toLowerCase().includes(lowerCaseSearchTerm)
@@ -24,7 +38,7 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
       setFilteredJogos([]);
       setShowSuggestions(false);
     }
-  }, [searchTerm, jogos]);
+  }, [searchTerm, jogos, isEditing]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -41,14 +55,18 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
   };
 
   const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-    setAvaliacao(prev => ({ ...prev, jogoId: '' })); 
+    if (!isEditing) {
+      setSearchTerm(e.target.value);
+      setAvaliacao(prev => ({ ...prev, jogoId: '' }));
+    }
   };
 
   const handleSelectGame = (jogo) => {
-    setAvaliacao(prev => ({ ...prev, jogoId: jogo.jogoId }));
-    setSearchTerm(jogo.titulo);
-    setShowSuggestions(false); 
+    if (!isEditing) {
+      setAvaliacao(prev => ({ ...prev, jogoId: jogo.jogoId }));
+      setSearchTerm(jogo.titulo);
+      setShowSuggestions(false);
+    }
   };
 
   useEffect(() => {
@@ -66,19 +84,21 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
   return (
     <div className="form-avaliacao">
       <div className="form-header">
-        <h3>Criar Nova Avaliação</h3>
-        <button
-          className="close-button"
-          onClick={onCancel}
-          aria-label="Fechar formulário"
-        >
-          &times;
-        </button>
+        <h3>{isEditing ? 'Editar Avaliação' : 'Criar Nova Avaliação'}</h3>
+        {!isEditing && (
+          <button
+            className="close-button"
+            onClick={onCancel}
+            aria-label="Fechar formulário"
+          >
+            &times;
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit}>
         <div className="form-group" ref={searchInputRef}>
-          <label htmlFor="jogoId">Selecione um jogo:</label>
+          <label htmlFor="jogoId">Jogo:</label>
           <input
             type="text"
             id="jogoId"
@@ -87,11 +107,11 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
             onChange={handleSearchChange}
             placeholder="Digite o nome do jogo..."
             required
-            disabled={loading}
-            onFocus={() => setShowSuggestions(true)}
+            disabled={loading || isEditing}
+            onFocus={() => setShowSuggestions(!isEditing && true)}
             autoComplete="off"
           />
-          {showSuggestions && filteredJogos.length > 0 && searchTerm && (
+          {showSuggestions && filteredJogos.length > 0 && searchTerm && !isEditing && (
             <ul className="suggestions-list">
               {filteredJogos.map(jogo => (
                 <li key={jogo.jogoId} onClick={() => handleSelectGame(jogo)}>
@@ -100,10 +120,10 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
               ))}
             </ul>
           )}
-          {showSuggestions && filteredJogos.length === 0 && searchTerm && (
+          {showSuggestions && filteredJogos.length === 0 && searchTerm && !isEditing && (
             <div className="no-suggestions">Nenhum jogo encontrado.</div>
           )}
-          {!avaliacao.jogoId && searchTerm && filteredJogos.length > 0 && (
+          {!isEditing && !avaliacao.jogoId && searchTerm && filteredJogos.length > 0 && (
             <div className="select-game-message">Selecione um jogo da lista.</div>
           )}
         </div>
@@ -156,18 +176,29 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel }) => {
         {error && <div className="error-message">{error}</div>}
 
         <div className="form-actions">
+          {onCancel && (
+              <button
+                type="button"
+                className="cancel-button"
+                onClick={onCancel}
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+          )}
+
           <button
             type="submit"
             className="submit-button"
-            disabled={loading || !avaliacao.jogoId || !avaliacao.textoAvaliacao || avaliacao.nota === 0}
+            disabled={loading || avaliacao.nota === 0 || !avaliacao.textoAvaliacao.trim() || (!isEditing && !avaliacao.jogoId)}
           >
             {loading ? (
               <>
                 <span className="spinner"></span>
-                Publicando...
+                {isEditing ? 'Atualizando...' : 'Publicando...'}
               </>
             ) : (
-              'Publicar Avaliação'
+              isEditing ? 'Salvar Alterações' : 'Publicar Avaliação'
             )}
           </button>
         </div>
