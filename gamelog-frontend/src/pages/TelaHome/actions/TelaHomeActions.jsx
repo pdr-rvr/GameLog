@@ -51,3 +51,24 @@ export const criarAvaliacao = async (avaliacaoData) => {
     throw new Error(error.response?.data?.message || 'Erro ao criar avaliação');
   }
 };
+
+export const buscarRecomendacoes = async (userId) => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.warn('Token de autenticação não encontrado para buscar recomendações.');
+            return [];
+        }
+
+        const response = await api.get(`/Usuarios/${userId}/recomendacoes`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        const dados = response.data.$values || response.data;
+        return Array.isArray(dados) ? dados : [];
+    } catch (error) {
+        console.error(`Erro ao buscar recomendações para o usuário ${userId}:`, error);
+        return []; 
+    }
+};

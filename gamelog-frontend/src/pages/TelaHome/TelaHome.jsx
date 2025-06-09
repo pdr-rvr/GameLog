@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { buscarAvaliacoes, buscarJogos, criarAvaliacao } from './actions/TelaHomeActions';
+import { buscarAvaliacoes, buscarJogos, criarAvaliacao, buscarRecomendacoes } from './actions/TelaHomeActions';
 import Navbar from '../../components/Navbar/Navbar';
 import FormAvaliacao from '../../components/FormAvaliacao/FormAvaliacao';
 import JogosCarrossel from '../../components/JogosCarrossel/JogosCarrossel'; 
 import AvaliacoesCarrossel from '../../components/AvaliacaoCarrossel/AvaliacaoCarrossel'; 
+import RecomendacoesCarrossel from '../../components/RecomendacoesCarrossel/RecomendacoesCarrossel'; 
 import './TelaHome.css';
 import { useAuth } from '../../context/AuthContext';
 
@@ -13,6 +14,7 @@ function TelaHome() {
   const [activeTab, setActiveTab] = useState('home');
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [jogos, setJogos] = useState([]);
+  const [recomendacoes, setRecomendacoes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -27,13 +29,26 @@ function TelaHome() {
     setLoading(true);
     setError('');
     try {
-      const [jogosData, avaliacoesData] = await Promise.all([
+      const promises = [
         buscarJogos(),
         buscarAvaliacoes(activeTab === 'minhas' && isAuthenticated && user ? user.id : null)
-      ]);
+      ];
 
-      setJogos(jogosData);
-      setAvaliacoes(avaliacoesData);
+      if (isAuthenticated && user?.id) {
+        promises.push(buscarRecomendacoes(user.id));
+      }
+
+      const results = await Promise.all(promises);
+
+      setJogos(results[0]);
+      setAvaliacoes(results[1]);
+
+      if (isAuthenticated && user?.id && results.length > 2) {
+        setRecomendacoes(results[2]);
+      } else {
+        setRecomendacoes([]);
+      }
+
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
       setError('Erro ao carregar dados. Tente novamente mais tarde.');
@@ -50,7 +65,7 @@ function TelaHome() {
     setLoading(true);
     setError('');
     try {
-      await criarAvaliacao(avaliacaoData);
+      await criarAvaliacao(avaliacaoData); 
       await carregarDados();
       setShowForm(false);
       setError('');
@@ -68,6 +83,8 @@ function TelaHome() {
     }
     setShowForm(true);
   };
+
+  const newInitialData = useMemo(() => ({}), []);
 
   return (
     <div className="home-container">
@@ -97,12 +114,23 @@ function TelaHome() {
               loading={loading}
               error={error}
               onCancel={() => setShowForm(false)}
+              initialData={newInitialData}
+              isEditing={false}
             />
           </div>
         )}
 
         {jogos.length > 0 && (
           <JogosCarrossel title="Jogos em Destaque" jogos={jogos} />
+        )}
+
+        {isAuthenticated && user?.id && loadingAuth === false && !loading && recomendacoes.length > 0 && (
+          <RecomendacoesCarrossel title="Recomendações para você" recomendacoes={recomendacoes} />
+        )}
+        {isAuthenticated && user?.id && loadingAuth === false && !loading && recomendacoes.length === 0 && (
+            <div className="sem-recomendacoes">
+                Não há recomendações disponíveis no momento. Jogue mais e avalie para receber recomendações!
+            </div>
         )}
 
         {loading && <div className="loading">Carregando avaliações...</div>}

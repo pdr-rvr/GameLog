@@ -13,18 +13,21 @@ const FormAvaliacao = ({ jogos, onSubmit, loading, error, onCancel, initialData 
   const searchInputRef = useRef(null);
 
   useEffect(() => {
-    if (isEditing && initialData) {
+    if (isEditing) {
       setAvaliacao({
         jogoId: initialData.jogoId || '',
         nota: initialData.nota || 0,
         textoAvaliacao: initialData.textoAvaliacao || ''
       });
       setSearchTerm(initialData.tituloJogo || '');
-    } else if (!isEditing) {
+    } else {
       setAvaliacao({ jogoId: '', nota: 0, textoAvaliacao: '' });
       setSearchTerm('');
+      setFilteredJogos([]);
+      setShowSuggestions(false);
     }
   }, [initialData, isEditing]);
+
 
   useEffect(() => {
     if (searchTerm && !isEditing) {
