@@ -9,8 +9,8 @@
         public string NomeJogo { get; set; } 
         public string NomeUsuario { get; set; }
         public DateTime DataPublicacao { get; set; }
-        public int TotalCurtidas { get; set; }
-        public bool CurtidaPorMim { get; set; }
+        // public int TotalCurtidas { get; set; }
+        // public bool CurtidaPorMim { get; set; }
     }
 
     public class CriarAvaliacaoDTO
