@@ -122,7 +122,7 @@ function PaginaJogos() {
             <Navbar />
             <div className="pagina-jogos-content">
                 <div className="filtro-pesquisa-bar">
-                    <FiltroDropdown 
+                    {/* <FiltroDropdown 
                         title="Ano" 
                         type="year-range"
                         currentSelection={filtroAno}
@@ -140,7 +140,7 @@ function PaginaJogos() {
                         options={generosOptions} 
                         currentSelection={generosOptions.find(opt => opt.value === filtroGenero)?.label || ''}
                         onSelect={setFiltroGenero} 
-                    />
+                    /> */}
                     <SearchBar 
                         onSearch={handleSearch} 
                         suggestions={sugestoesPesquisa} 

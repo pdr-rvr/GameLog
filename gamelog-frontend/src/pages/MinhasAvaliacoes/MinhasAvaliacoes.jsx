@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { fetchUserReviews, deleteReview } from './actions/MinhasAvaliacoesActions';
-import AvaliacaoCarrossel from '../../components/AvaliacaoCarrossel/AvaliacaoCarrossel';
+import MyAvaliacaoCarrossel from '../../components/MyAvaliacaoCarrossel/MyAvaliacaoCarrossel';
 import Navbar from '../../components/Navbar/Navbar';
 import './MinhasAvaliacoes.css';
 
@@ -120,7 +120,7 @@ const MinhasAvaliacoes = () => {
           </div>
         ) : (
           // AvaliacaoCarrossel já tem props onEditReview e onDeleteReview
-          <AvaliacaoCarrossel 
+          <MyAvaliacaoCarrossel 
             title="Suas Avaliações Recentes" 
             avaliacoes={reviews} 
             onEditReview={handleEditReview} 
