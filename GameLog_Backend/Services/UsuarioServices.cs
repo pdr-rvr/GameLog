@@ -9,6 +9,7 @@ using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Collections.Generic;
 
 namespace GameLog_Backend.Services
 {
@@ -173,55 +174,62 @@ namespace GameLog_Backend.Services
             return true;
         }
 
-        public async Task<GeneroFavoritoDTO?> IdentificaGeneroFavorito(int id)
+        public async Task<List<GeneroFavoritoDTO>> IdentificaTopNGenerosFavoritos(int id, int topN = 3)
         {
-            var generoFavorito = await _context.Avaliacoes
+            var avaliacoesDoUsuario = await _context.Avaliacoes
                 .Where(a => a.Usuario.Id == id && a.EstaAtivo)
-                .SelectMany(a => a.Jogo.Generos)
-                .GroupBy(g => g.TituloGenero)
+                .Include(a => a.Jogo)
+                    .ThenInclude(j => j.Generos) 
+                .ToListAsync(); 
+
+            if (!avaliacoesDoUsuario.Any())
+            {
+                return new List<GeneroFavoritoDTO>();
+            }
+
+            var generosComNotas = avaliacoesDoUsuario
+                .SelectMany(a => a.Jogo.Generos.Select(g => new { Genero = g.TituloGenero, Nota = a.Nota }));
+
+            var topGeneros = generosComNotas
+                .GroupBy(x => x.Genero)
                 .Select(g => new
                 {
                     Genero = g.Key,
-                    MediaNotas = _context.Avaliacoes
-                        .Where(a => a.Usuario.Id == id &&
-                                   a.EstaAtivo &&
-                                   a.Jogo.Generos.Any(gen => gen.TituloGenero == g.Key))
-                        .Average(a => a.Nota),
-                    QuantidadeJogos = g.Count()
+                    MediaNotas = g.Average(x => (double)x.Nota), 
+                    QuantidadeJogos = g.Count() 
                 })
                 .OrderByDescending(x => x.MediaNotas)
                 .ThenByDescending(x => x.QuantidadeJogos)
-                .FirstOrDefaultAsync();
+                .Take(topN) 
+                .ToList();
 
-            if (generoFavorito == null)
-                return null;
-
-            return new GeneroFavoritoDTO
-            {
-                Genero = generoFavorito.Genero
-            };
+             return topGeneros.Select(g => new GeneroFavoritoDTO { Genero = g.Genero }).ToList();
         }
 
         public async Task<IEnumerable<JogoRecomendacaoDTO>> RecomendarJogos(int usuarioId)
         {
-            var generoFavorito = await IdentificaGeneroFavorito(usuarioId);
+            var topGeneros = await IdentificaTopNGenerosFavoritos(usuarioId, 3);
+            var nomePrimeiroGeneroFavorito = topGeneros.FirstOrDefault()?.Genero; 
 
-            if (generoFavorito == null)
+            if (!topGeneros.Any())
             {
+                Console.WriteLine($"Nenhum gênero favorito identificado para o usuário {usuarioId}. Retornando lista vazia de recomendações.");
                 return Enumerable.Empty<JogoRecomendacaoDTO>();
             }
 
-            var jogosAvaliados = await _context.Avaliacoes
+            var jogosAvaliadosIds = await _context.Avaliacoes
                 .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
                 .Select(a => a.Jogo.Id)
                 .ToListAsync();
 
+            var generosParaBuscar = topGeneros.Select(g => g.Genero).ToList();
+
             var jogosRecomendados = await _context.Jogos
-                .Where(j => j.Generos.Any(g => g.TituloGenero == generoFavorito.Genero) &&
-                            !jogosAvaliados.Contains(j.Id) &&
+                .Where(j => j.Generos.Any(g => generosParaBuscar.Contains(g.TituloGenero)) &&
+                            !jogosAvaliadosIds.Contains(j.Id) &&
                             j.EstaAtivo)
-                .OrderByDescending(j => j.DataLancamento) 
-                .Take(3) 
+                .OrderByDescending(j => j.DataLancamento)
+                .Take(10)
                 .Select(j => new JogoRecomendacaoDTO
                 {
                     JogoId = j.Id,
@@ -229,9 +237,14 @@ namespace GameLog_Backend.Services
                     Descricao = j.Descricao,
                     Imagem = j.Imagem,
                     DataLancamento = j.DataLancamento,
-                    GeneroFavorito = generoFavorito.Genero
+                    GeneroFavorito = nomePrimeiroGeneroFavorito
                 })
                 .ToListAsync();
+
+            if (!jogosRecomendados.Any())
+            {
+                Console.WriteLine($"Nenhum jogo encontrado para recomendar nos top gêneros ({string.Join(", ", generosParaBuscar)}) para o usuário {usuarioId}.");
+            }
 
             return jogosRecomendados;
         }
