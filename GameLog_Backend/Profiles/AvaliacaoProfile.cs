@@ -8,9 +8,9 @@ namespace GameLog_Backend.Profiles
     {
         public AvaliacaoProfile()
         {
-            CreateMap<Avaliacao, AvaliacaoDTO>()
-                .ForMember(dest => dest.TotalCurtidas,
-                           opt => opt.MapFrom(src => src.CurtidasDeAvaliacao.Count));
+            //CreateMap<Avaliacao, AvaliacaoDTO>()
+            //    .ForMember(dest => dest.TotalCurtidas,
+            //               opt => opt.MapFrom(src => src.CurtidasDeAvaliacao.Count));
 
             CreateMap<CriarAvaliacaoDTO, Avaliacao>()
                 .ForMember(dest => dest.DataPublicacao,

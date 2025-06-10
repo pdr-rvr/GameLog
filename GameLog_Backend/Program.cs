@@ -11,9 +11,10 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-Env.Load();
-
+if (builder.Environment.IsDevelopment())
+{
+    DotNetEnv.Env.Load();
+}
 
 var baseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -22,6 +23,8 @@ var completeConnectionString = baseConnectionString
     .Replace("{DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
     .Replace("{DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
     .Replace("{DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"));
+
+Console.WriteLine("Conectando ao banco em: " + Environment.GetEnvironmentVariable("DB_SERVER"));
 
 builder.Services.AddCors(options =>
 {
@@ -75,14 +78,11 @@ builder.Services.AddDbContext<GameLogContext>(options =>
     options.UseSqlServer(completeConnectionString));
 
 builder.Services.AddScoped<JogoServices>();
-
 builder.Services.AddAutoMapper(typeof(UsuarioProfile));
 builder.Services.AddScoped<UsuarioServices>();
 builder.Services.AddAutoMapper(typeof(AvaliacaoProfile));
 builder.Services.AddScoped<AvaliacaoServices>();
 
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -98,13 +98,15 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<GameLogContext>();
 
+        Console.WriteLine("Iniciando migrations...");
         context.Database.Migrate();
+        Console.WriteLine("Migrations aplicadas.");
 
+        Console.WriteLine("Executando seeders...");
         new EmpresaSeeder(context).Seed();
         new GeneroSeeder(context).Seed();
         new JogoSeeder(context).Seed();
         new JogoGeneroSeeder(context).Seed();
-
         Console.WriteLine("Seeders executados com sucesso!");
     }
     catch (Exception ex)
@@ -114,17 +116,18 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapGet("/", () => "API GameLog está online!").AllowAnonymous();
 
 app.Run();
