@@ -173,7 +173,13 @@ function TelaHome() {
           </div>
         )}
         {!loading && avaliacoes.length > 0 && (
-          <AvaliacoesCarrossel title="Últimas Avaliações" avaliacoes={avaliacoes} />
+          <AvaliacoesCarrossel
+            title="Últimas Avaliações"
+            avaliacoes={avaliacoes}
+            currentUserId={user?.id}
+            onEditReview={() => { /* Implementar edição */ }} // Placeholder para edição
+            onDeleteReview={() => { /* Implementar exclusão */ }} // Placeholder para exclusão
+          />
         )}
 
       </div>

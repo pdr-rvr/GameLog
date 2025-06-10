@@ -29,13 +29,9 @@ const Navbar = ({ onPublishClick }) => {
                     <li className="nav-item">
                         <Link to="/home" className="nav-link">Home</Link>
                     </li>
-                    <li className="nav-item">
+                    <li className="nav-item separator">
                         <Link to="/jogos" className="nav-link">Jogos</Link>
                     </li>
-                    <li className="nav-item separator">
-                        <Link to="/avaliacoes" className="nav-link">Avaliações</Link>
-                    </li>
-
                     {isAuthenticated ? (
                         <>
                             <li className="nav-item">

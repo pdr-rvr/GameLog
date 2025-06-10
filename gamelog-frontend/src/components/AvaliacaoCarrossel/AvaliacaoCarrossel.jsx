@@ -2,19 +2,19 @@ import React, { useRef } from 'react';
 import AvaliacaoCard from '../AvaliacaoCard/AvaliacaoCard';
 import './AvaliacaoCarrossel.css';
 
-const AvaliacaoCarrossel = ({ title, avaliacoes, onEditReview, onDeleteReview }) => {
+const AvaliacaoCarrossel = ({ title, avaliacoes, onEditReview, onDeleteReview, currentUserId }) => {
   const carouselRef = useRef(null);
 
   const scroll = (direction) => {
     if (carouselRef.current) {
-      const cardContainerWidth = 330; 
+      const cardContainerWidth = 330;
       const scrollAmount = direction === 'left' ? -cardContainerWidth : cardContainerWidth;
       carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
   if (!avaliacoes || avaliacoes.length === 0) {
-    return null; 
+    return null;
   }
 
   return (
@@ -29,6 +29,7 @@ const AvaliacaoCarrossel = ({ title, avaliacoes, onEditReview, onDeleteReview })
                 avaliacao={avaliacao}
                 onEdit={onEditReview}
                 onDelete={onDeleteReview}
+                currentUserId={currentUserId}
               />
             </div>
           ))}
