@@ -12,15 +12,16 @@ const RecomendacoesCarrossel = ({ title, recomendacoes }) => {
       <div className="recomendacoes-carrossel-container">
         {recomendacoes.map(recomendacao => (
           <div key={recomendacao.jogoId || recomendacao.id} className="recomendacao-card">
-            <img 
-              src={recomendacao.capaUrl || 'https://via.placeholder.com/150'} 
-              alt={recomendacao.titulo} 
-              className="recomendacao-image" 
+            <img
+              src={recomendacao.imagem || '/game-images/default_game_cover.png'} 
+              alt={recomendacao.titulo}
+              className="recomendacao-image"
+              onError={(e) => { 
+                e.target.onerror = null; 
+                e.target.src = '/game-images/default_game_cover.png'; 
+              }}
             />
             <h3 className="recomendacao-title">{recomendacao.titulo}</h3>
-            {recomendacao.generos && recomendacao.generos.length > 0 && (
-              <p className="recomendacao-genres">{recomendacao.generos.join(', ')}</p>
-            )}
           </div>
         ))}
       </div>
