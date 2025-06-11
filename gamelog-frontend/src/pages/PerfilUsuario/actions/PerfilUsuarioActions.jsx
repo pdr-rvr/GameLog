@@ -1,11 +1,11 @@
-const API_BASE_URL = 'https://localhost:7096/api';
+import api from '../../../services/api';
 
 export const fetchUserProfile = async (userId, token) => {
   if (!token) {
     throw new Error('Token de autenticação ausente.');
   }
   try {
-    const response = await fetch(`${API_BASE_URL}/Usuarios/${userId}`, {
+    const response = await fetch(`${api}/Usuarios/${userId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -29,7 +29,7 @@ export const updateUserProfile = async (userId, userData, token) => {
     throw new Error('Token de autenticação ausente.');
   }
   try {
-    const response = await fetch(`${API_BASE_URL}/Usuarios/${userId}`, {
+    const response = await fetch(`${api}/Usuarios/${userId}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
