@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL, //vem do .env
+  baseURL: "https://gamelog-backend-cddhetdcegcjeghe.canadacentral-01.azurewebsites.net/api", 
   headers: {
     'Content-Type': 'application/json',
   },
