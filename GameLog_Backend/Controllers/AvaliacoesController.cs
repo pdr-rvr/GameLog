@@ -86,6 +86,21 @@ namespace GameLog_Backend.Controllers
             }
         }
 
+        [HttpGet("jogo/{jogoId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ListarAvaliacoesPorJogo(int jogoId)
+        {
+            try
+            {
+                var avaliacoes = await _avaliacaoServices.ListarAvaliacoesPorJogo(jogoId);
+                return Ok(avaliacoes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Erro ao listar avaliações de jogo: {ex.Message}" });
+            }
+        }
+
         [HttpPut("{id}")]
         [Authorize]
         public async Task<IActionResult> EditarAvaliacao(int id, [FromBody] EditarAvaliacaoDTO avaliacaoDTO)

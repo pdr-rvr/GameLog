@@ -106,6 +106,23 @@ namespace GameLog_Backend.Services
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorJogo(int jogoId)
+        {
+            return await _context.Avaliacoes
+                .Where(a => a.Jogo.Id == jogoId)
+                .OrderByDescending(a => a.DataPublicacao)
+                .Select(a => new AvaliacaoDTO
+                {
+                    AvaliacaoId = a.Id,
+                    Nota = a.Nota,
+                    JogoId = a.Jogo.Id,
+                    NomeJogo = a.Jogo.Titulo,
+                    NomeUsuario = a.Usuario.NomeUsuario,
+                    DataPublicacao = a.DataPublicacao
+                })
+                .ToListAsync();
+        }
+
         public async Task<AvaliacaoDTO?> EditarAvaliacao(int id, EditarAvaliacaoDTO avaliacaoDTO, int usuarioId)
         {
             var avaliacao = await _context.Avaliacoes

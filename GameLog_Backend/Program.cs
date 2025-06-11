@@ -30,7 +30,8 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         builder => builder
-            .WithOrigins("http://localhost:3000")
+            .WithOrigins(["http://localhost:3000",
+            "https://happy-bay-0ed0e851e.6.azurestaticapps.net"])
             .AllowAnyMethod()
             .AllowAnyHeader());
 });

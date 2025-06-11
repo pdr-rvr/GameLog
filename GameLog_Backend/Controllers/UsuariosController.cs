@@ -92,7 +92,7 @@ namespace GameLog_Backend.Controllers
 				var usuarioAtualizado = await _usuarioServices.EditarUsuario(
 					id,
 					editarUsuarioDTO.SenhaAtual,
-					editarUsuarioDTO); // ← Passa o DTO diretamente
+					editarUsuarioDTO); 
 
 				if (usuarioAtualizado == null)
 				{
