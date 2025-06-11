@@ -1,32 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Navbar from '../../components/Navbar/Navbar';
-import { buscarJogoPorId } from './actions/TelaJogoActions'; 
+import AvaliacaoCarrossel from '../../components/AvaliacaoCarrossel/AvaliacaoCarrossel';
+import { buscarJogoPorId, buscarAvaliacoesPorJogoId } from './actions/TelaJogoActions'; 
 import './TelaJogo.css';
 
 function TelaJogo() {
     const { jogoId } = useParams();
     const [jogo, setJogo] = useState(null);
+    const [avaliacoes, setAvaliacoes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        const carregarJogo = async () => {
+        const carregarDadosDoJogo = async () => { 
             setLoading(true);
             setError('');
             try {
-                const data = await buscarJogoPorId(jogoId);
-                setJogo(data);
+
+                const jogoData = await buscarJogoPorId(jogoId);
+                setJogo(jogoData);
+
+                const avaliacoesData = await buscarAvaliacoesPorJogoId(jogoId);
+                setAvaliacoes(avaliacoesData);
+
             } catch (err) {
                 setError(err.message);
-                console.error("Erro ao carregar detalhes do jogo:", err);
+                console.error("Erro ao carregar dados do jogo:", err);
             } finally {
                 setLoading(false);
             }
         };
 
         if (jogoId) {
-            carregarJogo();
+            carregarDadosDoJogo();
         }
     }, [jogoId]);
 
@@ -34,7 +41,7 @@ function TelaJogo() {
         return (
             <div className="tela-jogo-container">
                 <Navbar />
-                <div className="tela-jogo-content loading-message">Carregando detalhes do jogo...</div>
+                <div className="tela-jogo-content loading-message">Carregando detalhes do jogo e avaliações...</div>
             </div>
         );
     }
@@ -57,8 +64,8 @@ function TelaJogo() {
         );
     }
 
-    const dataLancamentoFormatada = jogo.dataLancamento 
-        ? new Date(jogo.dataLancamento).toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }) 
+    const dataLancamentoFormatada = jogo.dataLancamento
+        ? new Date(jogo.dataLancamento).toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' })
         : 'Data Desconhecida';
 
     return (
@@ -71,20 +78,23 @@ function TelaJogo() {
                         <h1 className="jogo-detalhes-titulo">{jogo.titulo}</h1>
                         <p className="jogo-detalhes-descricao">{jogo.descricao}</p>
                         <p className="jogo-detalhes-info">
-                            **Lançamento:** {dataLancamentoFormatada} <br/>
-                            **Classificação Indicativa:** {jogo.classificacaoIndicativa !== null ? jogo.classificacaoIndicativa : 'N/A'} <br/>
+                            **Lançamento:** {dataLancamentoFormatada} <br />
+                            **Classificação Indicativa:** {jogo.classificacaoIndicativa !== null ? jogo.classificacaoIndicativa : 'N/A'} <br />
                             {jogo.mediaAvaliacoes !== null && (
                                 <span>**Média de Avaliações:** ⭐ {jogo.mediaAvaliacoes.toFixed(1)}</span>
                             )}
                         </p>
-                        {/* Outras informações como empresa, gêneros (futuramente) */}
                     </div>
                 </div>
 
-                {/* Seções adicionais como "Avaliações" (futuramente) */}
                 <div className="jogo-avaliacoes-secao">
-                    <h2>Avaliações do Jogo</h2>
-                    <p>Funcionalidade de avaliações a ser implementada.</p>
+                    <AvaliacaoCarrossel
+                        title="Avaliações dos Usuários"
+                        avaliacoes={avaliacoes}
+                    />
+                    {avaliacoes.length === 0 && (
+                        <p className="no-avaliations-message">Nenhuma avaliação encontrada para este jogo ainda.</p>
+                    )}
                 </div>
             </div>
         </div>
