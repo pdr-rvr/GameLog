@@ -15,7 +15,7 @@ function TelaHome() {
   const { user, isAuthenticated, loadingAuth } = useAuth();
   const [activeTab, setActiveTab] = useState('home');
   const [avaliacoes, setAvaliacoes] = useState([]);
-  const [jogos, setJogos] = useState([]); // Este é o estado que queremos garantir que seja populado
+  const [jogos, setJogos] = useState([]);
   const [recomendacoes, setRecomendacoes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,21 +23,18 @@ function TelaHome() {
 
   const navigate = useNavigate();
 
-  // NOVO useEffect para carregar TODOS os jogos, independente do login
   useEffect(() => {
     const loadAllGames = async () => {
       try {
         const data = await buscarTodosOsJogos();
-        setJogos(data); // Popula o estado de jogos aqui
+        setJogos(data);
       } catch (err) {
         console.error('Erro ao carregar todos os jogos:', err);
-        // Pode definir um erro específico para jogos se quiser
       }
     };
     loadAllGames();
-  }, []); // Array de dependências vazio para carregar apenas uma vez ao montar
+  }, []);
 
-  // useEffect para carregar avaliações e recomendações (dependente do login e tab)
   useEffect(() => {
     const carregarConteudoAutenticado = async () => {
       setLoading(true);
@@ -55,7 +52,7 @@ function TelaHome() {
 
         setAvaliacoes(results[0]);
 
-        if (isAuthenticated && user?.id && results.length > 1) { // Mudou para results.length > 1, pois jogos não está mais aqui
+        if (isAuthenticated && user?.id && results.length > 1) { 
           setRecomendacoes(results[1]);
         } else {
           setRecomendacoes([]);
@@ -69,11 +66,10 @@ function TelaHome() {
       }
     };
 
-    // Só carrega conteúdo autenticado se não estiver carregando a autenticação e houver uma mudança relevante
     if (!loadingAuth) {
         carregarConteudoAutenticado();
     }
-  }, [activeTab, user, isAuthenticated, loadingAuth]); // Mantenha as dependências para o conteúdo do usuário
+  }, [activeTab, user, isAuthenticated, loadingAuth]); 
 
   const handleSubmitAvaliacao = async (avaliacaoData) => {
     if (!isAuthenticated) {
@@ -84,8 +80,6 @@ function TelaHome() {
     setError('');
     try {
       await criarAvaliacao(avaliacaoData);
-      // Após criar avaliação, recarregue apenas as avaliações (e talvez recomendações se for o caso)
-      // Não precisa recarregar todos os jogos novamente
       const updatedAvaliacoes = await buscarAvaliacoes(activeTab === 'minhas' && isAuthenticated && user ? user.id : null);
       setAvaliacoes(updatedAvaliacoes);
 
@@ -136,7 +130,7 @@ function TelaHome() {
         {showForm && isAuthenticated && (
           <div className="form-overlay">
             <FormAvaliacao
-              jogos={jogos} // 'jogos' virá agora do useEffect que carrega apenas jogos
+              jogos={jogos} 
               onSubmit={handleSubmitAvaliacao}
               loading={loading}
               error={error}
@@ -147,11 +141,9 @@ function TelaHome() {
           </div>
         )}
 
-        {/* Renderiza o JogosCarrossel se houver jogos */}
         {jogos.length > 0 && (
           <JogosCarrossel title="Jogos em Destaque" jogos={jogos} />
         )}
-        {/* Adicione uma mensagem se não houver jogos e não estiver carregando */}
         {!loading && jogos.length === 0 && (
             <div className="sem-jogos">Nenhum jogo em destaque disponível.</div>
         )}

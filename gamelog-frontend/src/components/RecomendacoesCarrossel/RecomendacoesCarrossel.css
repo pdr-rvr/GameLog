@@ -10,7 +10,10 @@
     padding-left: 15px;
     font-weight: 700;
 }
-
+.recomendacao-card-link{
+    text-decoration: none; 
+    color: inherit; 
+}
 .recomendacoes-carrossel-container {
     display: flex;
     overflow-x: auto;
