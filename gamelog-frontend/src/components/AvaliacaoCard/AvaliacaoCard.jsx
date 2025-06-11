@@ -19,6 +19,7 @@ const AvaliacaoCard = ({ avaliacao }) => {
             <span className="rating-text">{avaliacao.nota}/5</span>
           </div>
           <p className="review-comment">{avaliacao.textoAvaliacao || 'Sem comentário.'}</p>
+          <span className="review-date">Autor: {avaliacao.nomeUsuario}</span>
           <span className="review-date">Avaliado em: {reviewDate}</span>
         </div>
       </div>
