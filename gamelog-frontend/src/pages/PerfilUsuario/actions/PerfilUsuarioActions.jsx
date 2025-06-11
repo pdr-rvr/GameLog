@@ -5,22 +5,18 @@ export const fetchUserProfile = async (userId, token) => {
     throw new Error('Token de autenticação ausente.');
   }
   try {
-    const response = await fetch(`${api}/Usuarios/${userId}`, {
-      method: 'GET',
+    // Usando a instância 'api' do axios
+    const response = await api.get(`/Usuarios/${userId}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
       },
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Erro ao carregar perfil.');
-    }
-
-    return await response.json();
+    return response.data;
   } catch (error) {
-    throw error;
+    const errorMessage = error.response?.data?.message || 'Erro ao carregar perfil.';
+    console.error('Erro ao buscar perfil do usuário:', error);
+    throw new Error(errorMessage);
   }
 };
 
@@ -29,22 +25,17 @@ export const updateUserProfile = async (userId, userData, token) => {
     throw new Error('Token de autenticação ausente.');
   }
   try {
-    const response = await fetch(`${api}/Usuarios/${userId}`, {
-      method: 'PUT',
+    const response = await api.put(`/Usuarios/${userId}`, userData, { 
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(userData),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Erro ao atualizar perfil.');
-    }
-
-    return await response.json();
+    return response.data;
   } catch (error) {
-    throw error;
+    const errorMessage = error.response?.data?.message || 'Erro ao atualizar perfil.';
+    console.error('Erro ao atualizar perfil do usuário:', error);
+    throw new Error(errorMessage);
   }
 };
+
