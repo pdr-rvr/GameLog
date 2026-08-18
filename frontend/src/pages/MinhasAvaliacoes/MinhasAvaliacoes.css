@@ -1,0 +1,80 @@
+.minhas-avaliacoes-page-container {
+    background-color: #1a1a1a;
+    min-height: 100vh;
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+.minhas-avaliacoes-content {
+    flex-grow: 1;
+    padding: 40px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.minhas-avaliacoes-page-container .page-title {
+    font-size: 2em;
+    color: #56386A;
+    font-weight: 600;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.minhas-avaliacoes-page-container .loading-message,
+.minhas-avaliacoes-page-container .error-message,
+.minhas-avaliacoes-page-container .success-message,
+.minhas-avaliacoes-page-container .no-reviews-message {
+    text-align: center;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    background-color: #2a2a2a; 
+    border: 1px solid #3a3a3a;
+}
+
+.minhas-avaliacoes-page-container .error-message {
+    color: #e74c3c;
+    background-color: #4a1a1a;
+    border: 1px solid #e74c3c;
+}
+
+.minhas-avaliacoes-page-container .success-message {
+    color: #27ae60;
+    background-color: #1a4a1a;
+    border: 1px solid #27ae60;
+}
+
+.minhas-avaliacoes-page-container .loading-message {
+    color: #aaa;
+    background-color: #2a2a2a;
+    border: 1px solid #3a3a3a;
+}
+
+.no-reviews-message {
+    color: #ccc;
+    background-color: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    font-size: 1.1em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.explore-games-button {
+    background-color: #56386A;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+}
+
+.explore-games-button:hover {
+    background-color: #3a2549;
+}

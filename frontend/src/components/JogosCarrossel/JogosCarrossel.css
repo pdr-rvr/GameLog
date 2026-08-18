@@ -1,0 +1,97 @@
+
+.jogos-carrossel-container {
+    margin: 20px 0;
+    width: 100%;
+}
+
+.carrossel-title {
+    color: white;
+    font-size: 1.8em;
+    margin-left: 20px;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.carrossel-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+.jogos-carrossel-track {
+    display: flex;
+    overflow-x: scroll; 
+    scroll-snap-type: x mandatory; 
+    -webkit-overflow-scrolling: touch; 
+    gap: 15px;
+    padding-bottom: 10px; 
+    scrollbar-width: none; 
+    -ms-overflow-style: none; 
+}
+
+.jogos-carrossel-track::-webkit-scrollbar {
+    display: none; 
+}
+
+.jogos-carrossel-item {
+    flex: 0 0 auto; 
+    width: 180px; 
+    scroll-snap-align: start; 
+}
+
+.jogos-carrossel-item .jogo-card {
+    width: 100%; 
+}
+
+
+.carousel-nav-button {
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    transition: background-color 0.3s ease;
+}
+
+.carousel-nav-button:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.carousel-nav-button.left {
+    left: 0px;
+}
+
+.carousel-nav-button.right {
+    right: 0px; 
+}
+
+@media (max-width: 768px) {
+    .carrossel-title {
+        font-size: 1.5em;
+        margin-left: 15px;
+    }
+    .carrossel-wrapper {
+        padding: 0 10px;
+    }
+    .jogos-carrossel-item {
+        width: 150px; 
+    }
+    .carousel-nav-button {
+        width: 30px;
+        height: 30px;
+        font-size: 1.2em;
+    }
+}

@@ -1,0 +1,107 @@
+
+.tela-jogo-container {
+    background-color: #1a1a1a;
+    min-height: 100vh;
+    color: white;
+}
+
+.tela-jogo-content {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    padding-top: 110px; 
+}
+
+.jogo-detalhes-header {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+    margin-bottom: 40px;
+    background-color: #2a2a2a;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.jogo-detalhes-imagem {
+    width: 250px; 
+    height: auto; 
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.jogo-info-principal {
+    flex-grow: 1;
+}
+
+.jogo-detalhes-titulo {
+    font-size: 2.8em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #e0e0e0;
+}
+
+.jogo-detalhes-descricao {
+    font-size: 1.1em;
+    line-height: 1.6;
+    color: #bbb;
+    margin-bottom: 20px;
+}
+
+.jogo-detalhes-info {
+    font-size: 0.95em;
+    color: #ccc;
+    line-height: 1.8;
+}
+
+.jogo-avaliacoes-secao {
+    background-color: #2a2a2a;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    margin-top: 30px;
+}
+
+.jogo-avaliacoes-secao h2 {
+    font-size: 1.8em;
+    color: white;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #4a4a4a;
+    padding-bottom: 10px;
+}
+
+
+.tela-jogo-content.loading-message,
+.tela-jogo-content.error-message,
+.tela-jogo-content.no-results {
+    text-align: center;
+    padding: 50px 20px;
+    font-size: 1.2em;
+}
+
+.tela-jogo-content.error-message {
+    color: #ff6b6b;
+}
+
+@media (max-width: 768px) {
+    .jogo-detalhes-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 20px;
+    }
+    .jogo-detalhes-imagem {
+        width: 180px; 
+        height: auto;
+    }
+    .jogo-detalhes-titulo {
+        font-size: 2em;
+    }
+    .jogo-detalhes-descricao {
+        font-size: 1em;
+    }
+    .tela-jogo-content {
+        padding: 15px;
+        padding-top: 100px;
+    }
+}
