@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import Background from '../../components/Background/Background';
-import FundoForm from '../../components/FundoForm/FundoFormLogin';
+import AuthLayout from '../../components/AuthLayout/AuthLayout';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import './TelaLogin.css';
 
 function TelaLogin() {
@@ -11,9 +11,9 @@ function TelaLogin() {
     senha: ''
   });
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ text: '', type: '' });
   const navigate = useNavigate();
   const { login } = useAuth();
+  const toast = useToast();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,78 +23,70 @@ function TelaLogin() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ text: '', type: '' });
 
     try {
-      await login(formData.email, formData.senha);
-      setMessage({ text: 'Login bem-sucedido! Redirecionando...', type: 'success' });
-      setTimeout(() => navigate('/home'), 500); 
+      const data = await login(formData.email, formData.senha);
+      const nome = data?.usuario?.nomeUsuario || "Gamer";
+      toast.success(`Bem-vindo de volta, ${nome}!`);
+      navigate('/home');
     } catch (error) {
-      setMessage({ text: error.message || 'Credenciais inválidas! Tente novamente.', type: 'error' });
+      toast.error(error.message || 'Credenciais inválidas. Verifique seu e-mail e senha.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-page">
-      <Background />
-      <div className="auth-overlay"></div>
-      <FundoForm />
+    <AuthLayout subtitle="Entre para gerenciar seu catálogo, notas e acompanhar a comunidade gamer.">
+      <div className="auth-form-card">
+        <div className="auth-header">
+          <h2>Entrar na Conta</h2>
+          <p>Digite seus dados de acesso para continuar</p>
+        </div>
 
-      <div className="auth-container">
-        <h2 className="auth-title">LOGIN</h2>
-        <div className="auth-content">
-          <div className="auth-box">
-            <form onSubmit={handleSubmit} className="auth-form">
-              <div className="form-group">
-                <label htmlFor="email">E-MAIL:</label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="senha">SENHA:</label>
-                <input
-                  id="senha"
-                  name="senha"
-                  type="password"
-                  value={formData.senha}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              
-              <div className="button-container">
-                <button
-                  type="submit"
-                  className="auth-button"
-                  disabled={loading}
-                >
-                  {loading ? 'CARREGANDO...' : 'ENTRAR'}
-                </button>
-
-                {message.text && (
-                  <div className={`auth-message ${message.type}`}>
-                    {message.text}
-                  </div>
-                )}
-
-                <div className="auth-link">
-                  Não tem uma conta? <Link to="/cadastro">Cadastre-se</Link>
-                </div>
-              </div>
-            </form>
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label htmlFor="email">E-mail</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="seuemail@exemplo.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              disabled={loading}
+            />
           </div>
+
+          <div className="form-group">
+            <label htmlFor="senha">Senha</label>
+            <input
+              id="senha"
+              name="senha"
+              type="password"
+              placeholder="••••••••"
+              value={formData.senha}
+              onChange={handleChange}
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="btn-auth-submit"
+            disabled={loading}
+          >
+            {loading ? 'Entrando...' : 'Entrar no GameLog'}
+          </button>
+        </form>
+
+        <div className="auth-footer-link">
+          Não possui uma conta? <Link to="/cadastro">Cadastre-se gratuitamente</Link>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 }
 

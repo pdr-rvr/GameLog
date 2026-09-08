@@ -1,132 +1,108 @@
-.auth-page {
-  position: relative;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.auth-form-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(16px);
+  animation: fadeIn 0.4s ease;
 }
 
-.auth-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(86, 56, 106, 0.6);
-  z-index: 2;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.auth-container {
-  z-index: 5;
-  width: 900px;
-  height: 650px;
-  transform: translateY(-110px);
+.auth-header {
+  margin-bottom: 2rem;
 }
 
-.auth-content {
-  width: 80%;
-  height: 80%;
-  margin: 0 auto;
-}
-
-.auth-title {
-  font-family: 'Modak';
-  font-size: 80px;
+.auth-header h2 {
+  font-size: 1.8rem;
+  font-weight: 800;
   color: #ffffff;
-  text-align: center;
-  letter-spacing: 4px;
-  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
 }
 
-.auth-box {
-  background-color: white;
-  border-radius: 50px;
-  height: 550px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  padding: 40px;
+.auth-header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.auth-form {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: 1.25rem;
 }
 
-.form-group {
-  margin-bottom: 2.5rem;
+.auth-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-.form-group label {
-  font-size: 26px;
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #3C3A3A;
+.auth-form label {
+  color: #e2e8f0;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 10px 0;
-  border: none;
-  border-bottom: 2px solid #3C3A3A;
-  background: transparent;
-  font-size: 22px;
-  color: #000;
+.auth-form input {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid #334155;
+  background-color: #0b0f19;
+  color: #ffffff;
+  font-size: 0.95rem;
   outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 
-.auth-button {
-  width: 100%;
-  padding: 20px;
-  background-color: #56386A;
-  color: white;
-  border-radius: 8px;
-  font-size: 26px;
+.auth-form input:focus {
+  border-color: var(--accent-purple-light);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+  background-color: #0e1424;
+}
+
+.btn-auth-submit {
+  margin-top: 0.75rem;
+  padding: 0.95rem;
+  border-radius: var(--radius-md);
   border: none;
-  font-weight: bold;
+  background: var(--accent-gradient-purple);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: 30px;
-  transition: background-color 0.3s;
+  box-shadow: var(--glow-purple);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
-.auth-button:hover {
-  background-color: #3a2549;
+.btn-auth-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(124, 58, 237, 0.5);
 }
 
-.auth-button:disabled {
-  background-color: #cccccc;
+.btn-auth-submit:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
-.auth-message {
-  margin-top: 20px;
-  padding: 10px;
-  border-radius: 5px;
+.auth-footer-link {
+  margin-top: 2rem;
   text-align: center;
-  font-size: 18px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-.auth-message.success {
-  background-color: #d4edda;
-  color: #155724;
+.auth-footer-link a {
+  color: var(--accent-cyan);
+  font-weight: 700;
+  transition: color 0.2s;
 }
 
-.auth-message.error {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
-.auth-link {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 18px;
-  color: #3C3A3A;
-}
-
-.auth-link a {
-  color: #56386A;
-  font-weight: bold;
-  text-decoration: none;
-}
-
-.auth-link a:hover {
+.auth-footer-link a:hover {
+  color: var(--accent-cyan-hover);
   text-decoration: underline;
 }
