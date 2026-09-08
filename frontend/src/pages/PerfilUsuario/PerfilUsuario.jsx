@@ -156,7 +156,7 @@ const PerfilUsuario = () => {
               </div>
 
               <div className="settings-form-group">
-                <label htmlFor="nomeUsuario">Nome de Usuário (Nick)</label>
+                <label htmlFor="nomeUsuario">Nome de Usuário</label>
                 <div className="input-with-icon">
                   <FaGamepad />
                   <input
