@@ -1,0 +1,60 @@
+.pagina-avaliacoes-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+.pagina-avaliacoes-content {
+  flex-grow: 1;
+  padding: 2rem 5%;
+  max-width: 1300px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.pagina-avaliacoes-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.pagina-avaliacoes-header h1 {
+  font-size: 2.2rem;
+  color: #38bdf8;
+  margin-bottom: 0.5rem;
+}
+
+.pagina-avaliacoes-header p {
+  color: #94a3b8;
+  font-size: 1.05rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-bar-avaliacoes {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.search-bar-avaliacoes input {
+  width: 100%;
+  padding: 0.85rem 1.25rem;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background-color: #1e293b;
+  color: #f8fafc;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-bar-avaliacoes input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.avaliacoes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
