@@ -1,6 +1,6 @@
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
-import { jwtDecode } from 'jwt-decode';
-import { AuthService } from '../services/authService';
+import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
+import { jwtDecode } from "jwt-decode";
+import { AuthService } from "../services/authService";
 
 const AuthContext = createContext(null);
 
@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
     const [loadingAuth, setLoadingAuth] = useState(true);
 
     const loadUserFromToken = useCallback(() => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         setLoadingAuth(true);
         if (token) {
             try {
@@ -18,25 +18,24 @@ export const AuthProvider = ({ children }) => {
                 
                 if (decodedToken.exp * 1000 > Date.now()) {
                     let userFromStorage = null;
-                    const storedUser = localStorage.getItem('user');
+                    const storedUser = localStorage.getItem("user");
                     if (storedUser) {
                         try {
                             userFromStorage = JSON.parse(storedUser);
                         } catch (parseError) {
-                            localStorage.removeItem('user');
+                            localStorage.removeItem("user");
                         }
                     }
 
                     const userObject = {
-                        id: decodedToken.sub,
-                        nomeUsuario: userFromStorage?.nomeUsuario || decodedToken.nomeUsuario || 'Usuário',
-                        email: userFromStorage?.email || decodedToken.email || '',
-                        fotoDePerfil: userFromStorage?.fotoDePerfil || '',
+                        id: decodedToken.sub || decodedToken.nameid,
+                        nomeUsuario: userFromStorage?.nomeUsuario || decodedToken.nomeUsuario || "Usuário",
+                        email: userFromStorage?.email || decodedToken.email || "",
+                        fotoDePerfil: userFromStorage?.fotoDePerfil || "",
                     };
 
                     setUser(userObject);
                     setIsAuthenticated(true);
-
                 } else {
                     AuthService.logout();
                     setUser(null);
@@ -60,10 +59,10 @@ export const AuthProvider = ({ children }) => {
         const handleStorageChange = () => {
             loadUserFromToken();
         };
-        window.addEventListener('storage', handleStorageChange);
+        window.addEventListener("storage", handleStorageChange);
 
         return () => {
-            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener("storage", handleStorageChange);
         };
     }, [loadUserFromToken]);
 
@@ -74,6 +73,7 @@ export const AuthProvider = ({ children }) => {
             loadUserFromToken();
             return response;
         } finally {
+            setLoadingAuth(false);
         }
     };
 
@@ -99,7 +99,8 @@ export const AuthProvider = ({ children }) => {
         loadingAuth,
         login,
         register,
-        logout
+        logout,
+        loadUserFromToken
     };
 
     return (
@@ -112,7 +113,7 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
+        throw new Error("useAuth must be used within an AuthProvider");
     }
     return context;
 };
