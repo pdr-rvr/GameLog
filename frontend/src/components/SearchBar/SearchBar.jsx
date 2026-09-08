@@ -1,66 +1,300 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FaSearch, FaTimes, FaGamepad, FaUser, FaChevronRight } from 'react-icons/fa';
+import api from '../../services/api';
 import './SearchBar.css';
 
-const SearchBar = ({ onSearch, suggestions = [], onSelectSuggestion }) => {
-    const [query, setQuery] = useState('');
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const searchBarRef = useRef(null);
+const SearchBar = ({ 
+  onSearch, 
+  suggestions = [], 
+  onSelectSuggestion, 
+  placeholder = "Buscar jogos, desenvolvedores ou usuários...",
+  globalMode = false 
+}) => {
+  const [query, setQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [globalResults, setGlobalResults] = useState({ jogos: [], usuarios: [] });
+  const searchBarRef = useRef(null);
+  const debounceTimerRef = useRef(null);
+  const navigate = useNavigate();
 
-    const handleChange = (e) => {
-        const value = e.target.value;
-        setQuery(value);
-        onSearch(value);
-        if (value.length > 0) {
-            onSearch(value);
-            setShowSuggestions(true);
-        } else {
-            setShowSuggestions(false);
-        }
-    };
+  const fetchGlobalSuggestions = useCallback(async (searchTerm) => {
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      setGlobalResults({ jogos: [], usuarios: [] });
+      setLoading(false);
+      return;
+    }
 
-    const handleSelect = (suggestion) => {
-        setQuery(suggestion.titulo);
-        onSelectSuggestion(suggestion);
+    setLoading(true);
+    try {
+      const termLower = searchTerm.toLowerCase();
+      const [jogosRes, usuariosRes] = await Promise.allSettled([
+        api.get('/Jogos'),
+        api.get('/Usuarios')
+      ]);
+
+      let jogosFiltrados = [];
+      if (jogosRes.status === 'fulfilled' && Array.isArray(jogosRes.value.data)) {
+        jogosFiltrados = jogosRes.value.data
+          .filter(j => {
+            const title = (j.titulo || j.nome || '').toLowerCase();
+            const desc = (j.descricao || '').toLowerCase();
+            const empresa = (j.nomeEmpresa || '').toLowerCase();
+            return title.includes(termLower) || desc.includes(termLower) || empresa.includes(termLower);
+          })
+          .slice(0, 5);
+      }
+
+      let usuariosFiltrados = [];
+      if (usuariosRes.status === 'fulfilled' && Array.isArray(usuariosRes.value.data)) {
+        usuariosFiltrados = usuariosRes.value.data
+          .filter(u => {
+            const name = (u.nomeUsuario || u.nome || '').toLowerCase();
+            return name.includes(termLower);
+          })
+          .slice(0, 4);
+      }
+
+      setGlobalResults({ jogos: jogosFiltrados, usuarios: usuariosFiltrados });
+    } catch (err) {
+      console.error("Erro na busca global:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setQuery(value);
+
+    if (onSearch) {
+      onSearch(value);
+    }
+
+    if (globalMode) {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (value.trim().length >= 2) {
+        setShowSuggestions(true);
+        debounceTimerRef.current = setTimeout(() => {
+          fetchGlobalSuggestions(value);
+        }, 250);
+      } else {
         setShowSuggestions(false);
+        setGlobalResults({ jogos: [], usuarios: [] });
+      }
+    } else {
+      setShowSuggestions(value.trim().length > 0);
+    }
+  };
+
+  const handleSelectGame = (jogo) => {
+    setShowSuggestions(false);
+    setQuery('');
+    if (onSelectSuggestion) {
+      onSelectSuggestion(jogo);
+    } else {
+      const id = jogo.jogoId || jogo.id;
+      if (id) navigate(`/jogos/${id}`);
+    }
+  };
+
+  const handleSelectUser = (user) => {
+    setShowSuggestions(false);
+    setQuery('');
+    const id = user.id || user.usuarioId;
+    if (id) navigate(`/perfil/${id}`);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && query.trim().length > 0) {
+      setShowSuggestions(false);
+      if (globalMode) {
+        navigate(`/jogos?q=${encodeURIComponent(query.trim())}`);
+      }
+    }
+  };
+
+  const handleClear = () => {
+    setQuery('');
+    setGlobalResults({ jogos: [], usuarios: [] });
+    if (onSearch) onSearch('');
+    setShowSuggestions(false);
+  };
+
+  const handleClickOutside = (event) => {
+    if (searchBarRef.current && !searchBarRef.current.contains(event.target)) {
+      setShowSuggestions(false);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
+  }, []);
 
-    const handleClickOutside = (event) => {
-        if (searchBarRef.current && !searchBarRef.current.contains(event.target)) {
-            setShowSuggestions(false);
-        }
-    };
+  const hasGlobalResults = globalResults.jogos.length > 0 || globalResults.usuarios.length > 0;
 
-    useEffect(() => {
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
+  return (
+    <div className="search-bar-container" ref={searchBarRef}>
+      <div className="search-input-wrapper">
+        <FaSearch className="search-input-icon" />
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={query}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => {
+            if (globalMode && query.trim().length >= 2) setShowSuggestions(true);
+            else if (!globalMode && query.trim().length > 0) setShowSuggestions(true);
+          }}
+          className="search-input"
+          autoComplete="off"
+        />
+        {query && (
+          <button 
+            type="button" 
+            className="search-clear-btn" 
+            onClick={handleClear}
+            aria-label="Limpar busca"
+          >
+            <FaTimes />
+          </button>
+        )}
+      </div>
 
-    return (
-        <div className="search-bar-container" ref={searchBarRef}>
-            <input
-                type="text"
-                placeholder="Pesquisar jogos..."
-                value={query}
-                onChange={handleChange}
-                className="search-input"
-            />
-            {showSuggestions && suggestions.length > 0 && (
-                <div className="suggestions-dropdown">
-                    {suggestions.map(jogo => (
-                        <div 
-                            key={jogo.jogoId} 
-                            className="suggestion-item" 
-                            onClick={() => handleSelect(jogo)}
-                        >
-                            {jogo.titulo} ({new Date(jogo.dataLancamento).getFullYear()})
+      {showSuggestions && (
+        <div className="suggestions-dropdown">
+          {loading && (
+            <div className="suggestions-loading">
+              <div className="suggestions-spinner"></div>
+              <span>Buscando resultados...</span>
+            </div>
+          )}
+
+          {/* Modo Global: Categorias de Jogos e Usuários */}
+          {globalMode && !loading && (
+            <>
+              {globalResults.jogos.length > 0 && (
+                <div className="suggestion-section">
+                  <div className="suggestion-section-header">
+                    <FaGamepad className="section-icon" />
+                    <span>Jogos</span>
+                  </div>
+                  {globalResults.jogos.map((jogo) => {
+                    const id = jogo.jogoId || jogo.id;
+                    const title = jogo.titulo || jogo.nome || 'Jogo';
+                    const year = jogo.dataLancamento ? String(jogo.dataLancamento).substring(0, 4) : '';
+                    const image = jogo.imagem || jogo.foto;
+
+                    return (
+                      <div 
+                        key={`game-${id}`} 
+                        className="suggestion-item" 
+                        onClick={() => handleSelectGame(jogo)}
+                      >
+                        {image ? (
+                          <img src={image} alt={title} className="suggestion-thumb" />
+                        ) : (
+                          <div className="suggestion-thumb-fallback">
+                            <FaGamepad />
+                          </div>
+                        )}
+                        <div className="suggestion-meta">
+                          <span className="suggestion-title">{title}</span>
+                          <span className="suggestion-sub">
+                            {year} {jogo.nomeEmpresa ? `• ${jogo.nomeEmpresa}` : ''}
+                          </span>
                         </div>
-                    ))}
+                        <FaChevronRight className="suggestion-arrow" />
+                      </div>
+                    );
+                  })}
                 </div>
-            )}
+              )}
+
+              {globalResults.usuarios.length > 0 && (
+                <div className="suggestion-section">
+                  <div className="suggestion-section-header">
+                    <FaUser className="section-icon" />
+                    <span>Usuários</span>
+                  </div>
+                  {globalResults.usuarios.map((usuario) => {
+                    const id = usuario.id || usuario.usuarioId;
+                    const name = usuario.nomeUsuario || usuario.nome || 'Gamer';
+                    const initial = name.charAt(0).toUpperCase();
+
+                    return (
+                      <div 
+                        key={`user-${id}`} 
+                        className="suggestion-item user-item" 
+                        onClick={() => handleSelectUser(usuario)}
+                      >
+                        {usuario.fotoDePerfil ? (
+                          <img src={usuario.fotoDePerfil} alt={name} className="suggestion-avatar-img" />
+                        ) : (
+                          <div className="suggestion-avatar-fallback">
+                            <span>{initial}</span>
+                          </div>
+                        )}
+                        <div className="suggestion-meta">
+                          <span className="suggestion-title">{name}</span>
+                          <span className="suggestion-sub">Perfil de Gamer</span>
+                        </div>
+                        <FaChevronRight className="suggestion-arrow" />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {!hasGlobalResults && (
+                <div className="suggestions-empty">
+                  Nenhum jogo ou usuário encontrado para "{query}".
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Modo Local (Custom Suggestions) */}
+          {!globalMode && !loading && suggestions.length > 0 && (
+            suggestions.map((jogo) => {
+              const id = jogo.jogoId || jogo.id;
+              const title = jogo.titulo || jogo.nome || 'Jogo';
+              const year = jogo.dataLancamento ? String(jogo.dataLancamento).substring(0, 4) : '';
+              const image = jogo.imagem || jogo.foto;
+
+              return (
+                <div 
+                  key={id} 
+                  className="suggestion-item" 
+                  onClick={() => handleSelectGame(jogo)}
+                >
+                  {image ? (
+                    <img src={image} alt={title} className="suggestion-thumb" />
+                  ) : (
+                    <div className="suggestion-thumb-fallback">
+                      <FaGamepad />
+                    </div>
+                  )}
+                  <div className="suggestion-meta">
+                    <span className="suggestion-title">{title}</span>
+                    {year && <span className="suggestion-sub">{year}</span>}
+                  </div>
+                  <FaChevronRight className="suggestion-arrow" />
+                </div>
+              );
+            })
+          )}
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 export default SearchBar;
+

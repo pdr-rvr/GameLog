@@ -10,10 +10,12 @@ import {
   FaPlus,
   FaHome,
   FaThLarge,
-  FaComments
+  FaComments,
+  FaCog
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
+import SearchBar from "../SearchBar/SearchBar";
 import "./Navbar.css";
 
 const Navbar = ({ onPublicarClick }) => {
@@ -73,6 +75,11 @@ const Navbar = ({ onPublicarClick }) => {
             Game<span>Log</span>
           </span>
         </Link>
+
+        {/* Barra de Busca Global (Jogos e Usuários) */}
+        <div className="navbar-search-desktop">
+          <SearchBar globalMode={true} placeholder="Pesquisar jogos ou gamers..." />
+        </div>
 
         {/* Links de Navegação Desktop */}
         <nav className="navbar-links-desktop">
@@ -136,6 +143,14 @@ const Navbar = ({ onPublicarClick }) => {
                       <FaStar /> Minhas Avaliações
                     </Link>
 
+                    <Link 
+                      to="/configuracoes" 
+                      className="dropdown-link" 
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <FaCog /> Configurações
+                    </Link>
+
                     <div className="dropdown-divider"></div>
 
                     <button className="dropdown-link btn-dropdown-logout" onClick={handleLogout}>
@@ -166,6 +181,13 @@ const Navbar = ({ onPublicarClick }) => {
       {/* Menu Mobile Retrátil */}
       {isMobileMenuOpen && (
         <div className="navbar-mobile-drawer">
+          <div className="navbar-search-mobile">
+            <SearchBar 
+              globalMode={true} 
+              placeholder="Pesquisar jogos ou gamers..." 
+              onSelectSuggestion={() => setIsMobileMenuOpen(false)}
+            />
+          </div>
           <Link 
             to="/home" 
             className={`mobile-nav-link ${isActive("/home") ? "active" : ""}`}
@@ -204,6 +226,13 @@ const Navbar = ({ onPublicarClick }) => {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <FaStar /> Minhas Avaliações
+              </Link>
+              <Link 
+                to="/configuracoes" 
+                className="mobile-nav-link"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <FaCog /> Configurações
               </Link>
               <button className="mobile-nav-link mobile-logout" onClick={handleLogout}>
                 <FaSignOutAlt /> Desconectar
