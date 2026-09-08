@@ -2,113 +2,203 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import { fetchReviewById, updateReview } from "./actions/EditarAvaliacaoActions";
-import { FaStar } from "react-icons/fa";
+import { useToast } from "../../context/ToastContext";
+import { FaStar, FaGamepad, FaArrowLeft, FaSave } from "react-icons/fa";
 import "./EditarAvaliacao.css";
 
+const ratingLabels = {
+  1: "1 / 5 - Ruim",
+  2: "2 / 5 - Regular",
+  3: "3 / 5 - Bom",
+  4: "4 / 5 - Muito Bom",
+  5: "5 / 5 - Excelente"
+};
+
 const EditarAvaliacao = () => {
-  const { avaliacaoId } = useParams();
+  const params = useParams();
+  const reviewId = params.reviewId || params.avaliacaoId || params.id;
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [formData, setFormData] = useState({
     nomeJogo: "",
     nota: 5,
     textoAvaliacao: ""
   });
+  const [hoverRating, setHoverRating] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const carregarAvaliacao = async () => {
+      if (!reviewId) {
+        setError("Identificador de avaliação não fornecido.");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError("");
       try {
-        const dados = await fetchReviewById(avaliacaoId);
+        const dados = await fetchReviewById(reviewId);
         setFormData({
-          nomeJogo: dados.nomeJogo || "",
+          nomeJogo: dados.nomeJogo || dados.tituloJogo || "Jogo",
           nota: dados.nota || 5,
           textoAvaliacao: dados.textoAvaliacao || ""
         });
       } catch (err) {
+        console.error("Erro ao carregar avaliação para edição:", err);
         setError(err.message || "Não foi possível carregar a avaliação.");
       } finally {
         setLoading(false);
       }
     };
 
-    if (avaliacaoId) {
-      carregarAvaliacao();
-    }
-  }, [avaliacaoId]);
+    carregarAvaliacao();
+  }, [reviewId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.textoAvaliacao.trim() || !reviewId) return;
+
     setSubmitting(true);
     setError("");
 
     try {
-      await updateReview(avaliacaoId, {
+      await updateReview(reviewId, {
         nota: parseInt(formData.nota, 10),
-        textoAvaliacao: formData.textoAvaliacao
+        textoAvaliacao: formData.textoAvaliacao.trim()
       });
+      toast.success("Avaliação atualizada com sucesso!");
       navigate("/minhas-avaliacoes");
     } catch (err) {
       setError(err.message || "Erro ao atualizar a avaliação.");
+      toast.error(err.message || "Erro ao atualizar a avaliação.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  const currentDisplayRating = hoverRating || formData.nota;
+
   return (
-    <div className="editar-avaliacao-container">
+    <div className="editar-avaliacao-page">
       <Navbar />
-      <div className="editar-avaliacao-content">
-        <h1>Editar Avaliação</h1>
-        {formData.nomeJogo && <h2>{formData.nomeJogo}</h2>}
+      <main className="editar-avaliacao-container">
+        <div className="editar-avaliacao-card">
+          <header className="editar-header">
+            <button
+              type="button"
+              className="btn-back-link"
+              onClick={() => navigate("/minhas-avaliacoes")}
+            >
+              <FaArrowLeft /> <span>Voltar para minhas avaliações</span>
+            </button>
+            <h1 className="editar-title">Editar Avaliação</h1>
+          </header>
 
-        {error && <div className="error-message">{error}</div>}
+          {loading && (
+            <div className="editar-state loading">
+              <div className="editar-spinner"></div>
+              <span>Carregando dados da avaliação...</span>
+            </div>
+          )}
 
-        {loading ? (
-          <div className="loading-message">Carregando avaliação...</div>
-        ) : (
-          <form onSubmit={handleSubmit} className="editar-form">
-            <div className="form-group rating-selection">
-              <label>Nota:</label>
-              <div className="stars-input">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <FaStar
-                    key={star}
-                    className={`star-icon ${star <= formData.nota ? "active" : ""}`}
-                    onClick={() => setFormData(prev => ({ ...prev, nota: star }))}
-                  />
-                ))}
-                <span className="nota-display">{formData.nota} / 5</span>
+          {error && !loading && (
+            <div className="editar-state error">
+              <span>{error}</span>
+            </div>
+          )}
+
+          {!loading && (
+            <form onSubmit={handleSubmit} className="editar-form">
+              {/* Jogo em Edição */}
+              <div className="editar-game-banner">
+                <div className="game-banner-icon">
+                  <FaGamepad />
+                </div>
+                <div className="game-banner-info">
+                  <span className="game-banner-label">Jogo Avaliado</span>
+                  <span className="game-banner-title">{formData.nomeJogo}</span>
+                </div>
               </div>
-            </div>
 
-            <div className="form-group">
-              <label>Comentário / Opinião:</label>
-              <textarea
-                rows="5"
-                value={formData.textoAvaliacao}
-                onChange={(e) => setFormData(prev => ({ ...prev, textoAvaliacao: e.target.value }))}
-                required
-              />
-            </div>
+              {/* Seletor de Estrelas */}
+              <div className="editar-form-group">
+                <label className="form-label">Sua Classificação</label>
+                <div className="stars-picker-wrapper">
+                  <div className="stars-picker">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        type="button"
+                        key={star}
+                        className={`star-pick-btn ${currentDisplayRating >= star ? "active" : ""}`}
+                        onClick={() => setFormData((prev) => ({ ...prev, nota: star }))}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        aria-label={`Nota ${star}`}
+                      >
+                        <FaStar />
+                      </button>
+                    ))}
+                  </div>
+                  <span className="stars-label-text">
+                    {ratingLabels[currentDisplayRating] || `${currentDisplayRating} / 5`}
+                  </span>
+                </div>
+              </div>
 
-            <div className="botoes-form">
-              <button type="submit" className="btn-salvar" disabled={submitting}>
-                {submitting ? "Salvando..." : "Salvar Alterações"}
-              </button>
-              <button type="button" className="btn-cancelar" onClick={() => navigate("/minhas-avaliacoes")}>
-                Cancelar
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
+              {/* Texto da Avaliação */}
+              <div className="editar-form-group">
+                <label htmlFor="textoAvaliacao" className="form-label">
+                  Sua Opinião / Review
+                </label>
+                <textarea
+                  id="textoAvaliacao"
+                  rows="6"
+                  maxLength={500}
+                  placeholder="Compartilhe suas impressões detalhadas sobre o jogo..."
+                  value={formData.textoAvaliacao}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, textoAvaliacao: e.target.value }))
+                  }
+                  required
+                />
+                <div className="editar-char-counter">
+                  <span className={formData.textoAvaliacao.length > 450 ? "near-limit" : ""}>
+                    {formData.textoAvaliacao.length}
+                  </span>{" "}
+                  / 500 caracteres
+                </div>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="editar-actions">
+                <button
+                  type="button"
+                  className="btn-editar-cancel"
+                  onClick={() => navigate("/minhas-avaliacoes")}
+                  disabled={submitting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-editar-save"
+                  disabled={submitting || !formData.textoAvaliacao.trim()}
+                >
+                  <FaSave />
+                  <span>{submitting ? "Salvando..." : "Salvar Alterações"}</span>
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </main>
     </div>
   );
 };
 
 export default EditarAvaliacao;
+
