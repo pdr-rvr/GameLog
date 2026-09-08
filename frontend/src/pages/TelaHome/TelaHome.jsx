@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
-import JogoCarrossel from "../../components/JogoCarrossel/JogoCarrossel";
+import JogosCarrossel from "../../components/JogosCarrossel/JogosCarrossel";
 import AvaliacaoCarrossel from "../../components/AvaliacaoCarrossel/AvaliacaoCarrossel";
 import FormAvaliacao from "../../components/FormAvaliacao/FormAvaliacao";
 import { useAuth } from "../../context/AuthContext";
@@ -71,13 +71,13 @@ const TelaHome = () => {
         ) : (
           <>
             {user && recomendacoes.length > 0 && (
-              <JogoCarrossel
+              <JogosCarrossel
                 title="Recomendados Para Você"
                 jogos={recomendacoes}
               />
             )}
 
-            <JogoCarrossel
+            <JogosCarrossel
               title="Jogos em Destaque"
               jogos={jogos.slice(0, 10)}
             />

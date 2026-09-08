@@ -8,55 +8,57 @@ import TelaJogo from './pages/TelaJogo/TelaJogo';
 import PaginaAvaliacoes from './pages/PaginaAvaliacoes/PaginaAvaliacoes';
 import PerfilUsuario from './pages/PerfilUsuario/PerfilUsuario';
 import MinhasAvaliacoes from './pages/MinhasAvaliacoes/MinhasAvaliacoes';
-import EditarAvaliacao from './pages/EditarAvaliacao/EditarAvaliacao'; // Importa a nova página
+import EditarAvaliacao from './pages/EditarAvaliacao/EditarAvaliacao';
 
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext'; 
+import { ToastProvider } from './context/ToastContext';
 
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <Routes>
-          {/* Rotas de Autenticação (públicas) */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/cadastro" element={<Cadastro />} />
+      <ToastProvider>
+        <AuthProvider>
+          <Routes>
+            {/* Rotas de Autenticação (públicas) */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/cadastro" element={<Cadastro />} />
 
-          {/* Rotas Públicas (acessíveis sem autenticação) */}
-          <Route path="/" element={<Home />} /> 
-          <Route path="/home" element={<Home />} />
-          <Route path="/jogos" element={<PaginaJogos />} /> {/* Rota da lista de jogos */}
-          <Route path="/jogos/:jogoId" element={<TelaJogo />} /> {/* Rota para detalhes do jogo */}
-          <Route path="/avaliacoes" element={<PaginaAvaliacoes />} />
+            {/* Rotas Públicas (acessíveis sem autenticação) */}
+            <Route path="/" element={<Home />} /> 
+            <Route path="/home" element={<Home />} />
+            <Route path="/jogos" element={<PaginaJogos />} />
+            <Route path="/jogos/:jogoId" element={<TelaJogo />} />
+            <Route path="/avaliacoes" element={<PaginaAvaliacoes />} />
 
-          {/* Rotas Protegidas (exigem autenticação) */}
-          <Route 
-            path="/perfil/:userId" 
-            element={
-              <ProtectedRoute>
-                <PerfilUsuario />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/minhas-avaliacoes" 
-            element={
-              <ProtectedRoute>
-                <MinhasAvaliacoes />
-              </ProtectedRoute>
-            } 
-          />
-          {/* Nova Rota Protegida para edição de avaliação */}
-          <Route 
-            path="/avaliacoes/editar/:reviewId" 
-            element={
-              <ProtectedRoute>
-                <EditarAvaliacao />
-              </ProtectedRoute>
-            } 
-          />
-        </Routes>
-      </AuthProvider>
+            {/* Rotas Protegidas (exigem autenticação) */}
+            <Route 
+              path="/perfil/:userId" 
+              element={
+                <ProtectedRoute>
+                  <PerfilUsuario />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/minhas-avaliacoes" 
+              element={
+                <ProtectedRoute>
+                  <MinhasAvaliacoes />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/avaliacoes/editar/:reviewId" 
+              element={
+                <ProtectedRoute>
+                  <EditarAvaliacao />
+                </ProtectedRoute>
+              } 
+            />
+          </Routes>
+        </AuthProvider>
+      </ToastProvider>
     </Router>
   );
 }
