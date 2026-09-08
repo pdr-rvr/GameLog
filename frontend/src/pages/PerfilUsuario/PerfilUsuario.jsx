@@ -1,262 +1,271 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
+import AvaliacaoCard from "../../components/AvaliacaoCard/AvaliacaoCard";
+import ConfirmModal from "../../components/ConfirmModal/ConfirmModal";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { fetchUserProfile, updateUserProfile } from "./actions/PerfilUsuarioActions";
-import { FaUser, FaEnvelope, FaLock, FaShieldAlt, FaGamepad, FaSave } from "react-icons/fa";
+import { fetchUserProfile, fetchUserReviews, fetchUserTopGenres } from "./actions/PerfilUsuarioActions";
+import { deleteReview } from "../../pages/MinhasAvaliacoes/actions/MinhasAvaliacoesActions";
+import { 
+  FaGamepad, 
+  FaStar, 
+  FaCog, 
+  FaComments, 
+  FaLayerGroup, 
+  FaCalendarAlt,
+  FaAward
+} from "react-icons/fa";
 import "./PerfilUsuario.css";
 
 const PerfilUsuario = () => {
   const { userId } = useParams();
-  const { user, loadUserFromToken } = useAuth();
+  const { user } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    nomeUsuario: "",
-    email: "",
-    senhaAtual: "",
-    novaSenha: "",
-    confirmarNovaSenha: "",
-    fotoDePerfil: ""
-  });
-
+  const [perfil, setPerfil] = useState(null);
+  const [avaliacoes, setAvaliacoes] = useState([]);
+  const [topGeneros, setTopGeneros] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [itemParaExcluir, setItemParaExcluir] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Target User ID to load
+  const targetId = userId ? parseInt(userId, 10) : user?.id;
+  const isOwner = user && targetId && Number(user.id) === Number(targetId);
+
+  const carregarDadosPerfil = useCallback(async () => {
+    if (!targetId) {
+      setError("Identificador de usuário não encontrado.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const [dadosUsuario, dadosAvaliacoes, dadosGeneros] = await Promise.all([
+        fetchUserProfile(targetId),
+        fetchUserReviews(targetId),
+        fetchUserTopGenres(targetId)
+      ]);
+
+      setPerfil(dadosUsuario);
+      setAvaliacoes(dadosAvaliacoes || []);
+      setTopGeneros(dadosGeneros || []);
+    } catch (err) {
+      console.error("Erro ao carregar perfil:", err);
+      setError(err.message || "Não foi possível carregar o perfil do jogador.");
+    } finally {
+      setLoading(false);
+    }
+  }, [targetId]);
 
   useEffect(() => {
-    const carregarPerfil = async () => {
-      setLoading(true);
-      try {
-        const idToFetch = userId || user?.id;
-        if (!idToFetch) return;
+    carregarDadosPerfil();
+  }, [carregarDadosPerfil]);
 
-        const dados = await fetchUserProfile(idToFetch);
-        setFormData(prev => ({
-          ...prev,
-          nomeUsuario: dados.nomeUsuario || "",
-          email: dados.email || "",
-          fotoDePerfil: dados.fotoDePerfil || ""
-        }));
-      } catch (error) {
-        toast.error(error.message || "Erro ao carregar dados do perfil.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Statistics calculation
+  const totalAvaliacoes = avaliacoes.length;
+  const mediaNotas = totalAvaliacoes > 0
+    ? (avaliacoes.reduce((acc, curr) => acc + (Number(curr.nota) || 0), 0) / totalAvaliacoes).toFixed(1)
+    : "0.0";
 
-    carregarPerfil();
-  }, [userId, user]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleEditReview = (avaliacao) => {
+    const id = avaliacao?.avaliacaoId || avaliacao?.id || avaliacao;
+    navigate(`/avaliacoes/editar/${id}`);
   };
 
-  const validateUpdate = () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email.trim())) {
-      toast.error("Informe um endereço de e-mail válido.");
-      return false;
-    }
-
-    if (formData.nomeUsuario.trim().length < 3) {
-      toast.warning("O nome de usuário deve ter no mínimo 3 caracteres.");
-      return false;
-    }
-
-    if (formData.novaSenha) {
-      if (formData.novaSenha.length < 6) {
-        toast.warning("A nova senha deve ter no mínimo 6 caracteres.");
-        return false;
-      }
-      if (!/[A-Z]/.test(formData.novaSenha)) {
-        toast.warning("A nova senha deve conter pelo menos uma letra maiúscula (A-Z).");
-        return false;
-      }
-      if (!/[0-9]/.test(formData.novaSenha)) {
-        toast.warning("A nova senha deve conter pelo menos um número (0-9).");
-        return false;
-      }
-      if (formData.novaSenha !== formData.confirmarNovaSenha) {
-        toast.error("A confirmação da nova senha não confere.");
-        return false;
-      }
-    }
-
-    if (!formData.senhaAtual) {
-      toast.warning("Digite sua senha atual para autorizar as alterações.");
-      return false;
-    }
-
-    return true;
+  const handleDeleteRequest = (avaliacaoId) => {
+    setItemParaExcluir(avaliacaoId);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateUpdate()) return;
-
-    setSubmitting(true);
+  const handleConfirmDelete = async () => {
+    if (!itemParaExcluir) return;
+    setIsDeleting(true);
     try {
-      const payload = {
-        nomeUsuario: formData.nomeUsuario.trim(),
-        email: formData.email.trim(),
-        senhaAtual: formData.senhaAtual,
-        novaSenha: formData.novaSenha ? formData.novaSenha : null,
-        fotoDePerfil: formData.fotoDePerfil || ""
-      };
-
-      await updateUserProfile(user.id, payload);
-      toast.success("Perfil atualizado com sucesso!");
-      setFormData(prev => ({ ...prev, senhaAtual: "", novaSenha: "", confirmarNovaSenha: "" }));
-      loadUserFromToken();
-    } catch (error) {
-      toast.error(error.message || "Erro ao atualizar perfil. Verifique sua senha atual.");
+      await deleteReview(itemParaExcluir);
+      setAvaliacoes((prev) => prev.filter((a) => (a.avaliacaoId || a.id) !== itemParaExcluir));
+      toast.success("Avaliação excluída com sucesso!");
+    } catch (err) {
+      toast.error(err.message || "Erro ao excluir avaliação.");
     } finally {
-      setSubmitting(false);
+      setIsDeleting(false);
+      setItemParaExcluir(null);
     }
   };
 
   return (
-    <div className="perfil-page-container">
+    <div className="perfil-social-page">
       <Navbar />
 
-      <div className="perfil-page-content">
-        {/* Banner do Perfil Gamer */}
-        <div className="perfil-header-card">
-          <div className="perfil-avatar-badge">
-            {formData.fotoDePerfil ? (
-              <img src={formData.fotoDePerfil} alt="Avatar" className="perfil-avatar-image" />
-            ) : (
-              <span className="perfil-avatar-initial">
-                {formData.nomeUsuario ? formData.nomeUsuario.charAt(0).toUpperCase() : "G"}
-              </span>
-            )}
+      <main className="perfil-social-container">
+        {loading && (
+          <div className="perfil-state loading">
+            <div className="perfil-spinner"></div>
+            <span>Carregando perfil gamer...</span>
           </div>
-          <div className="perfil-user-meta">
-            <div className="perfil-badge-row">
-              <h2>{formData.nomeUsuario || "Gamer"}</h2>
-              <span className="gamer-role-chip"><FaGamepad /> Membro GameLog</span>
-            </div>
-            <p className="perfil-user-email">{formData.email}</p>
-          </div>
-        </div>
-
-        {/* Formulário de Configurações */}
-        {loading ? (
-          <div className="loading-message">Carregando dados do perfil...</div>
-        ) : (
-          <form onSubmit={handleSubmit} className="perfil-settings-grid">
-            {/* Card 1: Informações da Conta */}
-            <div className="settings-card">
-              <div className="settings-card-header">
-                <FaUser className="section-icon" />
-                <h3>Informações da Conta</h3>
-              </div>
-
-              <div className="settings-form-group">
-                <label htmlFor="nomeUsuario">Nome de Usuário</label>
-                <div className="input-with-icon">
-                  <FaGamepad />
-                  <input
-                    type="text"
-                    id="nomeUsuario"
-                    name="nomeUsuario"
-                    value={formData.nomeUsuario}
-                    onChange={handleChange}
-                    placeholder="Seu nome de usuário"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="settings-form-group">
-                <label htmlFor="email">E-mail</label>
-                <div className="input-with-icon">
-                  <FaEnvelope />
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="seuemail@exemplo.com"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Card 2: Segurança & Senha */}
-            <div className="settings-card">
-              <div className="settings-card-header">
-                <FaShieldAlt className="section-icon" />
-                <h3>Segurança & Senha</h3>
-              </div>
-
-              <div className="settings-form-group">
-                <label htmlFor="novaSenha">Nova Senha (Opcional)</label>
-                <div className="input-with-icon">
-                  <FaLock />
-                  <input
-                    type="password"
-                    id="novaSenha"
-                    name="novaSenha"
-                    value={formData.novaSenha}
-                    onChange={handleChange}
-                    placeholder="Deixe em branco para manter a atual"
-                  />
-                </div>
-                <span className="input-hint">Requisitos: Mín. 6 dígitos, 1 letra maiúscula e 1 número.</span>
-              </div>
-
-              <div className="settings-form-group">
-                <label htmlFor="confirmarNovaSenha">Confirmar Nova Senha</label>
-                <div className="input-with-icon">
-                  <FaLock />
-                  <input
-                    type="password"
-                    id="confirmarNovaSenha"
-                    name="confirmarNovaSenha"
-                    value={formData.confirmarNovaSenha}
-                    onChange={handleChange}
-                    placeholder="Confirme a nova senha"
-                  />
-                </div>
-              </div>
-
-              <div className="divider-line"></div>
-
-              <div className="settings-form-group current-password-group">
-                <label htmlFor="senhaAtual">
-                  Senha Atual <span>(Obrigatória para salvar qualquer alteração)</span>
-                </label>
-                <div className="input-with-icon">
-                  <FaLock />
-                  <input
-                    type="password"
-                    id="senhaAtual"
-                    name="senhaAtual"
-                    value={formData.senhaAtual}
-                    onChange={handleChange}
-                    placeholder="Digite sua senha atual"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="perfil-submit-bar">
-              <button type="submit" className="btn-save-profile" disabled={submitting}>
-                <FaSave /> {submitting ? "Salvando Alterações..." : "Salvar Alterações"}
-              </button>
-            </div>
-          </form>
         )}
-      </div>
+
+        {error && !loading && (
+          <div className="perfil-state error">
+            <span>{error}</span>
+          </div>
+        )}
+
+        {!loading && !error && perfil && (
+          <>
+            {/* Hero Header do Gamer */}
+            <header className="gamer-hero-card">
+              <div className="gamer-avatar-wrapper">
+                {perfil.fotoDePerfil ? (
+                  <img src={perfil.fotoDePerfil} alt={perfil.nomeUsuario} className="gamer-avatar-img" />
+                ) : (
+                  <div className="gamer-avatar-fallback">
+                    <span>{perfil.nomeUsuario ? perfil.nomeUsuario.charAt(0).toUpperCase() : "G"}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="gamer-hero-info">
+                <div className="gamer-hero-top">
+                  <div className="gamer-title-group">
+                    <h1 className="gamer-username">{perfil.nomeUsuario || "Gamer"}</h1>
+                    <span className="gamer-badge">
+                      <FaGamepad /> Membro GameLog
+                    </span>
+                  </div>
+
+                  {/* Botão de Configurações - Somente visível para o dono */}
+                  {isOwner && (
+                    <Link to="/configuracoes" className="btn-edit-settings">
+                      <FaCog /> <span>Configurações de Conta</span>
+                    </Link>
+                  )}
+                </div>
+
+                {/* Bio Gamer */}
+                {perfil.bio ? (
+                  <p className="gamer-bio-text">{perfil.bio}</p>
+                ) : isOwner ? (
+                  <p className="gamer-bio-text empty">
+                    Você ainda não adicionou uma bio. <Link to="/configuracoes">Adicione uma apresentação</Link>
+                  </p>
+                ) : null}
+
+                <div className="gamer-meta-row">
+                  <span className="gamer-meta-item">
+                    <FaCalendarAlt /> Membro da Comunidade
+                  </span>
+                  <span className="gamer-meta-item">
+                    <FaAward /> {totalAvaliacoes} {totalAvaliacoes === 1 ? "Review" : "Reviews"}
+                  </span>
+                </div>
+              </div>
+            </header>
+
+            {/* Dashboard de Estatísticas Gamer */}
+            <section className="gamer-stats-grid">
+              <div className="stat-card">
+                <div className="stat-icon-badge purple">
+                  <FaComments />
+                </div>
+                <div className="stat-data">
+                  <span className="stat-value">{totalAvaliacoes}</span>
+                  <span className="stat-label">Jogos Avaliados</span>
+                </div>
+              </div>
+
+              <div className="stat-card">
+                <div className="stat-icon-badge gold">
+                  <FaStar />
+                </div>
+                <div className="stat-data">
+                  <span className="stat-value">{mediaNotas}</span>
+                  <span className="stat-label">Média das Notas</span>
+                </div>
+              </div>
+
+              <div className="stat-card genres-card">
+                <div className="stat-icon-badge cyan">
+                  <FaLayerGroup />
+                </div>
+                <div className="stat-data">
+                  <span className="stat-label">Gêneros Favoritos</span>
+                  <div className="genre-chips-wrapper">
+                    {topGeneros.length > 0 ? (
+                      topGeneros.map((g, idx) => (
+                        <span key={idx} className="genre-chip">
+                          {g.genero || g.tituloGenero || g}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="genre-chip empty">Gamer Eclético</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Feed de Avaliações do Usuário */}
+            <section className="gamer-reviews-section">
+              <div className="section-header">
+                <h2 className="section-title">
+                  Avaliações de {isOwner ? "Você" : perfil.nomeUsuario}
+                </h2>
+                <span className="section-counter">{totalAvaliacoes} {totalAvaliacoes === 1 ? "publicação" : "publicações"}</span>
+              </div>
+
+              {avaliacoes.length === 0 ? (
+                <div className="empty-gamer-reviews">
+                  <FaGamepad className="empty-icon" />
+                  <h3>Nenhuma avaliação publicada ainda</h3>
+                  <p>
+                    {isOwner
+                      ? "Você ainda não avaliou nenhum jogo. Explore nosso catálogo e compartilhe suas opiniões!"
+                      : `${perfil.nomeUsuario} ainda não publicou nenhuma avaliação.`}
+                  </p>
+                  {isOwner && (
+                    <Link to="/jogos" className="btn-browse-games">
+                      Explorar Catálogo de Jogos
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="gamer-reviews-grid">
+                  {avaliacoes.map((avaliacao) => (
+                    <div key={avaliacao.avaliacaoId || avaliacao.id} className="gamer-review-grid-item">
+                      <AvaliacaoCard
+                        avaliacao={avaliacao}
+                        onEdit={isOwner ? () => handleEditReview(avaliacao) : null}
+                        onDelete={isOwner ? () => handleDeleteRequest(avaliacao.avaliacaoId || avaliacao.id) : null}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+      </main>
+
+      {/* Modal de Confirmação para exclusão */}
+      <ConfirmModal
+        isOpen={Boolean(itemParaExcluir)}
+        title="Excluir Avaliação"
+        message="Tem certeza que deseja excluir esta avaliação do seu perfil público?"
+        confirmText="Excluir Definitivamente"
+        cancelText="Cancelar"
+        confirmVariant="danger"
+        loading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => !isDeleting && setItemParaExcluir(null)}
+      />
     </div>
   );
 };
 
 export default PerfilUsuario;
+
