@@ -1,176 +1,103 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { buscarAvaliacoes, criarAvaliacao, buscarRecomendacoes } from './actions/TelaHomeActions';
-import { buscarJogos as buscarTodosOsJogos } from '../PaginaJogos/actions/PaginaJogosActions'; // Importa do local correto e renomeia
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import Navbar from "../../components/Navbar/Navbar";
+import JogoCarrossel from "../../components/JogoCarrossel/JogoCarrossel";
+import AvaliacaoCarrossel from "../../components/AvaliacaoCarrossel/AvaliacaoCarrossel";
+import FormAvaliacao from "../../components/FormAvaliacao/FormAvaliacao";
+import { useAuth } from "../../context/AuthContext";
+import { buscarAvaliacoes, buscarJogos, criarAvaliacao, buscarRecomendacoes } from "./actions/TelaHomeActions";
+import "./TelaHome.css";
 
-import Navbar from '../../components/Navbar/Navbar';
-import FormAvaliacao from '../../components/FormAvaliacao/FormAvaliacao';
-import JogosCarrossel from '../../components/JogosCarrossel/JogosCarrossel';
-import AvaliacoesCarrossel from '../../components/AvaliacaoCarrossel/AvaliacaoCarrossel';
-import RecomendacoesCarrossel from '../../components/RecomendacoesCarrossel/RecomendacoesCarrossel';
-import './TelaHome.css';
-import { useAuth } from '../../context/AuthContext';
-
-function TelaHome() {
-  const { user, isAuthenticated, loadingAuth } = useAuth();
-  const [activeTab, setActiveTab] = useState('home');
+const TelaHome = () => {
+  const { user } = useAuth();
+  const location = useLocation();
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [jogos, setJogos] = useState([]);
   const [recomendacoes, setRecomendacoes] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
-
-  const navigate = useNavigate();
+  const [modalAberto, setModalAberto] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadAllGames = async () => {
-      try {
-        const data = await buscarTodosOsJogos();
-        setJogos(data);
-      } catch (err) {
-        console.error('Erro ao carregar todos os jogos:', err);
-      }
-    };
-    loadAllGames();
-  }, []);
-
-  useEffect(() => {
-    const carregarConteudoAutenticado = async () => {
+    const carregarDados = async () => {
       setLoading(true);
-      setError('');
       try {
-        const promises = [
-          buscarAvaliacoes(activeTab === 'minhas' && isAuthenticated && user ? user.id : null)
-        ];
+        const [dadosAvaliacoes, dadosJogos] = await Promise.all([
+          buscarAvaliacoes(),
+          buscarJogos()
+        ]);
+        setAvaliacoes(dadosAvaliacoes);
+        setJogos(dadosJogos);
 
-        if (isAuthenticated && user?.id) {
-          promises.push(buscarRecomendacoes(user.id));
+        if (user && user.id) {
+          const dadosRecomendacoes = await buscarRecomendacoes(user.id);
+          setRecomendacoes(dadosRecomendacoes);
         }
-
-        const results = await Promise.all(promises);
-
-        setAvaliacoes(results[0]);
-
-        if (isAuthenticated && user?.id && results.length > 1) { 
-          setRecomendacoes(results[1]);
-        } else {
-          setRecomendacoes([]);
-        }
-
-      } catch (err) {
-        console.error('Erro ao carregar dados de usuário/avaliações:', err);
-        setError('Erro ao carregar dados. Tente novamente mais tarde.');
+      } catch (error) {
+        console.error("Erro ao carregar dados da home:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (!loadingAuth) {
-        carregarConteudoAutenticado();
-    }
-  }, [activeTab, user, isAuthenticated, loadingAuth]); 
+    carregarDados();
+  }, [user]);
 
-  const handleSubmitAvaliacao = async (avaliacaoData) => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("publish") === "true") {
+      setModalAberto(true);
     }
-    setLoading(true);
-    setError('');
+  }, [location]);
+
+  const handleSalvarAvaliacao = async (avaliacaoData) => {
     try {
       await criarAvaliacao(avaliacaoData);
-      const updatedAvaliacoes = await buscarAvaliacoes(activeTab === 'minhas' && isAuthenticated && user ? user.id : null);
-      setAvaliacoes(updatedAvaliacoes);
-
-      if (isAuthenticated && user?.id) {
-        const updatedRecomendacoes = await buscarRecomendacoes(user.id);
-        setRecomendacoes(updatedRecomendacoes);
-      }
-
-      setShowForm(false);
-      setError('');
-    } catch (err) {
-      setError(err.message || 'Erro ao criar avaliação.');
-    } finally {
-      setLoading(false);
+      setModalAberto(false);
+      const novasAvaliacoes = await buscarAvaliacoes();
+      setAvaliacoes(novasAvaliacoes);
+    } catch (error) {
+      console.error("Erro ao salvar avaliação:", error);
+      alert("Erro ao publicar avaliação. Tente novamente.");
     }
   };
-
-  const handleOpenPublishForm = () => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    setShowForm(true);
-  };
-
-  const newInitialData = useMemo(() => ({}), []);
 
   return (
     <div className="home-container">
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        usuario={user}
-        onPublishClick={handleOpenPublishForm}
-      />
+      <Navbar onPublicarClick={() => setModalAberto(true)} />
 
       <div className="home-content">
-        {isAuthenticated && !showForm && (
-          <button
-            className="floating-button"
-            onClick={handleOpenPublishForm}
-            aria-label="Criar nova avaliação"
-          >
-            +
-          </button>
-        )}
+        {loading ? (
+          <div className="loading-message">Carregando catálogo e avaliações...</div>
+        ) : (
+          <>
+            {user && recomendacoes.length > 0 && (
+              <JogoCarrossel
+                title="Recomendados Para Você"
+                jogos={recomendacoes}
+              />
+            )}
 
-        {showForm && isAuthenticated && (
-          <div className="form-overlay">
-            <FormAvaliacao
-              jogos={jogos} 
-              onSubmit={handleSubmitAvaliacao}
-              loading={loading}
-              error={error}
-              onCancel={() => setShowForm(false)}
-              initialData={newInitialData}
-              isEditing={false}
+            <JogoCarrossel
+              title="Jogos em Destaque"
+              jogos={jogos.slice(0, 10)}
             />
-          </div>
-        )}
 
-        {jogos.length > 0 && (
-          <JogosCarrossel title="Jogos em Destaque" jogos={jogos} />
+            <AvaliacaoCarrossel
+              title="Últimas Avaliações da Comunidade"
+              avaliacoes={avaliacoes}
+            />
+          </>
         )}
-        {!loading && jogos.length === 0 && (
-            <div className="sem-jogos">Nenhum jogo em destaque disponível.</div>
-        )}
-
-
-        {isAuthenticated && user?.id && loadingAuth === false && !loading && recomendacoes.length > 0 && (
-          <RecomendacoesCarrossel title="Recomendações para você" recomendacoes={recomendacoes} />
-        )}
-        {isAuthenticated && user?.id && loadingAuth === false && !loading && recomendacoes.length === 0 && (
-            <div className="sem-recomendacoes">
-                Não há recomendações disponíveis no momento. Jogue mais e avalie para receber recomendações!
-            </div>
-        )}
-
-        {loading && <div className="loading">Carregando avaliações...</div>}
-        {!loading && avaliacoes.length === 0 && (
-          <div className="sem-avaliacoes">
-            Nenhuma avaliação encontrada.
-          </div>
-        )}
-        {!loading && avaliacoes.length > 0 && (
-          <AvaliacoesCarrossel title="Últimas Avaliações" avaliacoes={avaliacoes} />
-        )}
-
       </div>
+
+      <FormAvaliacao
+        isOpen={modalAberto}
+        onClose={() => setModalAberto(false)}
+        onSubmit={handleSalvarAvaliacao}
+        jogos={jogos}
+      />
     </div>
   );
-}
+};
 
 export default TelaHome;
