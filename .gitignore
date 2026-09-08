@@ -1,6 +1,5 @@
 # ==========================================
 # GameLog Monorepo .gitignore
-# (.NET 8 + React/Node + IDEs + Environment)
 # ==========================================
 
 # ------------------------------------------
@@ -51,6 +50,10 @@ nunit-*.xml
 *.userosscache
 *.sln.docstates
 *.suo
+PublishProfiles/
+ServiceDependencies/
+*.pubxml
+*.pubxml.user
 
 # ------------------------------------------
 # Node / React / Frontend
