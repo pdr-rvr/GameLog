@@ -1,97 +1,109 @@
+.jogos-carrossel-section {
+  margin: 2.5rem 0;
+  width: 100%;
+}
 
-.jogos-carrossel-container {
-    margin: 20px 0;
-    width: 100%;
+.carrossel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding: 0 0.5rem;
 }
 
 .carrossel-title {
-    color: white;
-    font-size: 1.8em;
-    margin-left: 20px;
-    margin-bottom: 15px;
-    font-weight: bold;
+  color: #f8fafc;
+  font-size: 1.45rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.025em;
+  position: relative;
+  display: inline-block;
 }
 
-.carrossel-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    width: 100%;
-    padding: 0 20px;
-    box-sizing: border-box;
+.carrossel-title::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent-gradient-purple);
 }
 
-.jogos-carrossel-track {
-    display: flex;
-    overflow-x: scroll; 
-    scroll-snap-type: x mandatory; 
-    -webkit-overflow-scrolling: touch; 
-    gap: 15px;
-    padding-bottom: 10px; 
-    scrollbar-width: none; 
-    -ms-overflow-style: none; 
+.carrossel-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.jogos-carrossel-track::-webkit-scrollbar {
-    display: none; 
+.carousel-header-btn {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-glass);
+  color: #ffffff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.carousel-header-btn:hover:not(:disabled) {
+  background: var(--accent-purple);
+  border-color: var(--accent-purple-light);
+  transform: scale(1.08);
+  box-shadow: 0 0 12px rgba(109, 40, 217, 0.5);
+}
+
+.carousel-header-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.carrossel-viewport {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: 0.5rem 0.25rem 1rem 0.25rem;
+}
+
+.jogos-carrossel-slider {
+  display: flex;
+  gap: 16px;
+  will-change: transform;
 }
 
 .jogos-carrossel-item {
-    flex: 0 0 auto; 
-    width: 180px; 
-    scroll-snap-align: start; 
-}
-
-.jogos-carrossel-item .jogo-card {
-    width: 100%; 
-}
-
-
-.carousel-nav-button {
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.5em;
-    cursor: pointer;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    transition: background-color 0.3s ease;
-}
-
-.carousel-nav-button:hover {
-    background-color: rgba(0, 0, 0, 0.7);
-}
-
-.carousel-nav-button.left {
-    left: 0px;
-}
-
-.carousel-nav-button.right {
-    right: 0px; 
+  flex: 0 0 175px;
+  width: 175px;
+  box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
-    .carrossel-title {
-        font-size: 1.5em;
-        margin-left: 15px;
-    }
-    .carrossel-wrapper {
-        padding: 0 10px;
-    }
-    .jogos-carrossel-item {
-        width: 150px; 
-    }
-    .carousel-nav-button {
-        width: 30px;
-        height: 30px;
-        font-size: 1.2em;
-    }
+  .jogos-carrossel-section {
+    margin: 2rem 0;
+  }
+
+  .carrossel-title {
+    font-size: 1.2rem;
+  }
+
+  .jogos-carrossel-item {
+    flex: 0 0 145px;
+    width: 145px;
+  }
+
+  .carousel-header-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+  }
 }

@@ -95,7 +95,7 @@ const TelaHome = () => {
 
             <JogosCarrossel
               title="Jogos em Destaque"
-              jogos={jogos.slice(0, 10)}
+              jogos={jogos.slice(0, 20)}
             />
 
             <AvaliacaoCarrossel
