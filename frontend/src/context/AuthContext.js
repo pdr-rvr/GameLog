@@ -27,8 +27,14 @@ export const AuthProvider = ({ children }) => {
                         }
                     }
 
+                    const rawId = decodedToken.sub || 
+                                  decodedToken.nameid || 
+                                  decodedToken["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+                                  userFromStorage?.usuarioId || 
+                                  userFromStorage?.id;
+
                     const userObject = {
-                        id: decodedToken.sub || decodedToken.nameid,
+                        id: rawId ? parseInt(rawId, 10) : null,
                         nomeUsuario: userFromStorage?.nomeUsuario || decodedToken.nomeUsuario || "Usuário",
                         email: userFromStorage?.email || decodedToken.email || "",
                         fotoDePerfil: userFromStorage?.fotoDePerfil || "",
