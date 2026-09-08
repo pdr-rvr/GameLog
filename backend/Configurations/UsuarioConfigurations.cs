@@ -1,4 +1,4 @@
-﻿using GameLog_Backend.Entities;
+using GameLog_Backend.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -35,6 +35,10 @@ namespace GameLog_Backend.Configurations
 
             builder.Property(p => p.FotoDePerfil)
                 .HasColumnType("varchar(MAX)")
+                .IsRequired(false);
+
+            builder.Property(p => p.Bio)
+                .HasMaxLength(300)
                 .IsRequired(false);
 
             builder.Property(p => p.EstaAtivo)

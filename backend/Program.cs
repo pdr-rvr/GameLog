@@ -117,6 +117,24 @@ using (var scope = app.Services.CreateScope())
             context.Database.Migrate();
             Console.WriteLine("[GameLog] Migrations aplicadas com sucesso.");
 
+            try
+            {
+                context.Database.ExecuteSqlRaw(@"
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns 
+                        WHERE object_id = OBJECT_ID(N'[dbo].[Usuarios]') 
+                        AND name = 'Bio'
+                    )
+                    BEGIN
+                        ALTER TABLE [dbo].[Usuarios] ADD [Bio] NVARCHAR(300) NULL;
+                    END
+                ");
+            }
+            catch (Exception exCol)
+            {
+                Console.WriteLine($"[GameLog] Verificação de coluna Bio: {exCol.Message}");
+            }
+
             Console.WriteLine("[GameLog] Executando Seeders...");
             new EmpresaSeeder(context).Seed();
             new GeneroSeeder(context).Seed();
