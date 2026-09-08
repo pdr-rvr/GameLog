@@ -1,30 +1,165 @@
-import React, { useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import AvaliacaoCard from '../AvaliacaoCard/AvaliacaoCard';
 import './AvaliacaoCarrossel.css';
 
-const AvaliacaoCarrossel = ({ title, avaliacoes, onEditReview, onDeleteReview }) => {
-  const carouselRef = useRef(null);
+const CLONES = 4;
+const CARD_WIDTH_DESKTOP = 340;
+const CARD_WIDTH_MOBILE = 290;
+const GAP_DESKTOP = 16;
+const GAP_MOBILE = 12;
 
-  const scroll = (direction) => {
-    if (carouselRef.current) {
-      const cardContainerWidth = 330; 
-      const scrollAmount = direction === 'left' ? -cardContainerWidth : cardContainerWidth;
-      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+const AvaliacaoCarrossel = ({ title, avaliacoes, onEditReview, onDeleteReview }) => {
+  const totalOriginal = avaliacoes ? avaliacoes.length : 0;
+  const isCircular = totalOriginal >= CLONES;
+
+  // Lightweight buffer: clones at head and tail for infinite circular feel
+  const items = useMemo(() => {
+    if (!avaliacoes || avaliacoes.length === 0) return [];
+    if (!isCircular) return avaliacoes;
+    const head = avaliacoes.slice(-CLONES).map((a, i) => ({ ...a, _uid: `head-${a.avaliacaoId || a.id || i}-${i}` }));
+    const middle = avaliacoes.map((a, i) => ({ ...a, _uid: `mid-${a.avaliacaoId || a.id || i}-${i}` }));
+    const tail = avaliacoes.slice(0, CLONES).map((a, i) => ({ ...a, _uid: `tail-${a.avaliacaoId || a.id || i}-${i}` }));
+    return [...head, ...middle, ...tail];
+  }, [avaliacoes, isCircular]);
+
+  const [currentIndex, setCurrentIndex] = useState(isCircular ? CLONES : 0);
+  const [isTransitioning, setIsTransitioning] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const touchStartX = useRef(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isCircular) {
+      setIsTransitioning(false);
+      setCurrentIndex(CLONES);
+    } else {
+      setCurrentIndex(0);
+    }
+  }, [totalOriginal, isCircular]);
+
+  const handleTransitionEnd = () => {
+    if (!isCircular) return;
+
+    if (currentIndex >= totalOriginal + CLONES) {
+      setIsTransitioning(false);
+      setCurrentIndex(currentIndex - totalOriginal);
+    } else if (currentIndex < CLONES) {
+      setIsTransitioning(false);
+      setCurrentIndex(currentIndex + totalOriginal);
     }
   };
 
+  useEffect(() => {
+    if (!isTransitioning) {
+      const frame = requestAnimationFrame(() => {
+        setIsTransitioning(true);
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [isTransitioning]);
+
+  const cardWidth = isMobile ? CARD_WIDTH_MOBILE : CARD_WIDTH_DESKTOP;
+  const gap = isMobile ? GAP_MOBILE : GAP_DESKTOP;
+  const stride = cardWidth + gap;
+
+  const slide = (direction) => {
+    if (!isCircular) {
+      if (direction === 'next') {
+        setCurrentIndex(prev => Math.min(prev + 1, totalOriginal - 1));
+      } else {
+        setCurrentIndex(prev => Math.max(prev - 1, 0));
+      }
+      return;
+    }
+
+    setIsTransitioning(true);
+    if (direction === 'next') {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      setCurrentIndex(prev => prev - 1);
+    }
+  };
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 35) {
+      if (diff > 0) {
+        slide('next');
+      } else {
+        slide('prev');
+      }
+    }
+    touchStartX.current = null;
+  };
+
   if (!avaliacoes || avaliacoes.length === 0) {
-    return null; 
+    return null;
   }
 
+  const translateStyle = {
+    transform: `translate3d(-${currentIndex * stride}px, 0, 0)`,
+    transition: isTransitioning ? 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+  };
+
+  const showControls = totalOriginal > 1;
+
   return (
-    <div className="avaliacoes-carrossel-container">
-      <h2 className="carrossel-title">{title}</h2>
-      <div className="carrossel-wrapper">
-        <button className="carousel-nav-button left" onClick={() => scroll('left')}>&#8249;</button>
-        <div className="avaliacoes-carrossel-track" ref={carouselRef}>
-          {avaliacoes.map(avaliacao => (
-            <div key={avaliacao.avaliacaoId} className="avaliacoes-carrossel-item">
+    <section className="avaliacoes-carrossel-section">
+      <div className="avaliacoes-carrossel-header">
+        <h2 className="avaliacoes-carrossel-title">{title}</h2>
+
+        {showControls && (
+          <div className="avaliacoes-header-controls">
+            <button
+              type="button"
+              className="avaliacoes-header-btn"
+              onClick={() => slide('prev')}
+              disabled={!isCircular && currentIndex === 0}
+              aria-label="Avaliação anterior"
+            >
+              <FaChevronLeft />
+            </button>
+            <button
+              type="button"
+              className="avaliacoes-header-btn"
+              onClick={() => slide('next')}
+              disabled={!isCircular && currentIndex >= totalOriginal - 1}
+              aria-label="Próxima avaliação"
+            >
+              <FaChevronRight />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div 
+        className="avaliacoes-viewport"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div 
+          className="avaliacoes-slider" 
+          style={translateStyle}
+          onTransitionEnd={handleTransitionEnd}
+        >
+          {items.map((avaliacao, idx) => (
+            <div 
+              key={avaliacao._uid || avaliacao.avaliacaoId || avaliacao.id || idx} 
+              className="avaliacoes-item"
+            >
               <AvaliacaoCard
                 avaliacao={avaliacao}
                 onEdit={onEditReview}
@@ -33,9 +168,8 @@ const AvaliacaoCarrossel = ({ title, avaliacoes, onEditReview, onDeleteReview })
             </div>
           ))}
         </div>
-        <button className="carousel-nav-button right" onClick={() => scroll('right')}>&#8250;</button>
       </div>
-    </div>
+    </section>
   );
 };
 
