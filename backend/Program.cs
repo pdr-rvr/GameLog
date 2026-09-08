@@ -91,6 +91,8 @@ builder.Services.AddAutoMapper(typeof(UsuarioProfile));
 builder.Services.AddScoped<UsuarioServices>();
 builder.Services.AddAutoMapper(typeof(AvaliacaoProfile));
 builder.Services.AddScoped<AvaliacaoServices>();
+builder.Services.AddAutoMapper(typeof(EmpresaProfile));
+builder.Services.AddScoped<EmpresaServices>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
