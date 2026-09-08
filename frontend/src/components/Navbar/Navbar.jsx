@@ -1,68 +1,101 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import Dropdown from '../Dropdown/Dropdown';
-import './Navbar.css';
+import React, { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { FaUserCircle, FaBars, FaTimes } from "react-icons/fa";
+import { useAuth } from "../../context/AuthContext";
+import "./Navbar.css";
 
-const Navbar = ({ onPublishClick }) => { 
-    const { isAuthenticated, user, logout } = useAuth();
-    const navigate = useNavigate();
+const Navbar = ({ onPublicarClick }) => {
+  const { user, isAuthenticated, logout } = useAuth();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-    const handleLogout = () => {
-        logout();
-        navigate('/'); 
-    };
+  const handleDropdownToggle = () => {
+    setDropdownOpen(!dropdownOpen);
+  };
 
-    const profileContent = user?.profilePictureUrl ? (
-        <img src={user.profilePictureUrl} alt="Perfil" className="profile-avatar-img" />
-    ) : (
-        <span className="profile-avatar-text">{user?.nomeUsuario ? user.nomeUsuario.charAt(0).toUpperCase() : '?'}</span>
-    );
+  const handleMobileMenuToggle = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
 
-    return (
-        <nav className="navbar">
-            <div className="navbar-container-inner">
-                <div className="navbar-brand">
-                    <Link to="/home">GameLog</Link> 
+  const handleLogout = () => {
+    logout();
+    setDropdownOpen(false);
+    setIsMobileMenuOpen(false);
+    navigate("/login");
+  };
+
+  const handlePublicar = () => {
+    if (onPublicarClick) {
+      onPublicarClick();
+    } else {
+      navigate("/home?publish=true");
+    }
+  };
+
+  return (
+    <nav className="navbar">
+      <div className="navbar-logo">
+        <Link to="/home">GameLog</Link>
+      </div>
+
+      <div className="menu-icon" onClick={handleMobileMenuToggle}>
+        {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
+      </div>
+
+      <ul className={`navbar-links ${isMobileMenuOpen ? "active" : ""}`}>
+        <li>
+          <Link to="/home" onClick={() => setIsMobileMenuOpen(false)}>Início</Link>
+        </li>
+        <li>
+          <Link to="/jogos" onClick={() => setIsMobileMenuOpen(false)}>Jogos</Link>
+        </li>
+        <li>
+          <Link to="/avaliacoes" onClick={() => setIsMobileMenuOpen(false)}>Avaliações</Link>
+        </li>
+      </ul>
+
+      <div className="navbar-actions">
+        {isAuthenticated ? (
+          <>
+            <button className="navbar-publish-button" onClick={handlePublicar}>
+              Publicar
+            </button>
+            <div className="user-profile-menu">
+              <button className="user-profile-button" onClick={handleDropdownToggle}>
+                {user?.fotoDePerfil ? (
+                  <img src={user.fotoDePerfil} alt="Perfil" className="user-avatar" />
+                ) : (
+                  <FaUserCircle className="user-icon" />
+                )}
+                <span className="user-name">{user?.nomeUsuario || "Minha Conta"}</span>
+              </button>
+
+              {dropdownOpen && (
+                <div className="dropdown-menu">
+                  <Link to={`/perfil/${user?.id}`} onClick={() => setDropdownOpen(false)}>
+                    Meu Perfil
+                  </Link>
+                  <Link to="/minhas-avaliacoes" onClick={() => setDropdownOpen(false)}>
+                    Minhas Avaliações
+                  </Link>
+                  <button onClick={handleLogout} className="logout-button">
+                    Sair
+                  </button>
                 </div>
-                <ul className="navbar-nav">
-                    <li className="nav-item">
-                        <Link to="/home" className="nav-link">Home</Link>
-                    </li>
-                    <li className="nav-item separator">
-                        <Link to="/jogos" className="nav-link">Jogos</Link>
-                    </li>
-                    {/*<li className="nav-item separator">
-                        <Link to="/avaliacoes" className="nav-link">Avaliações</Link>
-                    </li>*/}
-
-                    {isAuthenticated ? (
-                        <>
-                            <li className="nav-item">
-                                <button onClick={onPublishClick} className="nav-link publish-button">Publicar</button>
-                            </li>
-                            <li className="nav-item profile-dropdown-container">
-                                <Dropdown 
-                                    trigger={<div className="profile-avatar">{profileContent}</div>}
-                                    className="user-dropdown"
-                                >
-                                    <Link to={`/perfil/${user?.id}`} className="dropdown-item">Meu Perfil</Link>
-                                    <Link to="/minhas-avaliacoes" className="dropdown-item">Minhas Avaliações</Link>
-                                    <button onClick={handleLogout} className="dropdown-item">Desconectar</button>
-                                </Dropdown>
-                            </li>
-                        </>
-                    ) : (
-                        <li className="nav-item auth-buttons">
-                            <Link to="/login" className="nav-link">Entrar</Link>
-
-                            <Link to="/cadastro" className="nav-link register-button">Cadastrar</Link>
-                        </li>
-                    )}
-                </ul>
+              )}
             </div>
-        </nav>
-    );
+          </>
+        ) : (
+          <div className="auth-buttons">
+            <Link to="/login" className="btn-login">Entrar</Link>
+            <Link to="/cadastro" className="btn-cadastro">Cadastrar</Link>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
 };
 
 export default Navbar;

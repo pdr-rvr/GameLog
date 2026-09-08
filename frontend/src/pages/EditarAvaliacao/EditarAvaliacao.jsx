@@ -1,163 +1,114 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { fetchReviewById, updateReview } from './actions/EditarAvaliacaoActions'; 
-import FormAvaliacao from '../../components/FormAvaliacao/FormAvaliacao'; 
-import Navbar from '../../components/Navbar/Navbar'; 
-import './EditarAvaliacao.css'; 
-import { buscarJogos } from '../TelaHome/actions/TelaHomeActions';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import Navbar from "../../components/Navbar/Navbar";
+import { fetchReviewById, updateReview } from "./actions/EditarAvaliacaoActions";
+import { FaStar } from "react-icons/fa";
+import "./EditarAvaliacao.css";
 
 const EditarAvaliacao = () => {
-    const { reviewId } = useParams();
-    const navigate = useNavigate();
-    const { user, loadingAuth, isAuthenticated } = useAuth();
+  const { avaliacaoId } = useParams();
+  const navigate = useNavigate();
 
-    const [avaliacaoOriginal, setAvaliacaoOriginal] = useState(null);
-    const [jogos, setJogos] = useState([]);
-    const [loadingPage, setLoadingPage] = useState(true);
-    const [loadingSubmit, setLoadingSubmit] = useState(false);
-    const [error, setError] = useState(null);
-    const [successMessage, setSuccessMessage] = useState(null);
-    const [activeTab, setActiveTab] = useState('minhas');
+  const [formData, setFormData] = useState({
+    nomeJogo: "",
+    nota: 5,
+    textoAvaliacao: ""
+  });
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-    useEffect(() => {
-        const loadPageData = async () => {
-            setLoadingPage(true);
-            setError(null);
-
-            if (loadingAuth) {
-                return;
-            }
-
-            const token = localStorage.getItem('token');
-
-            if (!isAuthenticated || !user?.id || !token) {
-                setError('Você precisa estar logado para editar avaliações.');
-                setLoadingPage(false);
-                navigate('/login');
-                return;
-            }
-
-            try {
-                const fetchedAvaliacao = await fetchReviewById(reviewId, token);
-                
-                if (fetchedAvaliacao) {
-                    setAvaliacaoOriginal(fetchedAvaliacao);
-                } else {
-                    setError('Avaliação não encontrada ou você não tem permissão para editá-la.');
-                    setLoadingPage(false);
-                    return;
-                }
-
-                const fetchedJogos = await buscarJogos();
-                setJogos(fetchedJogos);
-
-            } catch (err) {
-                setError(err.message || 'Ocorreu um erro ao carregar a página de edição.');
-                console.error("Erro ao carregar dados da página de edição:", err);
-            } finally {
-                setLoadingPage(false);
-            }
-        };
-
-        loadPageData();
-    }, [reviewId, loadingAuth, user, isAuthenticated, navigate]);
-
-    const handleSubmitAvaliacao = async (updatedAvaliacaoData) => {
-        setLoadingSubmit(true);
-        setError(null);
-        setSuccessMessage(null);
-
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setError('Sessão expirada. Por favor, faça login novamente.');
-            setLoadingSubmit(false);
-            navigate('/login');
-            return;
-        }
-
-        try {
-            const dataToSend = {
-                nota: parseInt(updatedAvaliacaoData.nota),
-                textoAvaliacao: updatedAvaliacaoData.textoAvaliacao
-            };
-
-            await updateReview(reviewId, dataToSend, token);
-            setSuccessMessage('Avaliação atualizada com sucesso!');
-            setTimeout(() => {
-                navigate('/minhas-avaliacoes'); 
-            }, 1500); 
-        } catch (err) {
-            setError(err.message || 'Erro ao atualizar avaliação.');
-            console.error("Erro ao atualizar avaliação:", err);
-        } finally {
-            setLoadingSubmit(false);
-        }
+  useEffect(() => {
+    const carregarAvaliacao = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const dados = await fetchReviewById(avaliacaoId);
+        setFormData({
+          nomeJogo: dados.nomeJogo || "",
+          nota: dados.nota || 5,
+          textoAvaliacao: dados.textoAvaliacao || ""
+        });
+      } catch (err) {
+        setError(err.message || "Não foi possível carregar a avaliação.");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const handleCancel = () => {
-        navigate('/minhas-avaliacoes');
-    };
-
-    const handleOpenPublishForm = () => {
-        if (!isAuthenticated) {
-            navigate('/login');
-            return;
-        }
-        navigate('/avaliacoes/criar');
-    };
-
-    if (loadingPage || loadingAuth) {
-        return <div className="loading-message">Carregando avaliação para edição...</div>;
+    if (avaliacaoId) {
+      carregarAvaliacao();
     }
+  }, [avaliacaoId]);
 
-    if (!isAuthenticated || !user?.id) {
-        return <div className="error-message">{error || 'Você não está logado para ver esta página.'}</div>;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+
+    try {
+      await updateReview(avaliacaoId, {
+        nota: parseInt(formData.nota, 10),
+        textoAvaliacao: formData.textoAvaliacao
+      });
+      navigate("/minhas-avaliacoes");
+    } catch (err) {
+      setError(err.message || "Erro ao atualizar a avaliação.");
+    } finally {
+      setSubmitting(false);
     }
+  };
 
-    if (error && !avaliacaoOriginal) { 
-        return <div className="error-message">{error}</div>;
-    }
+  return (
+    <div className="editar-avaliacao-container">
+      <Navbar />
+      <div className="editar-avaliacao-content">
+        <h1>Editar Avaliação</h1>
+        {formData.nomeJogo && <h2>{formData.nomeJogo}</h2>}
 
-    if (!avaliacaoOriginal) {
-        return <div className="no-data-message">Avaliação não encontrada ou você não tem permissão para acessá-la.</div>;
-    }
+        {error && <div className="error-message">{error}</div>}
 
-    const jogoSelecionado = jogos.find(jogo => jogo.jogoId === avaliacaoOriginal.jogoId);
-
-    const initialAvaliacaoData = {
-        jogoId: avaliacaoOriginal.jogoId,
-        nota: avaliacaoOriginal.nota,
-        textoAvaliacao: avaliacaoOriginal.textoAvaliacao,
-        tituloJogo: avaliacaoOriginal.nomeJogo || (jogoSelecionado ? jogoSelecionado.titulo : '')
-    };
-
-    return (
-        <div className="minhas-avaliacoes-page-container">
-            <Navbar
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                usuario={user}
-                onPublishClick={handleOpenPublishForm}
-            />
-            <div className="editar-avaliacao-content">
-                <div className="form-overlay">
-                    <FormAvaliacao
-                        jogos={jogos}
-                        onSubmit={handleSubmitAvaliacao}
-                        loading={loadingSubmit}
-                        error={null}
-                        onCancel={handleCancel} 
-                        initialData={initialAvaliacaoData}
-                        isEditing={true}
-                    />
-                </div>
-
-                {successMessage && <div className="success-message">{successMessage}</div>}
-                {error && <div className="error-message">{error}</div>}
+        {loading ? (
+          <div className="loading-message">Carregando avaliação...</div>
+        ) : (
+          <form onSubmit={handleSubmit} className="editar-form">
+            <div className="form-group rating-selection">
+              <label>Nota:</label>
+              <div className="stars-input">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <FaStar
+                    key={star}
+                    className={`star-icon ${star <= formData.nota ? "active" : ""}`}
+                    onClick={() => setFormData(prev => ({ ...prev, nota: star }))}
+                  />
+                ))}
+                <span className="nota-display">{formData.nota} / 5</span>
+              </div>
             </div>
-        </div>
-    );
+
+            <div className="form-group">
+              <label>Comentário / Opinião:</label>
+              <textarea
+                rows="5"
+                value={formData.textoAvaliacao}
+                onChange={(e) => setFormData(prev => ({ ...prev, textoAvaliacao: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="botoes-form">
+              <button type="submit" className="btn-salvar" disabled={submitting}>
+                {submitting ? "Salvando..." : "Salvar Alterações"}
+              </button>
+              <button type="button" className="btn-cancelar" onClick={() => navigate("/minhas-avaliacoes")}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default EditarAvaliacao;

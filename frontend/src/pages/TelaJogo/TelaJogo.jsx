@@ -1,32 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import Navbar from '../../components/Navbar/Navbar';
-import AvaliacaoCarrossel from '../../components/AvaliacaoCarrossel/AvaliacaoCarrossel';
-import { buscarJogoPorId, buscarAvaliacoesPorJogoId } from './actions/TelaJogoActions'; 
-import './TelaJogo.css';
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import Navbar from "../../components/Navbar/Navbar";
+import AvaliacaoCarrossel from "../../components/AvaliacaoCarrossel/AvaliacaoCarrossel";
+import { buscarJogoPorId, buscarAvaliacoesPorJogoId } from "./actions/TelaJogoActions";
+import "./TelaJogo.css";
 
 function TelaJogo() {
     const { jogoId } = useParams();
     const [jogo, setJogo] = useState(null);
     const [avaliacoes, setAvaliacoes] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
 
     useEffect(() => {
-        const carregarDadosDoJogo = async () => { 
+        const carregarDadosDoJogo = async () => {
             setLoading(true);
-            setError('');
+            setError("");
             try {
+                const [dadosJogo, dadosAvaliacoes] = await Promise.all([
+                    buscarJogoPorId(jogoId),
+                    buscarAvaliacoesPorJogoId(jogoId)
+                ]);
 
-                const jogoData = await buscarJogoPorId(jogoId);
-                setJogo(jogoData);
-
-                const avaliacoesData = await buscarAvaliacoesPorJogoId(jogoId);
-                setAvaliacoes(avaliacoesData);
-
+                setJogo(dadosJogo);
+                setAvaliacoes(dadosAvaliacoes);
             } catch (err) {
-                setError(err.message);
                 console.error("Erro ao carregar dados do jogo:", err);
+                setError(err.message || "Não foi possível carregar os detalhes do jogo.");
             } finally {
                 setLoading(false);
             }
@@ -64,9 +64,15 @@ function TelaJogo() {
         );
     }
 
-    const dataLancamentoFormatada = jogo.dataLancamento
-        ? new Date(jogo.dataLancamento).toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' })
-        : 'Data Desconhecida';
+    const formatarData = (dataStr) => {
+        if (!dataStr) return "Data Desconhecida";
+        const parts = dataStr.toString().split("-");
+        if (parts.length >= 3) {
+            const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            return date.toLocaleDateString("pt-BR", { year: "numeric", month: "long", day: "numeric" });
+        }
+        return dataStr;
+    };
 
     return (
         <div className="tela-jogo-container">
@@ -77,13 +83,17 @@ function TelaJogo() {
                     <div className="jogo-info-principal">
                         <h1 className="jogo-detalhes-titulo">{jogo.titulo}</h1>
                         <p className="jogo-detalhes-descricao">{jogo.descricao}</p>
-                        <p className="jogo-detalhes-info">
-                            **Lançamento:** {dataLancamentoFormatada} <br />
-                            **Classificação Indicativa:** {jogo.classificacaoIndicativa !== null ? jogo.classificacaoIndicativa : 'N/A'} <br />
-                            {jogo.mediaAvaliacoes !== null && (
-                                <span>**Média de Avaliações:** ⭐ {jogo.mediaAvaliacoes.toFixed(1)}</span>
+                        <div className="jogo-detalhes-info">
+                            <p><strong>Lançamento:</strong> {formatarData(jogo.dataLancamento)}</p>
+                            <p><strong>Classificação Indicativa:</strong> {jogo.classificacaoIndicativa !== null ? `${jogo.classificacaoIndicativa} anos` : "Livre"}</p>
+                            <p><strong>Empresa:</strong> {jogo.nomeEmpresa || "N/A"}</p>
+                            {jogo.generos && jogo.generos.length > 0 && (
+                                <p><strong>Gêneros:</strong> {jogo.generos.join(", ")}</p>
                             )}
-                        </p>
+                            {jogo.mediaAvaliacoes !== null && jogo.mediaAvaliacoes !== undefined && (
+                                <p><strong>Média de Avaliações:</strong> ⭐ {jogo.mediaAvaliacoes.toFixed(1)} ({jogo.totalAvaliacoes || 0} avaliações)</p>
+                            )}
+                        </div>
                     </div>
                 </div>
 

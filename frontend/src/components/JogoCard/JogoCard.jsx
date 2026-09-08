@@ -1,18 +1,22 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import './JogoCard.css';
+import React from "react";
+import { Link } from "react-router-dom";
+import "./JogoCard.css";
 
 const JogoCard = ({ jogo }) => {
-    const anoLancamento = jogo.dataLancamento ? new Date(jogo.dataLancamento).getFullYear() : 'N/A';
+    const anoLancamento = jogo.dataLancamento ? parseInt(jogo.dataLancamento.toString().substring(0, 4)) : "N/A";
 
     return (
         <Link to={`/jogos/${jogo.jogoId}`} className="jogo-card-link">
             <div className="jogo-card">
                 <div className="jogo-card-image-container">
                     <img 
-                        src={jogo.imagem || '/images/default_game_cover.png'}
+                        src={jogo.imagem || "/game-images/default_game_cover.png"}
                         alt={jogo.titulo} 
-                        className="jogo-card-image" 
+                        className="jogo-card-image"
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "/game-images/default_game_cover.png";
+                        }}
                     />
                 </div>
                 <div className="jogo-card-details">
