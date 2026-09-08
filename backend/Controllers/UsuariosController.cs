@@ -25,6 +25,7 @@ namespace GameLog_Backend.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> ListarTodosUsuarios()
         {
             try
@@ -39,6 +40,7 @@ namespace GameLog_Backend.Controllers
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> ObterUsuarioPorId(int id)
         {
             try
@@ -49,6 +51,21 @@ namespace GameLog_Backend.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Erro interno: " + ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/generos-favoritos")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ObterGenerosFavoritos(int id, [FromQuery] int topN = 4)
+        {
+            try
+            {
+                var generos = await _usuarioServices.IdentificaTopNGenerosFavoritos(id, topN);
+                return Ok(generos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao buscar gêneros favoritos: " + ex.Message });
             }
         }
 

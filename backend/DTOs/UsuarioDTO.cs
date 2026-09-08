@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace GameLog_Backend.DTOs
 {
@@ -7,7 +7,8 @@ namespace GameLog_Backend.DTOs
         public int UsuarioId { get; set; }
         public string NomeUsuario { get; set; }
         public string Email { get; set; }
-        public string FotoDePerfil { get; set; }
+        public string? FotoDePerfil { get; set; }
+        public string? Bio { get; set; }
         public bool EstaAtivo { get; set; }
     }
 
@@ -16,7 +17,8 @@ namespace GameLog_Backend.DTOs
         public string NomeUsuario { get; set; }
         public string Email { get; set; }
         public string Senha { get; set; }
-        public string FotoDePerfil { get; set; }
+        public string? FotoDePerfil { get; set; }
+        public string? Bio { get; set; }
     }
 
     public class UsuarioLoginDTO
@@ -32,6 +34,7 @@ namespace GameLog_Backend.DTOs
 		public string SenhaAtual { get; set; }
 		public string? NovaSenha { get; set; }
 		public string? FotoDePerfil { get; set; }
+		public string? Bio { get; set; }
 	}
 
 	public class DeletarUsuarioDTO
