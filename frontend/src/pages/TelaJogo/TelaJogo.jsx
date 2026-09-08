@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import AvaliacaoCarrossel from "../../components/AvaliacaoCarrossel/AvaliacaoCarrossel";
 import { buscarJogoPorId, buscarAvaliacoesPorJogoId } from "./actions/TelaJogoActions";
@@ -86,7 +86,16 @@ function TelaJogo() {
                         <div className="jogo-detalhes-info">
                             <p><strong>Lançamento:</strong> {formatarData(jogo.dataLancamento)}</p>
                             <p><strong>Classificação Indicativa:</strong> {jogo.classificacaoIndicativa !== null ? `${jogo.classificacaoIndicativa} anos` : "Livre"}</p>
-                            <p><strong>Empresa:</strong> {jogo.nomeEmpresa || "N/A"}</p>
+                            <p>
+                                <strong>Empresa:</strong>{" "}
+                                {jogo.empresaId ? (
+                                    <Link to={`/empresas/${jogo.empresaId}`} className="jogo-empresa-link">
+                                        {jogo.nomeEmpresa}
+                                    </Link>
+                                ) : (
+                                    jogo.nomeEmpresa || "N/A"
+                                )}
+                            </p>
                             {jogo.generos && jogo.generos.length > 0 && (
                                 <p><strong>Gêneros:</strong> {jogo.generos.join(", ")}</p>
                             )}

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaSearch, FaTimes, FaGamepad, FaUser, FaChevronRight } from 'react-icons/fa';
+import { FaSearch, FaTimes, FaGamepad, FaUser, FaBuilding, FaChevronRight } from 'react-icons/fa';
 import api from '../../services/api';
 import './SearchBar.css';
 
@@ -14,14 +14,14 @@ const SearchBar = ({
   const [query, setQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [globalResults, setGlobalResults] = useState({ jogos: [], usuarios: [] });
+  const [globalResults, setGlobalResults] = useState({ jogos: [], empresas: [], usuarios: [] });
   const searchBarRef = useRef(null);
   const debounceTimerRef = useRef(null);
   const navigate = useNavigate();
 
   const fetchGlobalSuggestions = useCallback(async (searchTerm) => {
     if (!searchTerm || searchTerm.trim().length < 2) {
-      setGlobalResults({ jogos: [], usuarios: [] });
+      setGlobalResults({ jogos: [], empresas: [], usuarios: [] });
       setLoading(false);
       return;
     }
@@ -29,8 +29,9 @@ const SearchBar = ({
     setLoading(true);
     try {
       const termLower = searchTerm.toLowerCase();
-      const [jogosRes, usuariosRes] = await Promise.allSettled([
+      const [jogosRes, empresasRes, usuariosRes] = await Promise.allSettled([
         api.get('/Jogos'),
+        api.get('/Empresas'),
         api.get('/Usuarios')
       ]);
 
@@ -46,6 +47,16 @@ const SearchBar = ({
           .slice(0, 5);
       }
 
+      let empresasFiltradas = [];
+      if (empresasRes.status === 'fulfilled' && Array.isArray(empresasRes.value.data)) {
+        empresasFiltradas = empresasRes.value.data
+          .filter(e => {
+            const name = (e.nomeEmpresa || e.nome || '').toLowerCase();
+            return name.includes(termLower);
+          })
+          .slice(0, 3);
+      }
+
       let usuariosFiltrados = [];
       if (usuariosRes.status === 'fulfilled' && Array.isArray(usuariosRes.value.data)) {
         usuariosFiltrados = usuariosRes.value.data
@@ -53,10 +64,10 @@ const SearchBar = ({
             const name = (u.nomeUsuario || u.nome || '').toLowerCase();
             return name.includes(termLower);
           })
-          .slice(0, 4);
+          .slice(0, 3);
       }
 
-      setGlobalResults({ jogos: jogosFiltrados, usuarios: usuariosFiltrados });
+      setGlobalResults({ jogos: jogosFiltrados, empresas: empresasFiltradas, usuarios: usuariosFiltrados });
     } catch (err) {
       console.error("Erro na busca global:", err);
     } finally {
@@ -81,7 +92,7 @@ const SearchBar = ({
         }, 250);
       } else {
         setShowSuggestions(false);
-        setGlobalResults({ jogos: [], usuarios: [] });
+        setGlobalResults({ jogos: [], empresas: [], usuarios: [] });
       }
     } else {
       setShowSuggestions(value.trim().length > 0);
@@ -97,6 +108,13 @@ const SearchBar = ({
       const id = jogo.jogoId || jogo.id;
       if (id) navigate(`/jogos/${id}`);
     }
+  };
+
+  const handleSelectEmpresa = (empresa) => {
+    setShowSuggestions(false);
+    setQuery('');
+    const id = empresa.empresaId || empresa.id;
+    if (id) navigate(`/empresas/${id}`);
   };
 
   const handleSelectUser = (user) => {
@@ -117,7 +135,7 @@ const SearchBar = ({
 
   const handleClear = () => {
     setQuery('');
-    setGlobalResults({ jogos: [], usuarios: [] });
+    setGlobalResults({ jogos: [], empresas: [], usuarios: [] });
     if (onSearch) onSearch('');
     setShowSuggestions(false);
   };
@@ -136,7 +154,10 @@ const SearchBar = ({
     };
   }, []);
 
-  const hasGlobalResults = globalResults.jogos.length > 0 || globalResults.usuarios.length > 0;
+  const hasGlobalResults = 
+    globalResults.jogos.length > 0 || 
+    globalResults.empresas.length > 0 || 
+    globalResults.usuarios.length > 0;
 
   return (
     <div className="search-bar-container" ref={searchBarRef}>
@@ -176,7 +197,7 @@ const SearchBar = ({
             </div>
           )}
 
-          {/* Modo Global: Categorias de Jogos e Usuários */}
+          {/* Modo Global: Categorias de Jogos, Empresas e Usuários */}
           {globalMode && !loading && (
             <>
               {globalResults.jogos.length > 0 && (
@@ -208,6 +229,38 @@ const SearchBar = ({
                           <span className="suggestion-title">{title}</span>
                           <span className="suggestion-sub">
                             {year} {jogo.nomeEmpresa ? `• ${jogo.nomeEmpresa}` : ''}
+                          </span>
+                        </div>
+                        <FaChevronRight className="suggestion-arrow" />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {globalResults.empresas.length > 0 && (
+                <div className="suggestion-section">
+                  <div className="suggestion-section-header">
+                    <FaBuilding className="section-icon" />
+                    <span>Empresas & Estúdios</span>
+                  </div>
+                  {globalResults.empresas.map((empresa) => {
+                    const id = empresa.empresaId || empresa.id;
+                    const name = empresa.nomeEmpresa || empresa.nome || 'Empresa';
+
+                    return (
+                      <div 
+                        key={`empresa-${id}`} 
+                        className="suggestion-item empresa-item" 
+                        onClick={() => handleSelectEmpresa(empresa)}
+                      >
+                        <div className="suggestion-empresa-fallback">
+                          <FaBuilding />
+                        </div>
+                        <div className="suggestion-meta">
+                          <span className="suggestion-title">{name}</span>
+                          <span className="suggestion-sub">
+                            {empresa.totalJogos !== undefined ? `${empresa.totalJogos} ${empresa.totalJogos === 1 ? 'jogo' : 'jogos'}` : 'Estúdio'}
                           </span>
                         </div>
                         <FaChevronRight className="suggestion-arrow" />
@@ -254,7 +307,7 @@ const SearchBar = ({
 
               {!hasGlobalResults && (
                 <div className="suggestions-empty">
-                  Nenhum jogo ou usuário encontrado para "{query}".
+                  Nenhum jogo, estúdio ou usuário encontrado para "{query}".
                 </div>
               )}
             </>
