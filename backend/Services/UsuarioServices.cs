@@ -1,6 +1,5 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using AutoMapper;
 using GameLog_Backend.Configurations;
@@ -9,7 +8,6 @@ using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Collections.Generic;
 
 namespace GameLog_Backend.Services
 {
@@ -19,42 +17,50 @@ namespace GameLog_Backend.Services
         private readonly IMapper _mapper;
         private readonly JwtSettings _jwtSettings;
 
-
         public UsuarioServices(GameLogContext context, IMapper mapper, IConfiguration configuration)
         {
             _context = context;
             _mapper = mapper;
-            _jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>();
+            _jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings
+            {
+                Key = configuration["Jwt:Key"] ?? "GameLogSuperSecretKeyDefault1234567890!",
+                Issuer = configuration["Jwt:Issuer"] ?? "GameLogAPI",
+                Audience = configuration["Jwt:Audience"] ?? "GameLogClient",
+                ExpireHours = 24
+            };
         }
 
         public async Task<(UsuarioDTO? usuario, string? token, DateTime expiraEm)> AutenticarUsuario(UsuarioLoginDTO loginDTO)
         {
             var usuario = await _context.Usuarios
-                .FirstOrDefaultAsync(u => u.Email == loginDTO.Email);
+                .FirstOrDefaultAsync(u => u.Email == loginDTO.Email && u.EstaAtivo);
 
             if (usuario == null || !VerificarSenha(loginDTO.Senha, usuario.Senha))
                 return (null, null, DateTime.MinValue);
 
             var usuarioDTO = _mapper.Map<UsuarioDTO>(usuario);
             var token = GerarTokenJwt(usuario);
-            var expiraEm = DateTime.Now.AddHours(_jwtSettings.ExpireHours);
+            var expiraEm = DateTime.UtcNow.AddHours(_jwtSettings.ExpireHours);
 
             return (usuarioDTO, token, expiraEm);
         }
 
         private string GerarTokenJwt(Usuario usuario)
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
+            var keyString = !string.IsNullOrEmpty(_jwtSettings.Key) && _jwtSettings.Key != "{JWT_SECRET}"
+                ? _jwtSettings.Key
+                : "GameLogSuperSecretKeyDefault1234567890!";
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()), 
-        
                 new Claim("nomeUsuario", usuario.NomeUsuario), 
                 new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        
             };
 
             var token = new JwtSecurityToken(
@@ -71,6 +77,7 @@ namespace GameLog_Backend.Services
         public IEnumerable<UsuarioDTO> ListarUsuarios()
         {
             var usuarios = _context.Usuarios
+                .Where(u => u.EstaAtivo)
                 .Select(u => _mapper.Map<UsuarioDTO>(u))
                 .ToList();
 
@@ -80,7 +87,7 @@ namespace GameLog_Backend.Services
         public UsuarioDTO? ObterUsuarioPorId(int id)
         {
             var usuario = _context.Usuarios
-                .FirstOrDefault(u => u.Id == id);
+                .FirstOrDefault(u => u.Id == id && u.EstaAtivo);
 
             return usuario != null ? _mapper.Map<UsuarioDTO>(usuario) : null;
         }
@@ -109,32 +116,48 @@ namespace GameLog_Backend.Services
 
         private string HashSenha(string senha)
         {
-            using var sha256 = SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(senha));
-            return Convert.ToBase64String(bytes);
+            return BCrypt.Net.BCrypt.HashPassword(senha, workFactor: 11);
         }
 
         private bool VerificarSenha(string senha, string senhaHash)
         {
-            return HashSenha(senha) == senhaHash;
+            if (string.IsNullOrEmpty(senha) || string.IsNullOrEmpty(senhaHash))
+                return false;
+
+            try
+            {
+                if (senhaHash.StartsWith("$2"))
+                {
+                    return BCrypt.Net.BCrypt.Verify(senha, senhaHash);
+                }
+                
+                using var sha256 = System.Security.Cryptography.SHA256.Create();
+                var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(senha));
+                var legacyHash = Convert.ToBase64String(bytes);
+                return legacyHash == senhaHash;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public async Task<bool> EmailEmUso(string email)
         {
             return await _context.Usuarios
-                .AnyAsync(u => u.Email == email);
+                .AnyAsync(u => u.Email == email && u.EstaAtivo);
         }
 
         public async Task<bool> NomeUsuarioEmUso(string nomeUsuario)
         {
             return await _context.Usuarios
-                .AnyAsync(u => u.NomeUsuario == nomeUsuario);
+                .AnyAsync(u => u.NomeUsuario == nomeUsuario && u.EstaAtivo);
         }
 
         public async Task<UsuarioDTO?> EditarUsuario(int id, string senhaAtual, EditarUsuarioDTO usuarioDTO)
         {
             var usuarioExistente = await _context.Usuarios.FindAsync(id);
-            if (usuarioExistente == null || !VerificarSenha(senhaAtual, usuarioExistente.Senha))
+            if (usuarioExistente == null || !usuarioExistente.EstaAtivo || !VerificarSenha(senhaAtual, usuarioExistente.Senha))
             {
                 return null;
             }
@@ -163,7 +186,7 @@ namespace GameLog_Backend.Services
         public async Task<bool> DeletarUsuario(int id, string senhaAtual)
         {
             var usuario = await _context.Usuarios.FindAsync(id);
-            if (usuario == null || !VerificarSenha(senhaAtual, usuario.Senha))
+            if (usuario == null || !usuario.EstaAtivo || !VerificarSenha(senhaAtual, usuario.Senha))
             {
                 return false;
             }
@@ -188,6 +211,7 @@ namespace GameLog_Backend.Services
             }
 
             var generosComNotas = avaliacoesDoUsuario
+                .Where(a => a.Jogo != null && a.Jogo.Generos != null)
                 .SelectMany(a => a.Jogo.Generos.Select(g => new { Genero = g.TituloGenero, Nota = a.Nota }));
 
             var topGeneros = generosComNotas
@@ -209,11 +233,9 @@ namespace GameLog_Backend.Services
         public async Task<IEnumerable<JogoRecomendacaoDTO>> RecomendarJogos(int usuarioId)
         {
             var topGeneros = await IdentificaTopNGenerosFavoritos(usuarioId, 3);
-            var nomePrimeiroGeneroFavorito = topGeneros.FirstOrDefault()?.Genero; 
 
             if (!topGeneros.Any())
             {
-                Console.WriteLine($"Nenhum gênero favorito identificado para o usuário {usuarioId}. Retornando lista vazia de recomendações.");
                 return Enumerable.Empty<JogoRecomendacaoDTO>();
             }
 
@@ -224,29 +246,30 @@ namespace GameLog_Backend.Services
 
             var generosParaBuscar = topGeneros.Select(g => g.Genero).ToList();
 
-            var jogosRecomendados = await _context.Jogos
-                .Where(j => j.Generos.Any(g => generosParaBuscar.Contains(g.TituloGenero)) &&
-                            !jogosAvaliadosIds.Contains(j.Id) &&
-                            j.EstaAtivo)
+            var jogosCandidatos = await _context.Jogos
+                .Include(j => j.Generos)
+                .Where(j => j.EstaAtivo && !jogosAvaliadosIds.Contains(j.Id) &&
+                            j.Generos.Any(g => generosParaBuscar.Contains(g.TituloGenero)))
                 .OrderByDescending(j => j.DataLancamento)
                 .Take(10)
-                .Select(j => new JogoRecomendacaoDTO
+                .ToListAsync();
+
+            var recomendados = jogosCandidatos.Select(j =>
+            {
+                var generoCorrespondente = j.Generos.FirstOrDefault(g => generosParaBuscar.Contains(g.TituloGenero))?.TituloGenero
+                                          ?? topGeneros.First().Genero;
+                return new JogoRecomendacaoDTO
                 {
                     JogoId = j.Id,
                     Titulo = j.Titulo,
                     Descricao = j.Descricao,
                     Imagem = j.Imagem,
                     DataLancamento = j.DataLancamento,
-                    GeneroFavorito = nomePrimeiroGeneroFavorito
-                })
-                .ToListAsync();
+                    GeneroFavorito = generoCorrespondente
+                };
+            }).ToList();
 
-            if (!jogosRecomendados.Any())
-            {
-                Console.WriteLine($"Nenhum jogo encontrado para recomendar nos top gêneros ({string.Join(", ", generosParaBuscar)}) para o usuário {usuarioId}.");
-            }
-
-            return jogosRecomendados;
+            return recomendados;
         }
     }
 }
