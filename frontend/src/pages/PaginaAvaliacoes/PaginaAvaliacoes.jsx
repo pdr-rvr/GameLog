@@ -1,48 +1,71 @@
-import React, { useState, useEffect } from 'react';
-import Navbar from '../../components/Navbar/Navbar';
-import AvaliacaoCard from '../../components/AvaliacaoCard/AvaliacaoCard';
-//import { buscarAvaliacoes } from '../../services/AvaliacoesService';
-import './PaginaAvaliacoes.css';
+import React, { useState, useEffect } from "react";
+import Navbar from "../../components/Navbar/Navbar";
+import AvaliacaoCard from "../../components/AvaliacaoCard/AvaliacaoCard";
+import { buscarAvaliacoes } from "../TelaHome/actions/TelaHomeActions";
+import "./PaginaAvaliacoes.css";
 
 const PaginaAvaliacoes = () => {
-  /*const [avaliacoes, setAvaliacoes] = useState([]);
+  const [avaliacoes, setAvaliacoes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    const fetchAvaliacoes = async () => {
+    const carregarAvaliacoes = async () => {
       setLoading(true);
       try {
-        const data = await buscarAvaliacoes();
-        setAvaliacoes(data);
-      } catch (err) {
-        console.error("Erro ao buscar avaliações:", err);
-        setError("Não foi possível carregar as avaliações.");
+        const dados = await buscarAvaliacoes();
+        setAvaliacoes(dados);
+      } catch (error) {
+        console.error("Erro ao carregar avaliações:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchAvaliacoes();
+
+    carregarAvaliacoes();
   }, []);
 
+  const avaliacoesFiltradas = avaliacoes.filter((avaliacao) => {
+    const termo = searchTerm.toLowerCase();
+    const nomeJogo = (avaliacao.nomeJogo || "").toLowerCase();
+    const nomeUsuario = (avaliacao.nomeUsuario || "").toLowerCase();
+    const comentario = (avaliacao.textoAvaliacao || "").toLowerCase();
+    return nomeJogo.includes(termo) || nomeUsuario.includes(termo) || comentario.includes(termo);
+  });
+
   return (
-    <div className="page-container">
+    <div className="pagina-avaliacoes-container">
       <Navbar />
-      <div className="content-area" style={{ padding: '20px' }}>
-        <h2>Todas as Avaliações</h2>
-        {loading && <div className="loading">Carregando avaliações...</div>}
-        {error && <div className="error-message">{error}</div>}
-        {!loading && avaliacoes.length === 0 && (
-          <div className="no-data-message">Nenhuma avaliação encontrada.</div>
+      <div className="pagina-avaliacoes-content">
+        <header className="pagina-avaliacoes-header">
+          <h1>Todas as Avaliações</h1>
+          <p>Veja o que a comunidade do GameLog está achando dos jogos mais recentes e populares.</p>
+          <div className="search-bar-avaliacoes">
+            <input
+              type="text"
+              placeholder="Buscar por jogo, usuário ou comentário..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </header>
+
+        {loading ? (
+          <div className="loading-message">Carregando avaliações...</div>
+        ) : avaliacoesFiltradas.length > 0 ? (
+          <div className="avaliacoes-grid">
+            {avaliacoesFiltradas.map((avaliacao) => (
+              <AvaliacaoCard key={avaliacao.avaliacaoId} avaliacao={avaliacao} />
+            ))}
+          </div>
+        ) : (
+          <div className="no-avaliations-message">
+            Nenhuma avaliação encontrada{searchTerm ? " para o termo buscado" : ""}.
+          </div>
         )}
-        <div className="avaliacoes-grid">
-          {avaliacoes.map(avaliacao => (
-            <AvaliacaoCard key={avaliacao.avaliacaoId} avaliacao={avaliacao} />
-          ))}
-        </div>
       </div>
     </div>
-  );*/
+  );
 };
 
 export default PaginaAvaliacoes;

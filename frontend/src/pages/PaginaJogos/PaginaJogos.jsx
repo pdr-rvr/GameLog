@@ -1,174 +1,151 @@
-import React, { useState, useEffect } from 'react';
-import Navbar from '../../components/Navbar/Navbar';
-import JogosCarrossel from '../../components/JogosCarrossel/JogosCarrossel';
-import FiltroDropdown from '../../components/FiltroDropdown/FiltroDropdown';
-import SearchBar from '../../components/SearchBar/SearchBar';
-import JogoCard from '../../components/JogoCard/JogoCard';
-import { buscarJogos } from './actions/PaginaJogosActions';
-import './PaginaJogos.css';
+import React, { useState, useEffect } from "react";
+import Navbar from "../../components/Navbar/Navbar";
+import JogoCard from "../../components/JogoCard/JogoCard";
+import { buscarJogos } from "./actions/PaginaJogosActions";
+import "./PaginaJogos.css";
 
 function PaginaJogos() {
     const [todosJogos, setTodosJogos] = useState([]);
     const [jogosFiltrados, setJogosFiltrados] = useState([]);
-    const [jogosCarrossel, setJogosCarrossel] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
 
-    const [filtroAno, setFiltroAno] = useState('');
-    const [filtroRating, setFiltroRating] = useState('');
-    const [filtroGenero, setFiltroGenero] = useState('');
-    const [termoPesquisa, setTermoPesquisa] = useState('');
-    const [sugestoesPesquisa, setSugestoesPesquisa] = useState([]);
+    const [termoPesquisa, setTermoPesquisa] = useState("");
+    const [generoSelecionado, setGeneroSelecionado] = useState("");
+    const [anoSelecionado, setAnoSelecionado] = useState("");
 
-    const generosOptions = [
-        { label: 'Ação', value: 'acao' },
-        { label: 'Aventura', value: 'aventura' },
-        { label: 'RPG', value: 'rpg' },
-        { label: 'Esportes', value: 'esportes' },
-        { label: 'Estratégia', value: 'estrategia' },
-        { label: 'Simulação', value: 'simulacao' },
-        { label: 'Terror', value: 'terror' },
-        { label: 'Puzzle', value: 'puzzle' },
-        { label: 'Corrida', value: 'corrida' },
-        { label: 'Luta', value: 'luta' },
-    ];
+    const [generosDisponiveis, setGenerosDisponiveis] = useState([]);
+    const [anosDisponiveis, setAnosDisponiveis] = useState([]);
 
     useEffect(() => {
-        const carregarTodosOsJogos = async () => {
+        const carregarJogos = async () => {
             setLoading(true);
-            setError('');
+            setError("");
             try {
-                const data = await buscarJogos(); 
-                setTodosJogos(data);
-                setJogosFiltrados(data); 
+                const dados = await buscarJogos();
+                setTodosJogos(dados);
+                setJogosFiltrados(dados);
 
-                const shuffled = [...data].sort(() => 0.5 - Math.random());
-                setJogosCarrossel(shuffled.slice(0, 10));
+                const generosSet = new Set();
+                const anosSet = new Set();
 
+                dados.forEach(jogo => {
+                    if (jogo.generos && Array.isArray(jogo.generos)) {
+                        jogo.generos.forEach(g => generosSet.add(g));
+                    }
+                    if (jogo.dataLancamento) {
+                        const ano = jogo.dataLancamento.toString().substring(0, 4);
+                        if (ano) anosSet.add(ano);
+                    }
+                });
+
+                setGenerosDisponiveis(Array.from(generosSet).sort());
+                setAnosDisponiveis(Array.from(anosSet).sort((a, b) => b - a));
             } catch (err) {
-                setError(err.message);
-                console.error("Erro ao carregar todos os jogos:", err);
+                console.error("Erro ao carregar jogos:", err);
+                setError(err.message || "Não foi possível carregar a lista de jogos.");
             } finally {
                 setLoading(false);
             }
         };
 
-        carregarTodosOsJogos();
+        carregarJogos();
     }, []);
 
     useEffect(() => {
-        let jogosAtuais = [...todosJogos];
+        let resultado = todosJogos;
 
-        // Aplicar filtro de ano
-        if (filtroAno) {
-            jogosAtuais = jogosAtuais.filter(jogo => {
-                const anoLancamento = new Date(jogo.dataLancamento).getFullYear();
-                if (filtroAno.includes('s (')) { 
-                    const startYear = parseInt(filtroAno.substring(0, 4));
-                    const endYear = startYear + 9;
-                    return anoLancamento >= startYear && anoLancamento <= endYear;
-                } else if (filtroAno === 'Pre-1970') {
-                    return anoLancamento < 1970;
-                } else {
-                    return anoLancamento === parseInt(filtroAno);
-                }
-            });
-        }
-
-        // Aplicar filtro de rating (logica a ser implementada com dados reais)
-        if (filtroRating) {
-            // Por enquanto, apenas um placeholder para rating
-            // if (filtroRating === 'popular') { ... }
-        }
-
-        // Aplicar filtro de gênero (logica a ser implementada com dados reais)
-        if (filtroGenero) {
-             // if (jogo.generos.includes(filtroGenero)) { ... }
-        }
-
-        if (termoPesquisa) {
-            const termoLowerCase = termoPesquisa.toLowerCase();
-            jogosAtuais = jogosAtuais.filter(jogo => 
-                jogo.titulo.toLowerCase().includes(termoLowerCase)
+        if (termoPesquisa.trim() !== "") {
+            const termoLower = termoPesquisa.toLowerCase();
+            resultado = resultado.filter(jogo =>
+                jogo.titulo?.toLowerCase().includes(termoLower) ||
+                jogo.descricao?.toLowerCase().includes(termoLower) ||
+                jogo.nomeEmpresa?.toLowerCase().includes(termoLower)
             );
         }
 
-        setJogosFiltrados(jogosAtuais);
-    }, [filtroAno, filtroRating, filtroGenero, termoPesquisa, todosJogos]);
-
-    const handleSearch = (query) => {
-        setTermoPesquisa(query);
-        if (query.length > 0) {
-            const filteredSuggestions = todosJogos.filter(jogo => 
-                jogo.titulo.toLowerCase().includes(query.toLowerCase())
+        if (generoSelecionado !== "") {
+            resultado = resultado.filter(jogo =>
+                jogo.generos && jogo.generos.includes(generoSelecionado)
             );
-            setSugestoesPesquisa(filteredSuggestions.slice(0, 5)); 
-        } else {
-            setSugestoesPesquisa([]);
         }
-    };
 
-    const handleSelectSuggestion = (jogo) => {
-        setTermoPesquisa(jogo.titulo);
-        setJogosFiltrados([jogo]); 
-        setSugestoesPesquisa([]); 
-        setFiltroAno('');
-        setFiltroRating('');
-        setFiltroGenero('');
+        if (anoSelecionado !== "") {
+            resultado = resultado.filter(jogo =>
+                jogo.dataLancamento && jogo.dataLancamento.toString().startsWith(anoSelecionado)
+            );
+        }
+
+        setJogosFiltrados(resultado);
+    }, [termoPesquisa, generoSelecionado, anoSelecionado, todosJogos]);
+
+    const limparFiltros = () => {
+        setTermoPesquisa("");
+        setGeneroSelecionado("");
+        setAnoSelecionado("");
     };
 
     return (
         <div className="pagina-jogos-container">
             <Navbar />
             <div className="pagina-jogos-content">
-                <div className="filtro-pesquisa-bar">
-                    {/* <FiltroDropdown 
-                        title="Ano" 
-                        type="year-range"
-                        currentSelection={filtroAno}
-                        onSelect={setFiltroAno} 
+                <h1 className="pagina-jogos-titulo">Catálogo Completo de Jogos</h1>
+
+                <div className="filtros-secao">
+                    <input
+                        type="text"
+                        placeholder="Buscar por título, descrição ou empresa..."
+                        value={termoPesquisa}
+                        onChange={(e) => setTermoPesquisa(e.target.value)}
+                        className="filtro-input filtro-busca"
                     />
-                    <FiltroDropdown 
-                        title="Rating" 
-                        type="rating"
-                        currentSelection={filtroRating}
-                        onSelect={setFiltroRating} 
-                    />
-                    <FiltroDropdown 
-                        title="Gêneros" 
-                        type="list" 
-                        options={generosOptions} 
-                        currentSelection={generosOptions.find(opt => opt.value === filtroGenero)?.label || ''}
-                        onSelect={setFiltroGenero} 
-                    /> */}
-                    <SearchBar 
-                        onSearch={handleSearch} 
-                        suggestions={sugestoesPesquisa} 
-                        onSelectSuggestion={handleSelectSuggestion}
-                    />
+
+                    <select
+                        value={generoSelecionado}
+                        onChange={(e) => setGeneroSelecionado(e.target.value)}
+                        className="filtro-select"
+                    >
+                        <option value="">Todos os Gêneros</option>
+                        {generosDisponiveis.map(genero => (
+                            <option key={genero} value={genero}>{genero}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={anoSelecionado}
+                        onChange={(e) => setAnoSelecionado(e.target.value)}
+                        className="filtro-select"
+                    >
+                        <option value="">Todos os Anos</option>
+                        {anosDisponiveis.map(ano => (
+                            <option key={ano} value={ano}>{ano}</option>
+                        ))}
+                    </select>
+
+                    {(termoPesquisa || generoSelecionado || anoSelecionado) && (
+                        <button onClick={limparFiltros} className="btn-limpar-filtros">
+                            Limpar Filtros
+                        </button>
+                    )}
                 </div>
 
-                {loading && <div className="loading-message">Carregando jogos...</div>}
-                {error && <div className="error-message">{error}</div>}
-
-                {!loading && !error && jogosCarrossel.length > 0 && termoPesquisa === '' && (
-                    <JogosCarrossel 
-                        title="Destaques da Semana" 
-                        jogos={jogosCarrossel} 
-                    />
+                {loading && (
+                    <div className="loading-message">Carregando catálogo de jogos...</div>
                 )}
 
-                {!loading && !error && (
+                {error && (
+                    <div className="error-message">{error}</div>
+                )}
+
+                {!loading && !error && jogosFiltrados.length === 0 && (
+                    <div className="no-results">Nenhum jogo encontrado com os filtros selecionados.</div>
+                )}
+
+                {!loading && !error && jogosFiltrados.length > 0 && (
                     <div className="jogos-grid">
-                        {jogosFiltrados.length === 0 && termoPesquisa !== '' ? (
-                            <p className="no-results">Nenhum jogo encontrado para "{termoPesquisa}".</p>
-                        ) : jogosFiltrados.length === 0 && termoPesquisa === '' ? (
-                             <p className="no-results">Nenhum jogo disponível.</p>
-                        ) : (
-                            jogosFiltrados.map(jogo => (
-                                <JogoCard key={jogo.jogoId} jogo={jogo} />
-                            ))
-                        )}
+                        {jogosFiltrados.map(jogo => (
+                            <JogoCard key={jogo.jogoId} jogo={jogo} />
+                        ))}
                     </div>
                 )}
             </div>
