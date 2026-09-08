@@ -25,11 +25,11 @@ namespace GameLog_Backend.Controllers
         }
 
         [HttpGet]
-        public IActionResult ListarTodosUsuarios()
+        public async Task<IActionResult> ListarTodosUsuarios()
         {
             try
             {
-                var usuarios = _usuarioServices.ListarUsuarios();
+                var usuarios = await _usuarioServices.ListarUsuarios();
                 return Ok(usuarios);
             }
             catch (Exception ex)
@@ -39,12 +39,12 @@ namespace GameLog_Backend.Controllers
         }
 
         [HttpGet("{id}")]
-        public IActionResult ObterUsuarioPorId(int id)
+        public async Task<IActionResult> ObterUsuarioPorId(int id)
         {
             try
             {
-                var usuario = _usuarioServices.ObterUsuarioPorId(id);
-                return usuario != null ? Ok(usuario) : NotFound();
+                var usuario = await _usuarioServices.ObterUsuarioPorId(id);
+                return usuario != null ? Ok(usuario) : NotFound(new { message = "Usuário não encontrado" });
             }
             catch (Exception ex)
             {
@@ -76,7 +76,7 @@ namespace GameLog_Backend.Controllers
                 var result = await _usuarioServices.AutenticarUsuario(loginDTO);
 
                 if (result.usuario == null || result.token == null)
-                    return Unauthorized(new { message = "Credenciais inválidas ou usuário inativo" });
+                    return Unauthorized(new { message = "Credenciais inválidas ou usuário desativado" });
 
                 return Ok(new
                 {
@@ -109,7 +109,7 @@ namespace GameLog_Backend.Controllers
 
                 if (usuarioAtualizado == null)
                 {
-                    return Unauthorized(new { message = "Senha incorreta ou usuário não encontrado" });
+                    return Unauthorized(new { message = "Senha atual incorreta ou usuário não encontrado" });
                 }
 
                 return Ok(usuarioAtualizado);

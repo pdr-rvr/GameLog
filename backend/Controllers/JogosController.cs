@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Services;
-using System.Collections.Generic;
 
 namespace GameLog_Backend.Controllers
 {
@@ -19,11 +18,11 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult ListarTodosJogos()
+        public async Task<IActionResult> ListarTodosJogos()
         {
             try
             {
-                var jogos = _jogoServices.ListarJogos();
+                var jogos = await _jogoServices.ListarJogos();
                 return Ok(jogos);
             }
             catch (Exception ex)
@@ -34,11 +33,11 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public IActionResult ObterJogoPorId(int id)
+        public async Task<IActionResult> ObterJogoPorId(int id)
         {
             try
             {
-                var jogo = _jogoServices.ObterJogoPorId(id);
+                var jogo = await _jogoServices.ObterJogoPorId(id);
 
                 if (jogo == null)
                     return NotFound(new { message = "Jogo não encontrado" });
@@ -53,11 +52,11 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("top-avaliados")]
         [AllowAnonymous]
-        public IActionResult ListarTop10MelhorAvaliados()
+        public async Task<IActionResult> ListarTop10MelhorAvaliados()
         {
             try
             {
-                var jogos = _jogoServices.ListarTop10JogosMelhorAvaliados();
+                var jogos = await _jogoServices.ListarTop10JogosMelhorAvaliados();
                 return Ok(jogos);
             }
             catch (Exception ex)

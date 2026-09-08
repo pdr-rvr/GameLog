@@ -1,8 +1,6 @@
-﻿using GameLog_Backend.Database;
+using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace GameLog_Backend.Services
 {
@@ -15,9 +13,9 @@ namespace GameLog_Backend.Services
             _context = context;
         }
 
-        public IEnumerable<JogoDTO> ListarJogos()
+        public async Task<IEnumerable<JogoDTO>> ListarJogos()
         {
-            return _context.Jogos
+            return await _context.Jogos
                 .Where(j => j.EstaAtivo)
                 .Include(j => j.Generos)
                 .Include(j => j.Empresa)
@@ -39,12 +37,12 @@ namespace GameLog_Backend.Services
                     TotalAvaliacoes = _context.Avaliacoes
                         .Count(a => a.Jogo.Id == j.Id && a.EstaAtivo)
                 })
-                .ToList();
+                .ToListAsync();
         }
 
-        public JogoDTO ObterJogoPorId(int id)
+        public async Task<JogoDTO?> ObterJogoPorId(int id)
         {
-            return _context.Jogos
+            return await _context.Jogos
                 .Where(j => j.Id == id && j.EstaAtivo)
                 .Include(j => j.Generos)
                 .Include(j => j.Empresa)
@@ -66,12 +64,12 @@ namespace GameLog_Backend.Services
                     TotalAvaliacoes = _context.Avaliacoes
                         .Count(a => a.Jogo.Id == j.Id && a.EstaAtivo)
                 })
-                .FirstOrDefault();
+                .FirstOrDefaultAsync();
         }
 
-        public IEnumerable<JogoDTO> ListarTop10JogosMelhorAvaliados()
+        public async Task<IEnumerable<JogoDTO>> ListarTop10JogosMelhorAvaliados()
         {
-            return _context.Avaliacoes
+            return await _context.Avaliacoes
                 .Where(a => a.EstaAtivo && a.Jogo.EstaAtivo)
                 .GroupBy(a => a.Jogo)
                 .Select(g => new JogoDTO
@@ -85,14 +83,14 @@ namespace GameLog_Backend.Services
                     EmpresaId = g.Key.Empresa.Id,
                     NomeEmpresa = g.Key.Empresa.NomeEmpresa,
                     EstaAtivo = g.Key.EstaAtivo,
-                    MediaAvaliacoes = g.Average(a => a.Nota),
+                    MediaAvaliacoes = g.Average(a => (double?)a.Nota),
                     TotalAvaliacoes = g.Count(),
                     Generos = g.Key.Generos.Select(ge => ge.TituloGenero).ToList()
                 })
                 .OrderByDescending(j => j.MediaAvaliacoes)
                 .ThenByDescending(j => j.DataLancamento)
                 .Take(10)
-                .ToList();
+                .ToListAsync();
         }
     }
 }
