@@ -1,7 +1,8 @@
-﻿using GameLog_Backend.DTOs;
+using GameLog_Backend.DTOs;
 using GameLog_Backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace GameLog_Backend.Controllers
 {
@@ -15,6 +16,12 @@ namespace GameLog_Backend.Controllers
         public UsuariosController(UsuarioServices usuarioServices)
         {
             _usuarioServices = usuarioServices;
+        }
+
+        private int? ObterUsuarioIdAutenticado()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
+            return int.TryParse(claim, out var id) ? id : null;
         }
 
         [HttpGet]
@@ -69,7 +76,7 @@ namespace GameLog_Backend.Controllers
                 var result = await _usuarioServices.AutenticarUsuario(loginDTO);
 
                 if (result.usuario == null || result.token == null)
-                    return Unauthorized(new { message = "Credenciais inválidas" });
+                    return Unauthorized(new { message = "Credenciais inválidas ou usuário inativo" });
 
                 return Ok(new
                 {
@@ -84,48 +91,60 @@ namespace GameLog_Backend.Controllers
             }
         }
 
-		[HttpPut("{id}")]
-		public async Task<IActionResult> EditarUsuario(int id, [FromBody] EditarUsuarioDTO editarUsuarioDTO)
-		{
-			try
-			{
-				var usuarioAtualizado = await _usuarioServices.EditarUsuario(
-					id,
-					editarUsuarioDTO.SenhaAtual,
-					editarUsuarioDTO); 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> EditarUsuario(int id, [FromBody] EditarUsuarioDTO editarUsuarioDTO)
+        {
+            try
+            {
+                var usuarioIdAutenticado = ObterUsuarioIdAutenticado();
+                if (usuarioIdAutenticado == null || usuarioIdAutenticado != id)
+                {
+                    return Forbid();
+                }
 
-				if (usuarioAtualizado == null)
-				{
-					return Unauthorized(new { message = "Senha incorreta ou usuário não encontrado" });
-				}
+                var usuarioAtualizado = await _usuarioServices.EditarUsuario(
+                    id,
+                    editarUsuarioDTO.SenhaAtual,
+                    editarUsuarioDTO); 
 
-				return Ok(usuarioAtualizado);
-			}
-			catch (Exception ex)
-			{
-				return BadRequest(new { message = ex.Message });
-			}
-		}
+                if (usuarioAtualizado == null)
+                {
+                    return Unauthorized(new { message = "Senha incorreta ou usuário não encontrado" });
+                }
 
-		[HttpDelete("{id}")]
-		public async Task<IActionResult> DeletarUsuario(int id, [FromBody] DeletarUsuarioDTO deletarUsuarioDTO)
-		{
-			try
-			{
-				var sucesso = await _usuarioServices.DeletarUsuario(id, deletarUsuarioDTO.Senha);
+                return Ok(usuarioAtualizado);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
-				if (!sucesso)
-				{
-					return Unauthorized(new { message = "Senha incorreta ou usuário não encontrado" });
-				}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletarUsuario(int id, [FromBody] DeletarUsuarioDTO deletarUsuarioDTO)
+        {
+            try
+            {
+                var usuarioIdAutenticado = ObterUsuarioIdAutenticado();
+                if (usuarioIdAutenticado == null || usuarioIdAutenticado != id)
+                {
+                    return Forbid();
+                }
 
-				return NoContent();
-			}
-			catch (Exception ex)
-			{
-				return StatusCode(500, new { message = "Erro interno: " + ex.Message });
-			}
-		}
+                var sucesso = await _usuarioServices.DeletarUsuario(id, deletarUsuarioDTO.Senha);
+
+                if (!sucesso)
+                {
+                    return Unauthorized(new { message = "Senha incorreta ou usuário não encontrado" });
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro interno: " + ex.Message });
+            }
+        }
 
         [HttpGet("{id}/recomendacoes")]
         [Authorize]
