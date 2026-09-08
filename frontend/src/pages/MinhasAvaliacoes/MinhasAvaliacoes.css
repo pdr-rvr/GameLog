@@ -1,80 +1,176 @@
 .minhas-avaliacoes-page-container {
-    background-color: #1a1a1a;
-    min-height: 100vh;
-    color: white;
-    display: flex;
-    flex-direction: column;
+  background-color: var(--bg-main, #070913);
+  min-height: 100vh;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
 }
 
 .minhas-avaliacoes-content {
-    flex-grow: 1;
-    padding: 40px 20px;
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
-    box-sizing: border-box;
+  flex-grow: 1;
+  padding: 2.5rem 1.5rem 4rem 1.5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.minhas-avaliacoes-page-container .page-title {
-    font-size: 2em;
-    color: #56386A;
-    font-weight: 600;
-    margin-bottom: 30px;
-    text-align: center;
+.minhas-avaliacoes-header {
+  margin-bottom: 2.5rem;
+  text-align: center;
 }
 
-.minhas-avaliacoes-page-container .loading-message,
-.minhas-avaliacoes-page-container .error-message,
-.minhas-avaliacoes-page-container .success-message,
-.minhas-avaliacoes-page-container .no-reviews-message {
-    text-align: center;
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 20px;
-    background-color: #2a2a2a; 
-    border: 1px solid #3a3a3a;
+.minhas-avaliacoes-header .page-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.5rem 0;
+  position: relative;
+  display: inline-block;
 }
 
-.minhas-avaliacoes-page-container .error-message {
-    color: #e74c3c;
-    background-color: #4a1a1a;
-    border: 1px solid #e74c3c;
+.minhas-avaliacoes-header .page-title::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent-gradient-purple, linear-gradient(135deg, #6d28d9, #38bdf8));
 }
 
-.minhas-avaliacoes-page-container .success-message {
-    color: #27ae60;
-    background-color: #1a4a1a;
-    border: 1px solid #27ae60;
+.minhas-avaliacoes-header .page-subtitle {
+  color: var(--text-muted, #94a3b8);
+  font-size: 1rem;
+  margin-top: 0.8rem;
 }
 
-.minhas-avaliacoes-page-container .loading-message {
-    color: #aaa;
-    background-color: #2a2a2a;
-    border: 1px solid #3a3a3a;
+/* Grid Layout */
+.minhas-avaliacoes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
 }
 
-.no-reviews-message {
-    color: #ccc;
-    background-color: #2a2a2a;
-    border: 1px solid #3a3a3a;
-    font-size: 1.1em;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
+.minhas-avaliacoes-grid-item {
+  display: flex;
 }
 
-.explore-games-button {
-    background-color: #56386A;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.3s ease;
+.minhas-avaliacoes-grid-item .my-review-card {
+  height: 100%;
 }
 
-.explore-games-button:hover {
-    background-color: #3a2549;
+/* State Messages */
+.state-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 1.5rem;
+  border-radius: var(--radius-md, 12px);
+  max-width: 600px;
+  margin: 2rem auto;
+  box-sizing: border-box;
 }
+
+.loading-state {
+  background: rgba(13, 18, 34, 0.7);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+  color: var(--text-muted, #94a3b8);
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  border-top-color: var(--accent-purple-light, #a78bfa);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.error-state {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+/* Empty State Card */
+.empty-reviews-card {
+  background: var(--bg-card, #0d1222);
+  border: 1px dashed var(--border-glass, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-lg, 16px);
+  padding: 3.5rem 2rem;
+  text-align: center;
+  max-width: 500px;
+  margin: 3rem auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty-icon-badge {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(109, 40, 217, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: var(--accent-purple-light, #a78bfa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.empty-reviews-card h3 {
+  color: #f8fafc;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.empty-reviews-card p {
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.95rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.btn-explore-games {
+  background: var(--accent-gradient-purple, linear-gradient(135deg, #6d28d9, #4c1d95));
+  color: #ffffff;
+  padding: 0.75rem 1.6rem;
+  border-radius: var(--radius-sm, 8px);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.92rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(109, 40, 217, 0.4);
+}
+
+.btn-explore-games:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(109, 40, 217, 0.6);
+  color: #ffffff;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .minhas-avaliacoes-content {
+    padding: 1.5rem 1rem 3rem 1rem;
+  }
+
+  .minhas-avaliacoes-header .page-title {
+    font-size: 1.6rem;
+  }
+
+  .minhas-avaliacoes-grid {
+    grid-template-columns: 1fr;
+  }
+}
