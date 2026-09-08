@@ -1,4 +1,4 @@
-﻿using GameLog_Backend.Entities;
+using GameLog_Backend.Entities;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +8,6 @@ namespace GameLog_Backend.Configurations
     {
         public void Configure(EntityTypeBuilder<CurtidaDeAvaliacao> builder)
         {
-
             builder.HasKey(x => x.Id);
 
             builder.Property(e => e.Id)
@@ -21,6 +20,16 @@ namespace GameLog_Backend.Configurations
 
             builder.Property(p => p.EstaAtivo)
                 .IsRequired();
+
+            builder.HasOne(c => c.Avaliacao)
+                .WithMany(a => a.CurtidasDeAvaliacao)
+                .HasForeignKey(c => c.AvaliacaoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(c => c.Usuario)
+                .WithMany()
+                .HasForeignKey(c => c.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
