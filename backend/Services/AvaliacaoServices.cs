@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
@@ -20,7 +20,7 @@ namespace GameLog_Backend.Services
         private async Task<Jogo> VerificarJogoExiste(int jogoId)
         {
             var jogo = await _context.Jogos.FindAsync(jogoId);
-            if (jogo == null)
+            if (jogo == null || !jogo.EstaAtivo)
                 throw new Exception("Jogo não encontrado");
             return jogo;
         }
@@ -38,14 +38,18 @@ namespace GameLog_Backend.Services
 
         public async Task<AvaliacaoDTO> CriarAvaliacao(CriarAvaliacaoDTO avaliacaoDTO, int usuarioId)
         {
-            await VerificarJogoExiste(avaliacaoDTO.JogoId);
+            var jogo = await VerificarJogoExiste(avaliacaoDTO.JogoId);
             await VerificarAvaliacaoDuplicada(usuarioId, avaliacaoDTO.JogoId);
+
+            var usuario = await _context.Usuarios.FindAsync(usuarioId);
+            if (usuario == null || !usuario.EstaAtivo)
+                throw new Exception("Usuário não encontrado");
 
             var avaliacao = _mapper.Map<Avaliacao>(avaliacaoDTO);
             avaliacao.DataPublicacao = DateTime.UtcNow;
             avaliacao.EstaAtivo = true;
-            avaliacao.Jogo = await _context.Jogos.FindAsync(avaliacaoDTO.JogoId);
-            avaliacao.Usuario = await _context.Usuarios.FindAsync(usuarioId);
+            avaliacao.Jogo = jogo;
+            avaliacao.Usuario = usuario;
 
             _context.Avaliacoes.Add(avaliacao);
             await _context.SaveChangesAsync();
@@ -109,7 +113,7 @@ namespace GameLog_Backend.Services
         public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorJogo(int jogoId)
         {
             return await _context.Avaliacoes
-                .Where(a => a.Jogo.Id == jogoId)
+                .Where(a => a.Jogo.Id == jogoId && a.EstaAtivo)
                 .OrderByDescending(a => a.DataPublicacao)
                 .Select(a => new AvaliacaoDTO
                 {
@@ -118,6 +122,7 @@ namespace GameLog_Backend.Services
                     JogoId = a.Jogo.Id,
                     NomeJogo = a.Jogo.Titulo,
                     NomeUsuario = a.Usuario.NomeUsuario,
+                    TextoAvaliacao = a.TextoAvaliacao,
                     DataPublicacao = a.DataPublicacao
                 })
                 .ToListAsync();
@@ -172,54 +177,60 @@ namespace GameLog_Backend.Services
                 .FirstAsync();
         }
 
-        //public async Task<bool> AdicionarCurtida(int avaliacaoId, int usuarioId)
-        //{
-        //    if (await UsuarioCurtiu(avaliacaoId, usuarioId))
-        //    {
-        //        return false; 
-        //    }
+        public async Task<bool> AdicionarCurtida(int avaliacaoId, int usuarioId)
+        {
+            var curtidaExistente = await _context.CurtidasDeAvaliacoes
+                .FirstOrDefaultAsync(c => c.AvaliacaoId == avaliacaoId && c.UsuarioId == usuarioId);
 
-        //    await _context.Database.ExecuteSqlInterpolatedAsync(
-        //        $@"INSERT INTO CurtidasDeAvaliacao 
-        //   (Curtida, AvaliacaoId, UsuarioId, EstaAtivo) 
-        //   VALUES (1, {avaliacaoId}, {usuarioId}, 1)");
+            if (curtidaExistente != null)
+            {
+                if (curtidaExistente.EstaAtivo) return false;
+                curtidaExistente.EstaAtivo = true;
+                curtidaExistente.Curtida = true;
+            }
+            else
+            {
+                var avaliacao = await _context.Avaliacoes.FindAsync(avaliacaoId);
+                var usuario = await _context.Usuarios.FindAsync(usuarioId);
+                if (avaliacao == null || usuario == null) return false;
 
-        //    return true;
-        //}
+                _context.CurtidasDeAvaliacoes.Add(new CurtidaDeAvaliacao
+                {
+                    AvaliacaoId = avaliacaoId,
+                    UsuarioId = usuarioId,
+                    Curtida = true,
+                    EstaAtivo = true
+                });
+            }
 
-        //public async Task<bool> RemoverCurtida(int avaliacaoId, int usuarioId)
-        //{
-        //    if (!await UsuarioCurtiu(avaliacaoId, usuarioId))
-        //    {
-        //        return false; 
-        //    }
+            await _context.SaveChangesAsync();
+            return true;
+        }
 
-        //    var curtida = await _context.CurtidasDeAvaliacoes
-        //.FirstOrDefaultAsync(c => c.Id == avaliacaoId &&
-        //                        Convert.ToInt32(_context.Entry(c).Property("UsuarioId").CurrentValue) == usuarioId);
+        public async Task<bool> RemoverCurtida(int avaliacaoId, int usuarioId)
+        {
+            var curtida = await _context.CurtidasDeAvaliacoes
+                .FirstOrDefaultAsync(c => c.AvaliacaoId == avaliacaoId && c.UsuarioId == usuarioId && c.EstaAtivo);
 
-        //    _context.CurtidasDeAvaliacoes.Remove(curtida);
-        //    await _context.SaveChangesAsync();
+            if (curtida == null)
+                return false;
 
-        //    return true;
-        //}
+            curtida.EstaAtivo = false;
+            curtida.Curtida = false;
+            await _context.SaveChangesAsync();
+            return true;
+        }
 
+        public async Task<int> ContarCurtidas(int avaliacaoId)
+        {
+            return await _context.CurtidasDeAvaliacoes
+                .CountAsync(c => c.AvaliacaoId == avaliacaoId && c.Curtida && c.EstaAtivo);
+        }
 
-        //public async Task<int> ContarCurtidas(int avaliacaoId)
-        //{
-        //    return await _context.CurtidasDeAvaliacoes
-        //        .CountAsync(c => c.Id == avaliacaoId &&
-        //                       c.Curtida &&
-        //                       c.EstaAtivo);
-        //}
-
-        //public async Task<bool> UsuarioCurtiu(int avaliacaoId, int usuarioId)
-        //{
-        //    return await _context.CurtidasDeAvaliacoes
-        //        .AnyAsync(c => c.Id == avaliacaoId &&
-        //                     Convert.ToInt32(_context.Entry(c).Property("UsuarioId").CurrentValue) == usuarioId &&
-        //                     c.Curtida &&
-        //                     c.EstaAtivo);
-        //}
+        public async Task<bool> UsuarioCurtiu(int avaliacaoId, int usuarioId)
+        {
+            return await _context.CurtidasDeAvaliacoes
+                .AnyAsync(c => c.AvaliacaoId == avaliacaoId && c.UsuarioId == usuarioId && c.Curtida && c.EstaAtivo);
+        }
     }
 }

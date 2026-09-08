@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Services;
@@ -19,7 +19,12 @@ namespace GameLog_Backend.Controllers
 
         private int ObterUsuarioId()
         {
-            return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
+            if (!int.TryParse(claim, out var id))
+            {
+                throw new UnauthorizedAccessException("Usuário não autenticado ou token inválido");
+            }
+            return id;
         }
 
         [HttpPost]
@@ -31,6 +36,10 @@ namespace GameLog_Backend.Controllers
                 var usuarioId = ObterUsuarioId();
                 var avaliacaoCriada = await _avaliacaoServices.CriarAvaliacao(avaliacaoDTO, usuarioId);
                 return CreatedAtAction(nameof(ObterAvaliacaoPorId), new { id = avaliacaoCriada.AvaliacaoId }, avaliacaoCriada);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Não autorizado" });
             }
             catch (Exception ex)
             {
@@ -44,7 +53,7 @@ namespace GameLog_Backend.Controllers
         {
             try
             {
-                int? usuarioId = User.Identity.IsAuthenticated ? ObterUsuarioId() : null;
+                int? usuarioId = User.Identity?.IsAuthenticated == true ? ObterUsuarioId() : null;
                 var avaliacoes = await _avaliacaoServices.ListarAvaliacoes(usuarioId);
                 return Ok(avaliacoes);
             }
@@ -60,9 +69,9 @@ namespace GameLog_Backend.Controllers
         {
             try
             {
-                int? usuarioId = User.Identity.IsAuthenticated ? ObterUsuarioId() : null;
+                int? usuarioId = User.Identity?.IsAuthenticated == true ? ObterUsuarioId() : null;
                 var avaliacao = await _avaliacaoServices.ObterAvaliacaoPorId(id, usuarioId);
-                return avaliacao != null ? Ok(avaliacao) : NotFound();
+                return avaliacao != null ? Ok(avaliacao) : NotFound(new { message = "Avaliação não encontrada" });
             }
             catch (Exception ex)
             {
@@ -76,7 +85,7 @@ namespace GameLog_Backend.Controllers
         {
             try
             {
-                int? usuarioSolicitanteId = User.Identity.IsAuthenticated ? ObterUsuarioId() : null;
+                int? usuarioSolicitanteId = User.Identity?.IsAuthenticated == true ? ObterUsuarioId() : null;
                 var avaliacoes = await _avaliacaoServices.ListarAvaliacoesPorUsuario(usuarioId, usuarioSolicitanteId);
                 return Ok(avaliacoes);
             }
@@ -114,6 +123,10 @@ namespace GameLog_Backend.Controllers
                     ? Ok(avaliacaoAtualizada)
                     : NotFound(new { message = "Avaliação não encontrada ou você não tem permissão para editá-la" });
             }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Não autorizado" });
+            }
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
@@ -133,91 +146,107 @@ namespace GameLog_Backend.Controllers
                     ? NoContent()
                     : NotFound(new { message = "Avaliação não encontrada ou você não tem permissão para excluí-la" });
             }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Não autorizado" });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Erro interno ao excluir avaliação: " + ex.Message });
             }
         }
 
-        //[HttpPost("{avaliacaoId}/curtir")]
-        //[Authorize]
-        //public async Task<IActionResult> CurtirAvaliacao(int avaliacaoId)
-        //{
-        //    try
-        //    {
-        //        var usuarioId = ObterUsuarioId();
-        //        var sucesso = await _avaliacaoServices.AdicionarCurtida(avaliacaoId, usuarioId);
+        [HttpPost("{avaliacaoId}/curtir")]
+        [Authorize]
+        public async Task<IActionResult> CurtirAvaliacao(int avaliacaoId)
+        {
+            try
+            {
+                var usuarioId = ObterUsuarioId();
+                var sucesso = await _avaliacaoServices.AdicionarCurtida(avaliacaoId, usuarioId);
 
-        //        if (!sucesso)
-        //            return BadRequest(new { message = "Não foi possível curtir a avaliação" });
+                if (!sucesso)
+                    return BadRequest(new { message = "Não foi possível curtir a avaliação" });
 
-        //        var totalCurtidas = await _avaliacaoServices.ContarCurtidas(avaliacaoId);
-        //        return Ok(new
-        //        {
-        //            message = "Avaliação curtida com sucesso",
-        //            totalCurtidas
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new { message = ex.Message });
-        //    }
-        //}
+                var totalCurtidas = await _avaliacaoServices.ContarCurtidas(avaliacaoId);
+                return Ok(new
+                {
+                    message = "Avaliação curtida com sucesso",
+                    totalCurtidas
+                });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Não autorizado" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
 
-        //[HttpDelete("{avaliacaoId}/curtir")]
-        //[Authorize]
-        //public async Task<IActionResult> RemoverCurtida(int avaliacaoId)
-        //{
-        //    try
-        //    {
-        //        var usuarioId = ObterUsuarioId();
-        //        var sucesso = await _avaliacaoServices.RemoverCurtida(avaliacaoId, usuarioId);
+        [HttpDelete("{avaliacaoId}/curtir")]
+        [Authorize]
+        public async Task<IActionResult> RemoverCurtida(int avaliacaoId)
+        {
+            try
+            {
+                var usuarioId = ObterUsuarioId();
+                var sucesso = await _avaliacaoServices.RemoverCurtida(avaliacaoId, usuarioId);
 
-        //        if (!sucesso)
-        //            return BadRequest(new { message = "Não foi possível remover a curtida" });
+                if (!sucesso)
+                    return BadRequest(new { message = "Não foi possível remover a curtida" });
 
-        //        var totalCurtidas = await _avaliacaoServices.ContarCurtidas(avaliacaoId);
-        //        return Ok(new
-        //        {
-        //            message = "Curtida removida com sucesso",
-        //            totalCurtidas
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new { message = ex.Message });
-        //    }
-        //}
+                var totalCurtidas = await _avaliacaoServices.ContarCurtidas(avaliacaoId);
+                return Ok(new
+                {
+                    message = "Curtida removida com sucesso",
+                    totalCurtidas
+                });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Não autorizado" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
 
-        //[HttpGet("{avaliacaoId}/curtidas")]
-        //[AllowAnonymous]
-        //public async Task<IActionResult> ObterCurtidas(int avaliacaoId)
-        //{
-        //    try
-        //    {
-        //        var totalCurtidas = await _avaliacaoServices.ContarCurtidas(avaliacaoId);
-        //        return Ok(new { totalCurtidas });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new { message = ex.Message });
-        //    }
-        //}
+        [HttpGet("{avaliacaoId}/curtidas")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ObterCurtidas(int avaliacaoId)
+        {
+            try
+            {
+                var totalCurtidas = await _avaliacaoServices.ContarCurtidas(avaliacaoId);
+                return Ok(new { totalCurtidas });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
 
-        //[HttpGet("{avaliacaoId}/curtida-status")]
-        //[Authorize]
-        //public async Task<IActionResult> VerificarCurtidaUsuario(int avaliacaoId)
-        //{
-        //    try
-        //    {
-        //        var usuarioId = ObterUsuarioId();
-        //        var curtida = await _avaliacaoServices.UsuarioCurtiu(avaliacaoId, usuarioId);
-        //        return Ok(new { curtida });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new { message = ex.Message });
-        //    }
-        //}
+        [HttpGet("{avaliacaoId}/curtida-status")]
+        [Authorize]
+        public async Task<IActionResult> VerificarCurtidaUsuario(int avaliacaoId)
+        {
+            try
+            {
+                var usuarioId = ObterUsuarioId();
+                var curtida = await _avaliacaoServices.UsuarioCurtiu(avaliacaoId, usuarioId);
+                return Ok(new { curtida });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Não autorizado" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
     }
 }

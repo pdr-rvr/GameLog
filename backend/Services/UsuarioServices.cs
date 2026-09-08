@@ -174,7 +174,7 @@ namespace GameLog_Backend.Services
 
             _mapper.Map(usuarioDTO, usuarioExistente);
 
-            if (!string.IsNullOrEmpty(usuarioDTO.SenhaAtual))
+            if (!string.IsNullOrWhiteSpace(usuarioDTO.NovaSenha))
             {
                 usuarioExistente.Senha = HashSenha(usuarioDTO.NovaSenha);
             }
