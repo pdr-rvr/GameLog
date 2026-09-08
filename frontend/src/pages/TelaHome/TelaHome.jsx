@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import JogosCarrossel from "../../components/JogosCarrossel/JogosCarrossel";
 import AvaliacaoCarrossel from "../../components/AvaliacaoCarrossel/AvaliacaoCarrossel";
 import FormAvaliacao from "../../components/FormAvaliacao/FormAvaliacao";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { buscarAvaliacoes, buscarJogos, criarAvaliacao, buscarRecomendacoes } from "./actions/TelaHomeActions";
 import "./TelaHome.css";
 
 const TelaHome = () => {
   const { user } = useAuth();
+  const toast = useToast();
+  const navigate = useNavigate();
   const location = useLocation();
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [jogos, setJogos] = useState([]);
   const [recomendacoes, setRecomendacoes] = useState([]);
   const [modalAberto, setModalAberto] = useState(false);
+  const [salvandoAvaliacao, setSalvandoAvaliacao] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,15 +53,27 @@ const TelaHome = () => {
     }
   }, [location]);
 
+  const fecharModal = () => {
+    setModalAberto(false);
+    const params = new URLSearchParams(location.search);
+    if (params.get("publish") === "true") {
+      navigate("/home", { replace: true });
+    }
+  };
+
   const handleSalvarAvaliacao = async (avaliacaoData) => {
+    setSalvandoAvaliacao(true);
     try {
       await criarAvaliacao(avaliacaoData);
-      setModalAberto(false);
+      fecharModal();
+      toast.success("Avaliação publicada com sucesso no feed!");
       const novasAvaliacoes = await buscarAvaliacoes();
       setAvaliacoes(novasAvaliacoes);
     } catch (error) {
       console.error("Erro ao salvar avaliação:", error);
-      alert("Erro ao publicar avaliação. Tente novamente.");
+      toast.error(error.message || "Erro ao publicar avaliação. Tente novamente.");
+    } finally {
+      setSalvandoAvaliacao(false);
     }
   };
 
@@ -92,8 +108,9 @@ const TelaHome = () => {
 
       <FormAvaliacao
         isOpen={modalAberto}
-        onClose={() => setModalAberto(false)}
+        onClose={fecharModal}
         onSubmit={handleSalvarAvaliacao}
+        loading={salvandoAvaliacao}
         jogos={jogos}
       />
     </div>

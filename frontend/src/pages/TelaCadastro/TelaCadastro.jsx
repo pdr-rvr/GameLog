@@ -85,7 +85,7 @@ function TelaCadastro() {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="nick">Nome de Usuário (Nick)</label>
+            <label htmlFor="nick">Nome de Usuário</label>
             <input
               id="nick"
               name="nick"

@@ -1,51 +1,78 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaStar, FaTimes, FaGamepad, FaSearch } from 'react-icons/fa';
+import { FaStar, FaTimes, FaGamepad, FaSearch, FaCheckCircle, FaExchangeAlt } from 'react-icons/fa';
 import './FormAvaliacao.css';
 
-const FormAvaliacao = ({ isOpen, onClose, onCancel, onSubmit, loading, error, jogos = [], initialData = {}, isEditing = false }) => {
+const FormAvaliacao = ({ 
+  isOpen, 
+  onClose, 
+  onCancel, 
+  onSubmit, 
+  loading = false, 
+  error = null, 
+  jogos = [], 
+  initialData = null, 
+  isEditing = false 
+}) => {
   const [avaliacao, setAvaliacao] = useState({
-    jogoId: initialData.jogoId || '',
-    nota: initialData.nota || 0,
-    textoAvaliacao: initialData.textoAvaliacao || ''
+    jogoId: '',
+    nota: 0,
+    textoAvaliacao: ''
   });
   const [hoverRating, setHoverRating] = useState(0);
-  const [searchTerm, setSearchTerm] = useState(initialData.tituloJogo || '');
-  const [filteredJogos, setFilteredJogos] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const searchInputRef = useRef(null);
+  const [selectedGame, setSelectedGame] = useState(null);
 
+  const searchContainerRef = useRef(null);
   const handleClose = onClose || onCancel;
 
+  // Initialize or reset state only when modal opens or initialData changes
   useEffect(() => {
-    if (isEditing) {
-      setAvaliacao({
-        jogoId: initialData.jogoId || '',
-        nota: initialData.nota || 0,
-        textoAvaliacao: initialData.textoAvaliacao || ''
-      });
-      setSearchTerm(initialData.tituloJogo || '');
-    } else {
-      setAvaliacao({ jogoId: '', nota: 0, textoAvaliacao: '' });
-      setSearchTerm('');
-      setFilteredJogos([]);
+    if (isOpen) {
+      if (isEditing && initialData) {
+        const currentJogoId = initialData.jogoId || initialData.id || '';
+        const currentNota = initialData.nota || 0;
+        const currentTexto = initialData.textoAvaliacao || '';
+        const gameObj = (jogos || []).find(j => (j.jogoId || j.id) === currentJogoId);
+
+        setAvaliacao({
+          jogoId: currentJogoId,
+          nota: currentNota,
+          textoAvaliacao: currentTexto
+        });
+        setSearchTerm(initialData.tituloJogo || initialData.nomeJogo || (gameObj ? (gameObj.titulo || gameObj.nome) : ''));
+        setSelectedGame(gameObj || null);
+      } else {
+        setAvaliacao({
+          jogoId: '',
+          nota: 0,
+          textoAvaliacao: ''
+        });
+        setSearchTerm('');
+        setSelectedGame(null);
+      }
+      setHoverRating(0);
       setShowSuggestions(false);
     }
-  }, [initialData, isEditing, isOpen]);
+  }, [isOpen, isEditing, initialData?.avaliacaoId, initialData?.jogoId]);
 
+  // Close suggestions when clicking outside
   useEffect(() => {
-    if (searchTerm && !isEditing && !avaliacao.jogoId) {
-      const lowerCase = searchTerm.toLowerCase();
-      const suggestions = (jogos || []).filter(jogo =>
-        jogo.titulo.toLowerCase().includes(lowerCase)
-      );
-      setFilteredJogos(suggestions);
-      setShowSuggestions(true);
-    } else {
-      setFilteredJogos([]);
-      setShowSuggestions(false);
-    }
-  }, [searchTerm, jogos, isEditing, avaliacao.jogoId]);
+    const handleClickOutside = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
 
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Close on Escape
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && handleClose) {
@@ -61,26 +88,54 @@ const FormAvaliacao = ({ isOpen, onClose, onCancel, onSubmit, loading, error, jo
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!avaliacao.jogoId && !isEditing) return;
-    if (avaliacao.nota === 0) return;
-    if (!avaliacao.textoAvaliacao.trim()) return;
-
-    onSubmit(avaliacao);
-  };
+  // Compute filtered games
+  const safeJogos = Array.isArray(jogos) ? jogos : [];
+  const filteredJogos = searchTerm.trim()
+    ? safeJogos.filter(jogo => {
+        const title = (jogo.titulo || jogo.nome || '').toLowerCase();
+        return title.includes(searchTerm.toLowerCase());
+      })
+    : safeJogos;
 
   const handleSelectGame = (jogo) => {
-    setAvaliacao(prev => ({ ...prev, jogoId: jogo.jogoId }));
-    setSearchTerm(jogo.titulo);
+    const id = jogo.jogoId || jogo.id;
+    const title = jogo.titulo || jogo.nome || '';
+    setAvaliacao(prev => ({ ...prev, jogoId: id }));
+    setSelectedGame(jogo);
+    setSearchTerm(title);
     setShowSuggestions(false);
   };
 
-  const ratingDescriptions = ["", "Péssimo", "Ruim", "Regular", "Muito Bom", "Obra-Prima"];
+  const handleClearSelectedGame = () => {
+    setAvaliacao(prev => ({ ...prev, jogoId: '' }));
+    setSelectedGame(null);
+    setSearchTerm('');
+    setShowSuggestions(true);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!isEditing && !avaliacao.jogoId) return;
+    if (avaliacao.nota <= 0) return;
+    if (!avaliacao.textoAvaliacao.trim()) return;
+
+    onSubmit({
+      jogoId: parseInt(avaliacao.jogoId, 10),
+      nota: Number(avaliacao.nota),
+      textoAvaliacao: avaliacao.textoAvaliacao.trim()
+    });
+  };
+
+  const currentDisplayRating = hoverRating || avaliacao.nota;
 
   return (
-    <div className="modal-backdrop" onClick={handleClose}>
-      <div className="modal-content-card" onClick={(e) => e.stopPropagation()}>
+    <div 
+      className="modal-backdrop" 
+      onClick={(e) => {
+        if (e.target === e.currentTarget && handleClose) handleClose();
+      }}
+    >
+      <div className="modal-content-card">
         <div className="modal-header">
           <div className="modal-title-group">
             <div className="modal-icon-badge">
@@ -91,7 +146,12 @@ const FormAvaliacao = ({ isOpen, onClose, onCancel, onSubmit, loading, error, jo
               <p className="modal-subtitle">Compartilhe sua experiência de jogo com a comunidade</p>
             </div>
           </div>
-          <button className="modal-close-btn" onClick={handleClose} aria-label="Fechar modal">
+          <button 
+            type="button" 
+            className="modal-close-btn" 
+            onClick={handleClose} 
+            aria-label="Fechar modal"
+          >
             <FaTimes />
           </button>
         </div>
@@ -99,51 +159,105 @@ const FormAvaliacao = ({ isOpen, onClose, onCancel, onSubmit, loading, error, jo
         <form onSubmit={handleSubmit} className="modal-form">
           {/* Seleção do Jogo */}
           {!isEditing ? (
-            <div className="modal-form-group" ref={searchInputRef}>
+            <div className="modal-form-group" ref={searchContainerRef}>
               <label htmlFor="jogoSearch">Selecionar Jogo</label>
-              <div className="input-search-wrapper">
-                <FaSearch className="search-icon" />
-                <input
-                  type="text"
-                  id="jogoSearch"
-                  placeholder="Pesquise o nome do jogo..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setAvaliacao(prev => ({ ...prev, jogoId: '' }));
-                  }}
-                  onFocus={() => !avaliacao.jogoId && setShowSuggestions(true)}
-                  autoComplete="off"
-                  required
-                />
-              </div>
 
-              {showSuggestions && filteredJogos.length > 0 && (
-                <ul className="modal-suggestions-list">
-                  {filteredJogos.map((jogo) => (
-                    <li key={jogo.jogoId} onClick={() => handleSelectGame(jogo)}>
-                      <img 
-                        src={jogo.imagem || "/game-images/default_game_cover.png"} 
-                        alt={jogo.titulo}
-                        className="suggestion-thumb" 
-                      />
-                      <div className="suggestion-info">
-                        <strong>{jogo.titulo}</strong>
-                        <span>{jogo.dataLancamento ? jogo.dataLancamento.toString().substring(0, 4) : ""} • {jogo.nomeEmpresa || "Game"}</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+              {avaliacao.jogoId && selectedGame ? (
+                /* Card do Jogo Selecionado */
+                <div className="selected-game-banner">
+                  <img 
+                    src={selectedGame.imagem || selectedGame.foto || "/game-images/default_game_cover.png"} 
+                    alt={selectedGame.titulo || selectedGame.nome}
+                    className="selected-game-thumb"
+                  />
+                  <div className="selected-game-info">
+                    <span className="selected-game-title">
+                      <FaCheckCircle className="check-icon" /> {selectedGame.titulo || selectedGame.nome}
+                    </span>
+                    <span className="selected-game-meta">
+                      {selectedGame.dataLancamento ? String(selectedGame.dataLancamento).substring(0, 4) : ''} 
+                      {selectedGame.nomeEmpresa ? ` • ${selectedGame.nomeEmpresa}` : ''}
+                    </span>
+                  </div>
+                  <button 
+                    type="button" 
+                    className="btn-change-game" 
+                    onClick={handleClearSelectedGame}
+                    title="Trocar jogo"
+                  >
+                    <FaExchangeAlt /> <span>Trocar</span>
+                  </button>
+                </div>
+              ) : (
+                /* Campo de Busca de Jogo */
+                <div className="input-search-wrapper">
+                  <FaSearch className="search-icon" />
+                  <input
+                    type="text"
+                    id="jogoSearch"
+                    placeholder="Pesquise o jogo para avaliar..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    autoComplete="off"
+                    required={!avaliacao.jogoId}
+                  />
+                  {searchTerm && (
+                    <button 
+                      type="button" 
+                      className="search-clear-btn" 
+                      onClick={() => setSearchTerm('')}
+                    >
+                      <FaTimes />
+                    </button>
+                  )}
+                </div>
               )}
 
-              {showSuggestions && filteredJogos.length === 0 && searchTerm && (
-                <div className="modal-no-suggestions">Nenhum jogo encontrado com esse nome.</div>
+              {/* Lista de Sugestões / Dropdown */}
+              {!avaliacao.jogoId && showSuggestions && (
+                <ul className="modal-suggestions-list">
+                  {filteredJogos.length > 0 ? (
+                    filteredJogos.map((jogo) => (
+                      <li 
+                        key={jogo.jogoId || jogo.id} 
+                        onClick={() => handleSelectGame(jogo)}
+                        className="suggestion-item"
+                      >
+                        <img 
+                          src={jogo.imagem || jogo.foto || "/game-images/default_game_cover.png"} 
+                          alt={jogo.titulo || jogo.nome}
+                          className="suggestion-thumb" 
+                        />
+                        <div className="suggestion-info">
+                          <strong>{jogo.titulo || jogo.nome}</strong>
+                          <span>
+                            {jogo.dataLancamento ? String(jogo.dataLancamento).substring(0, 4) : ''} 
+                            {jogo.nomeEmpresa ? ` • ${jogo.nomeEmpresa}` : ''}
+                          </span>
+                        </div>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="modal-no-suggestions">
+                      Nenhum jogo encontrado com "{searchTerm}".
+                    </li>
+                  )}
+                </ul>
               )}
             </div>
           ) : (
             <div className="modal-form-group">
               <label>Jogo</label>
-              <input type="text" value={searchTerm} disabled className="input-disabled" />
+              <input 
+                type="text" 
+                value={searchTerm || 'Jogo selecionado'} 
+                disabled 
+                className="input-disabled" 
+              />
             </div>
           )}
 
@@ -153,27 +267,28 @@ const FormAvaliacao = ({ isOpen, onClose, onCancel, onSubmit, loading, error, jo
             <div className="modal-stars-wrapper">
               <div className="modal-stars-container">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <FaStar
+                  <button
+                    type="button"
                     key={star}
-                    className={`modal-star-icon ${(hoverRating || avaliacao.nota) >= star ? 'active' : ''}`}
+                    className={`modal-star-btn ${currentDisplayRating >= star ? 'active' : ''}`}
                     onClick={() => setAvaliacao(prev => ({ ...prev, nota: star }))}
                     onMouseEnter={() => setHoverRating(star)}
                     onMouseLeave={() => setHoverRating(0)}
-                  />
+                    aria-label={`Nota ${star}`}
+                  >
+                    <FaStar className="modal-star-icon" />
+                  </button>
                 ))}
               </div>
-              <span className="rating-label">
-                {avaliacao.nota > 0 ? `${avaliacao.nota}/5 (${ratingDescriptions[avaliacao.nota]})` : "Selecione uma nota"}
-              </span>
             </div>
           </div>
 
           {/* Comentário */}
           <div className="modal-form-group">
-            <label htmlFor="textoAvaliacao">Opinião / Análise</label>
+            <label htmlFor="textoAvaliacao">Review</label>
             <textarea
               id="textoAvaliacao"
-              placeholder="O que você achou da jogabilidade, história, gráficos e trilha sonora? (Máximo 500 caracteres)"
+              placeholder="O que você achou da jogabilidade, enredo, gráficos e desempenho? (Máximo 500 caracteres)"
               value={avaliacao.textoAvaliacao}
               onChange={(e) => setAvaliacao(prev => ({ ...prev, textoAvaliacao: e.target.value }))}
               maxLength={500}
@@ -181,7 +296,9 @@ const FormAvaliacao = ({ isOpen, onClose, onCancel, onSubmit, loading, error, jo
               required
             />
             <div className="char-counter">
-              {avaliacao.textoAvaliacao.length} / 500 caracteres
+              <span className={avaliacao.textoAvaliacao.length > 450 ? 'near-limit' : ''}>
+                {avaliacao.textoAvaliacao.length}
+              </span> / 500 caracteres
             </div>
           </div>
 
@@ -189,15 +306,25 @@ const FormAvaliacao = ({ isOpen, onClose, onCancel, onSubmit, loading, error, jo
 
           {/* Ações */}
           <div className="modal-actions">
-            <button type="button" className="btn-modal-cancel" onClick={handleClose} disabled={loading}>
+            <button 
+              type="button" 
+              className="btn-modal-cancel" 
+              onClick={handleClose} 
+              disabled={loading}
+            >
               Cancelar
             </button>
             <button 
               type="submit" 
               className="btn-modal-submit" 
-              disabled={loading || avaliacao.nota === 0 || !avaliacao.textoAvaliacao.trim() || (!isEditing && !avaliacao.jogoId)}
+              disabled={
+                loading || 
+                avaliacao.nota === 0 || 
+                !avaliacao.textoAvaliacao.trim() || 
+                (!isEditing && !avaliacao.jogoId)
+              }
             >
-              {loading ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Publicar Avaliação')}
+              {loading ? 'Publicando...' : (isEditing ? 'Salvar Alterações' : 'Publicar Avaliação')}
             </button>
           </div>
         </form>
