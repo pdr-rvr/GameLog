@@ -7,6 +7,7 @@ import PaginaJogos from './pages/PaginaJogos/PaginaJogos';
 import TelaJogo from './pages/TelaJogo/TelaJogo';
 import PaginaAvaliacoes from './pages/PaginaAvaliacoes/PaginaAvaliacoes';
 import PerfilUsuario from './pages/PerfilUsuario/PerfilUsuario';
+import ConfiguracoesConta from './pages/ConfiguracoesConta/ConfiguracoesConta';
 import MinhasAvaliacoes from './pages/MinhasAvaliacoes/MinhasAvaliacoes';
 import EditarAvaliacao from './pages/EditarAvaliacao/EditarAvaliacao';
 
@@ -30,13 +31,14 @@ function App() {
             <Route path="/jogos" element={<PaginaJogos />} />
             <Route path="/jogos/:jogoId" element={<TelaJogo />} />
             <Route path="/avaliacoes" element={<PaginaAvaliacoes />} />
+            <Route path="/perfil/:userId" element={<PerfilUsuario />} />
 
             {/* Rotas Protegidas (exigem autenticação) */}
             <Route 
-              path="/perfil/:userId" 
+              path="/configuracoes" 
               element={
                 <ProtectedRoute>
-                  <PerfilUsuario />
+                  <ConfiguracoesConta />
                 </ProtectedRoute>
               } 
             />
