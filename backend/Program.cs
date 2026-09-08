@@ -16,34 +16,41 @@ if (builder.Environment.IsDevelopment())
     DotNetEnv.Env.Load();
 }
 
-var baseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? "localhost";
+var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "GameLog";
+var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
+var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "GameLog123!@#";
+var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? "GameLogSuperSecretKeyDefault1234567890!";
+
+var baseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? "Server={DB_SERVER};Database={DB_NAME};User ID={DB_USER};Password={DB_PASSWORD};TrustServerCertificate=True;";
 
 var completeConnectionString = baseConnectionString
-    .Replace("{DB_SERVER}", Environment.GetEnvironmentVariable("DB_SERVER"))
-    .Replace("{DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
-    .Replace("{DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
-    .Replace("{DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"));
+    .Replace("{DB_SERVER}", dbServer)
+    .Replace("{DB_NAME}", dbName)
+    .Replace("{DB_USER}", dbUser)
+    .Replace("{DB_PASSWORD}", dbPassword);
 
-Console.WriteLine("Conectando ao banco em: " + Environment.GetEnvironmentVariable("DB_SERVER"));
+Console.WriteLine($"[GameLog] Conectando ao banco em: {dbServer}, Database: {dbName}");
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
-        builder => builder
-            .WithOrigins(["http://localhost:3000",
-            "https://happy-bay-0ed0e851e.6.azurestaticapps.net"])
+        corsBuilder => corsBuilder
+            .AllowAnyOrigin()
             .AllowAnyMethod()
             .AllowAnyHeader());
 });
 
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
-    });
+builder.Services.AddControllers();
 
-var jwtConfig = builder.Configuration.GetSection("Jwt");
-jwtConfig["Key"] = Environment.GetEnvironmentVariable("JWT_SECRET");
+builder.Services.Configure<JwtSettings>(options =>
+{
+    options.Key = jwtSecret;
+    options.Issuer = builder.Configuration["Jwt:Issuer"] ?? "GameLogAPI";
+    options.Audience = builder.Configuration["Jwt:Audience"] ?? "GameLogClient";
+    options.ExpireHours = 24;
+});
 
 builder.Services.AddAuthentication(options =>
 {
@@ -58,10 +65,9 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "GameLogAPI",
+        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "GameLogClient",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
     };
 });
 
@@ -72,11 +78,13 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
-
-builder.Services.AddScoped<EmpresaSeeder>();
-
 builder.Services.AddDbContext<GameLogContext>(options =>
     options.UseSqlServer(completeConnectionString));
+
+builder.Services.AddScoped<EmpresaSeeder>();
+builder.Services.AddScoped<GeneroSeeder>();
+builder.Services.AddScoped<JogoSeeder>();
+builder.Services.AddScoped<JogoGeneroSeeder>();
 
 builder.Services.AddScoped<JogoServices>();
 builder.Services.AddAutoMapper(typeof(UsuarioProfile));
@@ -94,41 +102,55 @@ app.UseCors("AllowReactApp");
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
 
-    try
+    var maxRetries = 15;
+    var delaySeconds = 3;
+    var connected = false;
+
+    for (var attempt = 1; attempt <= maxRetries; attempt++)
     {
-        var context = services.GetRequiredService<GameLogContext>();
+        try
+        {
+            var context = services.GetRequiredService<GameLogContext>();
+            Console.WriteLine($"[GameLog] Tentativa {attempt}/{maxRetries} - Verificando conexão e aplicando Migrations...");
+            context.Database.Migrate();
+            Console.WriteLine("[GameLog] Migrations aplicadas com sucesso.");
 
-        Console.WriteLine("Iniciando migrations...");
-        context.Database.Migrate();
-        Console.WriteLine("Migrations aplicadas.");
+            Console.WriteLine("[GameLog] Executando Seeders...");
+            new EmpresaSeeder(context).Seed();
+            new GeneroSeeder(context).Seed();
+            new JogoSeeder(context).Seed();
+            new JogoGeneroSeeder(context).Seed();
+            Console.WriteLine("[GameLog] Seeders executados com sucesso!");
 
-        Console.WriteLine("Executando seeders...");
-        new EmpresaSeeder(context).Seed();
-        new GeneroSeeder(context).Seed();
-        new JogoSeeder(context).Seed();
-        new JogoGeneroSeeder(context).Seed();
-        Console.WriteLine("Seeders executados com sucesso!");
+            connected = true;
+            break;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning($"[GameLog] Banco de dados ainda não disponível (tentativa {attempt}/{maxRetries}): {ex.Message}");
+            if (attempt < maxRetries)
+            {
+                Thread.Sleep(TimeSpan.FromSeconds(delaySeconds));
+            }
+        }
     }
-    catch (Exception ex)
+
+    if (!connected)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Ocorreu um erro ao executar os seeders");
+        logger.LogError("[GameLog] Não foi possível conectar ao banco de dados após múltiplas tentativas.");
     }
 }
 
-
 app.UseSwagger();
 app.UseSwaggerUI();
-
-
-app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapGet("/", () => "API GameLog est� online!").AllowAnonymous();
+app.MapGet("/", () => "API GameLog está online!").AllowAnonymous();
 
 app.Run();
