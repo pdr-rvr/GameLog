@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.RegularExpressions;
 using AutoMapper;
 using GameLog_Backend.Configurations;
 using GameLog_Backend.Database;
@@ -28,6 +29,37 @@ namespace GameLog_Backend.Services
                 Audience = configuration["Jwt:Audience"] ?? "GameLogClient",
                 ExpireHours = 24
             };
+        }
+
+        private void ValidarEmailESenha(string email, string senha, string? nomeUsuario = null)
+        {
+            if (string.IsNullOrWhiteSpace(email) || !Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                throw new Exception("Informe um endereço de e-mail válido.");
+            }
+
+            if (!string.IsNullOrEmpty(senha))
+            {
+                if (senha.Length < 6)
+                {
+                    throw new Exception("A senha deve ter no mínimo 6 caracteres.");
+                }
+
+                if (!Regex.IsMatch(senha, @"[A-Z]"))
+                {
+                    throw new Exception("A senha deve conter pelo menos uma letra maiúscula.");
+                }
+
+                if (!Regex.IsMatch(senha, @"[0-9]"))
+                {
+                    throw new Exception("A senha deve conter pelo menos um número.");
+                }
+            }
+
+            if (nomeUsuario != null && (nomeUsuario.Length < 3 || nomeUsuario.Length > 50))
+            {
+                throw new Exception("O nome de usuário deve ter entre 3 e 50 caracteres.");
+            }
         }
 
         public async Task<(UsuarioDTO? usuario, string? token, DateTime expiraEm)> AutenticarUsuario(UsuarioLoginDTO loginDTO)
@@ -94,14 +126,16 @@ namespace GameLog_Backend.Services
 
         public async Task<UsuarioDTO> CriarUsuario(CriarUsuarioDTO usuarioDTO)
         {
+            ValidarEmailESenha(usuarioDTO.Email, usuarioDTO.Senha, usuarioDTO.NomeUsuario);
+
             if (await EmailEmUso(usuarioDTO.Email))
             {
-                throw new Exception("Email já está em uso");
+                throw new Exception("Este e-mail já está em uso por outra conta.");
             }
 
             if (await NomeUsuarioEmUso(usuarioDTO.NomeUsuario))
             {
-                throw new Exception("Nome de usuário já está em uso");
+                throw new Exception("Este nome de usuário já está em uso.");
             }
 
             var usuario = _mapper.Map<Usuario>(usuarioDTO);
@@ -145,13 +179,13 @@ namespace GameLog_Backend.Services
         public async Task<bool> EmailEmUso(string email)
         {
             return await _context.Usuarios
-                .AnyAsync(u => u.Email == email && u.EstaAtivo);
+                .AnyAsync(u => u.Email.ToLower() == email.ToLower() && u.EstaAtivo);
         }
 
         public async Task<bool> NomeUsuarioEmUso(string nomeUsuario)
         {
             return await _context.Usuarios
-                .AnyAsync(u => u.NomeUsuario == nomeUsuario && u.EstaAtivo);
+                .AnyAsync(u => u.NomeUsuario.ToLower() == nomeUsuario.ToLower() && u.EstaAtivo);
         }
 
         public async Task<UsuarioDTO?> EditarUsuario(int id, string senhaAtual, EditarUsuarioDTO usuarioDTO)
@@ -162,14 +196,16 @@ namespace GameLog_Backend.Services
                 return null;
             }
 
-            if (usuarioDTO.Email != usuarioExistente.Email && await EmailEmUso(usuarioDTO.Email))
+            ValidarEmailESenha(usuarioDTO.Email, usuarioDTO.NovaSenha ?? "", usuarioDTO.NomeUsuario);
+
+            if (usuarioDTO.Email.ToLower() != usuarioExistente.Email.ToLower() && await EmailEmUso(usuarioDTO.Email))
             {
-                throw new Exception("O novo email já está em uso por outro usuário");
+                throw new Exception("O novo e-mail já está em uso por outro usuário.");
             }
 
-            if (usuarioDTO.NomeUsuario != usuarioExistente.NomeUsuario && await NomeUsuarioEmUso(usuarioDTO.NomeUsuario))
+            if (usuarioDTO.NomeUsuario.ToLower() != usuarioExistente.NomeUsuario.ToLower() && await NomeUsuarioEmUso(usuarioDTO.NomeUsuario))
             {
-                throw new Exception("O novo nome de usuário já está em uso");
+                throw new Exception("O novo nome de usuário já está em uso.");
             }
 
             _mapper.Map(usuarioDTO, usuarioExistente);

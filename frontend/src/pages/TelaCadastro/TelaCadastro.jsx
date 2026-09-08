@@ -22,24 +22,51 @@ function TelaCadastro() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const validateForm = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      toast.error('Informe um endereço de e-mail válido.');
+      return false;
+    }
+
+    if (formData.nick.trim().length < 3) {
+      toast.warning('O nome de usuário deve ter pelo menos 3 caracteres.');
+      return false;
+    }
 
     if (formData.senha.length < 6) {
       toast.warning('A senha deve ter no mínimo 6 caracteres.');
-      return;
+      return false;
+    }
+
+    if (!/[A-Z]/.test(formData.senha)) {
+      toast.warning('A senha deve conter pelo menos uma letra maiúscula (A-Z).');
+      return false;
+    }
+
+    if (!/[0-9]/.test(formData.senha)) {
+      toast.warning('A senha deve conter pelo menos um número (0-9).');
+      return false;
     }
 
     if (formData.senha !== formData.confirmarSenha) {
       toast.error('As senhas digitadas não coincidem.');
-      return;
+      return false;
     }
+
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      await register(formData.nick, formData.email, formData.senha);
-      toast.success('Conta criada com sucesso! Faça seu primeiro login.');
+      await register(formData.nick.trim(), formData.email.trim(), formData.senha);
+      toast.success('Conta criada com sucesso! Faça seu login para começar.');
       navigate('/login');
     } catch (error) {
       toast.error(error.message || 'Erro ao cadastrar conta. Tente novamente.');
@@ -91,7 +118,7 @@ function TelaCadastro() {
               id="senha"
               name="senha"
               type="password"
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mín. 6 dígitos, 1 maiúscula e 1 número"
               value={formData.senha}
               onChange={handleChange}
               required
