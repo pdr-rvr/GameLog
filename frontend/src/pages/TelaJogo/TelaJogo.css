@@ -54,6 +54,18 @@
     line-height: 1.8;
 }
 
+.jogo-empresa-link {
+    color: var(--accent-cyan, #38bdf8);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.jogo-empresa-link:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
 .jogo-avaliacoes-secao {
     background-color: #2a2a2a;
     padding: 25px;
