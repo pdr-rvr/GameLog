@@ -74,20 +74,20 @@ namespace GameLog_Backend.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public IEnumerable<UsuarioDTO> ListarUsuarios()
+        public async Task<IEnumerable<UsuarioDTO>> ListarUsuarios()
         {
-            var usuarios = _context.Usuarios
+            var usuarios = await _context.Usuarios
                 .Where(u => u.EstaAtivo)
                 .Select(u => _mapper.Map<UsuarioDTO>(u))
-                .ToList();
+                .ToListAsync();
 
             return usuarios;
         }
 
-        public UsuarioDTO? ObterUsuarioPorId(int id)
+        public async Task<UsuarioDTO?> ObterUsuarioPorId(int id)
         {
-            var usuario = _context.Usuarios
-                .FirstOrDefault(u => u.Id == id && u.EstaAtivo);
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Id == id && u.EstaAtivo);
 
             return usuario != null ? _mapper.Map<UsuarioDTO>(usuario) : null;
         }
