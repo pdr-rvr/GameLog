@@ -1,5 +1,15 @@
 import api from "../../../services/api";
 
+export const obterMetadadosFiltros = async () => {
+    try {
+        const response = await api.get("/Jogos/metadados-filtros");
+        return response.data || { generos: [], empresas: [], anos: [] };
+    } catch (error) {
+        console.error("Erro ao obter metadados dos filtros:", error);
+        return { generos: [], empresas: [], anos: [] };
+    }
+};
+
 export const buscarJogos = async () => {
     try {
         const response = await api.get("/Jogos");

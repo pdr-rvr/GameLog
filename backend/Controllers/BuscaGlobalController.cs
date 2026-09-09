@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
+using GameLog_Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,14 +17,16 @@ namespace GameLog_Backend.Controllers
     public class BuscaGlobalController : ControllerBase
     {
         private readonly GameLogContext _context;
+        private readonly RawgApiService _rawgService;
 
-        public BuscaGlobalController(GameLogContext context)
+        public BuscaGlobalController(GameLogContext context, RawgApiService rawgService)
         {
             _context = context;
+            _rawgService = rawgService;
         }
 
         /// <summary>
-        /// Realiza busca global otimizada em Jogos, Usuários e Listas Públicas.
+        /// Realiza busca global unificada em Jogos (locais + externos transparentes), Usuários e Listas Públicas.
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> Buscar([FromQuery] string? q, [FromQuery] int limite = 5)
@@ -36,7 +39,7 @@ namespace GameLog_Backend.Controllers
             var termo = q.Trim().ToLower();
             limite = Math.Clamp(limite, 1, 20);
 
-            // 1. Busca em Jogos (Título, Descrição, Empresa, Gênero)
+            // 1. Busca em Jogos Locais
             var jogos = await _context.Jogos
                 .AsNoTracking()
                 .Include(j => j.Generos)
@@ -58,9 +61,49 @@ namespace GameLog_Backend.Controllers
                     Generos = j.Generos.Select(g => g.TituloGenero).ToList(),
                     MediaAvaliacoes = _context.Avaliacoes
                         .Where(a => a.Jogo.Id == j.Id && a.EstaAtivo)
-                        .Average(a => (double?)a.Nota)
+                        .Average(a => (double?)a.Nota),
+                    EhExterno = false,
+                    RawgId = null
                 })
                 .ToListAsync();
+
+            // Se jogos locais forem poucos ou para complementar, consultar RAWG de forma transparente
+            if (jogos.Count < limite)
+            {
+                try
+                {
+                    var rawgRes = await _rawgService.BuscarJogosExternos(termo, 1, limite - jogos.Count + 2);
+                    if (rawgRes?.Jogos != null)
+                    {
+                        var titulosLocais = new HashSet<string>(jogos.Select(j => j.Titulo.ToLower()));
+
+                        foreach (var rg in rawgRes.Jogos)
+                        {
+                            if (jogos.Count >= limite) break;
+                            if (titulosLocais.Contains(rg.Titulo.ToLower())) continue;
+
+                            jogos.Add(new BuscaItemJogoDTO
+                            {
+                                JogoId = rg.LocalJogoId ?? 0,
+                                Titulo = rg.Titulo,
+                                Imagem = rg.Imagem,
+                                AnoLancamento = rg.AnoLancamento,
+                                NomeEmpresa = rg.NomeEmpresa,
+                                Generos = rg.Generos,
+                                MediaAvaliacoes = rg.NotaRawg,
+                                RawgId = rg.RawgId,
+                                EhExterno = !rg.JaImportado
+                            });
+
+                            titulosLocais.Add(rg.Titulo.ToLower());
+                        }
+                    }
+                }
+                catch
+                {
+                    // Falha silenciosa da RAWG não afeta os resultados locais
+                }
+            }
 
             // 2. Busca em Usuários (Nome de Usuário)
             var usuarios = await _context.Usuarios
@@ -104,15 +147,13 @@ namespace GameLog_Backend.Controllers
                 })
                 .ToListAsync();
 
-            var resultado = new BuscaGlobalDTO
+            return Ok(new BuscaGlobalDTO
             {
                 Termo = q.Trim(),
                 Jogos = jogos,
                 Usuarios = usuarios,
                 Listas = listas
-            };
-
-            return Ok(resultado);
+            });
         }
     }
 }

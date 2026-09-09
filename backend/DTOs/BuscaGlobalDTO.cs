@@ -11,6 +11,8 @@ namespace GameLog_Backend.DTOs
         public string? NomeEmpresa { get; set; }
         public List<string> Generos { get; set; } = new();
         public double? MediaAvaliacoes { get; set; }
+        public int? RawgId { get; set; }
+        public bool EhExterno { get; set; }
     }
 
     public class BuscaItemUsuarioDTO

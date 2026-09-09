@@ -10,10 +10,12 @@ namespace GameLog_Backend.Controllers
     public class JogosController : ControllerBase
     {
         private readonly JogoServices _jogoServices;
+        private readonly RawgApiService _rawgApiService;
 
-        public JogosController(JogoServices jogoServices)
+        public JogosController(JogoServices jogoServices, RawgApiService rawgApiService)
         {
             _jogoServices = jogoServices;
+            _rawgApiService = rawgApiService;
         }
 
         [HttpGet]
@@ -63,6 +65,54 @@ namespace GameLog_Backend.Controllers
         {
             var jogos = await _jogoServices.ListarTop10JogosMelhorAvaliados();
             return Ok(jogos);
+        }
+
+        [HttpGet("metadados-filtros")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ObterMetadadosFiltros()
+        {
+            var metadados = await _jogoServices.ObterMetadadosFiltros();
+            return Ok(metadados);
+        }
+
+        /// <summary>
+        /// Busca jogos em tempo real na base de dados global da RAWG (+500k jogos).
+        /// </summary>
+        [HttpGet("rawg/buscar")]
+        [AllowAnonymous]
+        public async Task<IActionResult> BuscarNaRawg(
+            [FromQuery] string termo,
+            [FromQuery] int pagina = 1,
+            [FromQuery] int itensPorPagina = 20)
+        {
+            if (string.IsNullOrWhiteSpace(termo))
+            {
+                return BadRequest(new { message = "O termo de busca é obrigatório." });
+            }
+
+            var resultado = await _rawgApiService.BuscarJogosExternos(termo, pagina, itensPorPagina);
+            return Ok(resultado);
+        }
+
+        /// <summary>
+        /// Importa sob demanda um jogo da RAWG para a base de dados local do GameLog.
+        /// </summary>
+        [HttpPost("rawg/importar/{rawgId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ImportarJogoRawg(int rawgId)
+        {
+            if (rawgId <= 0)
+            {
+                return BadRequest(new { message = "ID RAWG inválido." });
+            }
+
+            var jogoImportado = await _rawgApiService.ImportarJogoRawgParaBanco(rawgId);
+            if (jogoImportado == null)
+            {
+                return NotFound(new { message = "Jogo não encontrado na RAWG ou falha na importação." });
+            }
+
+            return Ok(jogoImportado);
         }
     }
 }

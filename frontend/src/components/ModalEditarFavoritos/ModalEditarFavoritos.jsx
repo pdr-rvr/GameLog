@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { FaTimes, FaSearch, FaTrash, FaCheck, FaTrophy } from "react-icons/fa";
-import { buscarJogos } from "../../pages/PaginaJogos/actions/PaginaJogosActions";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { FaTimes, FaSearch, FaTrash, FaCheck, FaTrophy, FaGamepad, FaSpinner } from "react-icons/fa";
+import { buscarJogosPaginados } from "../../pages/PaginaJogos/actions/PaginaJogosActions";
 import { BibliotecaService } from "../../services/bibliotecaService";
 import { useToast } from "../../context/ToastContext";
 import "./ModalEditarFavoritos.css";
@@ -15,11 +15,11 @@ const POSICOES = [
 
 const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }) => {
   const toast = useToast();
-  const [catalogo, setCatalogo] = useState([]);
+  const [jogosEncontrados, setJogosEncontrados] = useState([]);
   const [carregandoCatalogo, setCarregandoCatalogo] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
-  // Map of position -> game object
+  // Mapeamento de Posição (1..5) -> Jogo selecionado
   const [selecoes, setSelecoes] = useState({
     1: null,
     2: null,
@@ -30,8 +30,9 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
 
   const [posicaoAtiva, setPosicaoAtiva] = useState(null);
   const [termoBusca, setTermoBusca] = useState("");
+  const debounceTimerRef = useRef(null);
 
-  // Initialize selected games from props
+  // Inicializar slots a partir de favoritosAtuais quando o modal abrir
   useEffect(() => {
     if (isOpen) {
       const mapa = { 1: null, 2: null, 3: null, 4: null, 5: null };
@@ -54,45 +55,47 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
       setSelecoes(mapa);
       setPosicaoAtiva(null);
       setTermoBusca("");
-
-      // Fetch all games for selection if not fetched
-      if (catalogo.length === 0) {
-        setCarregandoCatalogo(true);
-        buscarJogos()
-          .then((dados) => {
-            const normalizados = (dados || []).map((j) => ({
-              ...j,
-              id: Number(j.id || j.jogoId),
-              jogoId: Number(j.id || j.jogoId),
-            }));
-            setCatalogo(normalizados);
-          })
-          .catch((err) => {
-            console.error("Erro ao carregar catálogo:", err);
-            toast.error("Não foi possível carregar o catálogo de jogos.");
-          })
-          .finally(() => setCarregandoCatalogo(false));
-      }
     }
   }, [isOpen, favoritosAtuais]);
 
-  // Filter games based on search and exclude already selected in OTHER positions
-  const jogosFiltrados = useMemo(() => {
-    const idsJaSelecionados = Object.entries(selecoes)
-      .filter(([pos, j]) => Number(pos) !== Number(posicaoAtiva) && j !== null && j !== undefined)
-      .map(([_, j]) => Number(j.id || j.jogoId))
-      .filter((id) => !isNaN(id) && id > 0);
+  // Busca rápida no servidor com paginação (evita sobrecarga de memória)
+  const buscarJogosServidor = useCallback(async (termo = "") => {
+    setCarregandoCatalogo(true);
+    try {
+      const res = await buscarJogosPaginados({
+        pagina: 1,
+        itensPorPagina: 20,
+        busca: termo.trim()
+      });
+      setJogosEncontrados(res.itens || []);
+    } catch (err) {
+      console.error("Erro na busca de jogos para favoritos:", err);
+      setJogosEncontrados([]);
+    } finally {
+      setCarregandoCatalogo(false);
+    }
+  }, []);
 
-    return catalogo.filter((j) => {
-      const jId = Number(j.id || j.jogoId);
-      if (idsJaSelecionados.includes(jId)) return false;
-      if (!termoBusca.trim()) return true;
-      const t = termoBusca.toLowerCase();
-      const tituloMatch = j.titulo?.toLowerCase().includes(t);
-      const empresaMatch = j.nomeEmpresa?.toLowerCase().includes(t);
-      return tituloMatch || empresaMatch;
-    });
-  }, [catalogo, termoBusca, selecoes, posicaoAtiva]);
+  // Quando o usuário abre um slot para edição, carrega a lista de jogos
+  useEffect(() => {
+    if (posicaoAtiva) {
+      buscarJogosServidor(termoBusca);
+    }
+  }, [posicaoAtiva]);
+
+  // Busca com debounce enquanto digita
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setTermoBusca(val);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      buscarJogosServidor(val);
+    }, 250);
+  };
 
   const handleSelecionarJogo = (jogo) => {
     if (!posicaoAtiva) return;
@@ -102,7 +105,7 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
       [posicaoAtiva]: {
         id: jId,
         jogoId: jId,
-        titulo: jogo.titulo,
+        titulo: jogo.titulo || jogo.nome || "Jogo",
         imagem: jogo.imagem || "/game-images/default_game_cover.png",
         nomeEmpresa: jogo.nomeEmpresa || "Game",
       },
@@ -153,9 +156,21 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
 
   if (!isOpen) return null;
 
+  // Filtrar IDs que já estão selecionados em outras posições para evitar duplicatas
+  const idsJaSelecionados = Object.entries(selecoes)
+    .filter(([pos, j]) => Number(pos) !== Number(posicaoAtiva) && j !== null && j !== undefined)
+    .map(([_, j]) => Number(j.id || j.jogoId))
+    .filter((id) => !isNaN(id) && id > 0);
+
+  const jogosFiltrados = jogosEncontrados.filter((j) => {
+    const jId = Number(j.id || j.jogoId);
+    return !idsJaSelecionados.includes(jId);
+  });
+
   return (
     <div className="modal-favoritos-overlay" onClick={onClose}>
       <div className="modal-favoritos-dialog" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className="modal-favoritos-header">
           <div className="modal-header-title">
             <FaTrophy className="header-trophy-icon" />
@@ -169,6 +184,7 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
           </button>
         </div>
 
+        {/* Body */}
         <div className="modal-favoritos-body">
           {/* 5 Slots Selector */}
           <div className="slots-favoritos-grid">
@@ -190,7 +206,15 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
 
                   {jogo ? (
                     <div className="slot-jogo-card">
-                      <img src={jogo.imagem} alt={jogo.titulo} className="slot-jogo-thumb" />
+                      <img 
+                        src={jogo.imagem} 
+                        alt={jogo.titulo} 
+                        className="slot-jogo-thumb"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = "/game-images/default_game_cover.png";
+                        }}
+                      />
                       <div className="slot-jogo-info">
                         <strong className="slot-jogo-titulo" title={jogo.titulo}>
                           {jogo.titulo}
@@ -253,14 +277,17 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
                   type="text"
                   placeholder="Buscar pelo título ou produtora..."
                   value={termoBusca}
-                  onChange={(e) => setTermoBusca(e.target.value)}
+                  onChange={handleSearchChange}
                   autoFocus
                 />
                 {termoBusca && (
                   <button
                     type="button"
                     className="btn-clear-search"
-                    onClick={() => setTermoBusca("")}
+                    onClick={() => {
+                      setTermoBusca("");
+                      buscarJogosServidor("");
+                    }}
                   >
                     <FaTimes />
                   </button>
@@ -269,7 +296,10 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
 
               <div className="picker-games-list">
                 {carregandoCatalogo ? (
-                  <div className="picker-loading">Carregando catálogo...</div>
+                  <div className="picker-loading">
+                    <FaSpinner className="spin" style={{ marginRight: '8px' }} />
+                    Buscando jogos...
+                  </div>
                 ) : jogosFiltrados.length === 0 ? (
                   <div className="picker-empty">
                     Nenhum jogo encontrado com esse termo.
@@ -283,7 +313,15 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
                         className="picker-game-item"
                         onClick={() => handleSelecionarJogo(jogo)}
                       >
-                        <img src={jogo.imagem} alt={jogo.titulo} className="picker-game-thumb" />
+                        <img 
+                          src={jogo.imagem || "/game-images/default_game_cover.png"} 
+                          alt={jogo.titulo} 
+                          className="picker-game-thumb"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "/game-images/default_game_cover.png";
+                          }}
+                        />
                         <div className="picker-game-details">
                           <strong className="picker-game-title">{jogo.titulo}</strong>
                           <span className="picker-game-sub">
@@ -302,6 +340,7 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
           )}
         </div>
 
+        {/* Footer */}
         <div className="modal-favoritos-footer">
           <button
             type="button"

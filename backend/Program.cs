@@ -4,6 +4,7 @@ using GameLog_Backend.Configurations;
 using GameLog_Backend.Database;
 using GameLog_Backend.Middlewares;
 using GameLog_Backend.Profiles;
+using GameLog_Backend.Seeders;
 using GameLog_Backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -87,6 +88,11 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddDbContext<GameLogContext>(options =>
     options.UseSqlServer(completeConnectionString));
+
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<RawgApiService>();
+builder.Services.AddScoped<RawgApiService>();
+builder.Services.AddScoped<MassiveCatalogSeeder>();
 
 builder.Services.AddScoped<EmpresaSeeder>();
 builder.Services.AddScoped<GeneroSeeder>();
@@ -267,6 +273,12 @@ using (var scope = app.Services.CreateScope())
                         );
                         CREATE UNIQUE INDEX [IX_ItensDeListas_Lista_Jogo] ON [dbo].[ItensDeListas]([ListaDeJogosId], [JogoId]);
                     END
+
+                    -- Ajuste de capacidade de colunas para catálogos ricos e RAWG
+                    ALTER TABLE [dbo].[Jogos] ALTER COLUMN [Titulo] NVARCHAR(250) NOT NULL;
+                    ALTER TABLE [dbo].[Jogos] ALTER COLUMN [Descricao] NVARCHAR(MAX) NULL;
+                    ALTER TABLE [dbo].[Empresa] ALTER COLUMN [NomeEmpresa] NVARCHAR(150) NOT NULL;
+                    ALTER TABLE [dbo].[Generos] ALTER COLUMN [TituloGenero] NVARCHAR(50) NOT NULL;
                 ");
             }
             catch (Exception exCol)
@@ -274,12 +286,10 @@ using (var scope = app.Services.CreateScope())
                 Console.WriteLine($"[GameLog] Verificação de colunas complementares: {exCol.Message}");
             }
 
-            Console.WriteLine("[GameLog] Executando Seeders...");
-            new EmpresaSeeder(context).Seed();
-            new GeneroSeeder(context).Seed();
-            new JogoSeeder(context).Seed();
-            new JogoGeneroSeeder(context).Seed();
-            Console.WriteLine("[GameLog] Seeders executados com sucesso!");
+            Console.WriteLine("[GameLog] Executando limpeza e povoamento do catálogo com jogos 100% reais e oficiais da RAWG...");
+            var massiveSeeder = services.GetRequiredService<MassiveCatalogSeeder>();
+            massiveSeeder.CleanAndSeedRealGamesAsync().GetAwaiter().GetResult();
+            Console.WriteLine("[GameLog] Povoamento com jogos reais finalizado com sucesso!");
 
             connected = true;
             break;

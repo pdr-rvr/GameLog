@@ -1,4 +1,4 @@
-﻿using GameLog_Backend.Entities;
+using GameLog_Backend.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,12 +16,12 @@ namespace GameLog_Backend.Configurations
                 .IsRequired();
 
             builder.Property(p => p.Titulo)
-                .HasMaxLength(60)
+                .HasMaxLength(250)
                 .IsRequired();
 
             builder.Property(p => p.Descricao)
-                .HasMaxLength(500)
-                .IsRequired();
+                .HasColumnType("nvarchar(MAX)")
+                .IsRequired(false);
 
             builder.Property(p => p.Imagem)
                 .HasColumnType("varchar(MAX)")

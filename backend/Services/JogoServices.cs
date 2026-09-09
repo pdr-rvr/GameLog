@@ -212,5 +212,33 @@ namespace GameLog_Backend.Services
                 .Take(10)
                 .ToListAsync();
         }
+
+        public async Task<MetadadosFiltrosDTO> ObterMetadadosFiltros()
+        {
+            var generos = await _context.Generos
+                .AsNoTracking()
+                .Where(g => g.EstaAtivo && g.Jogos.Any(j => j.EstaAtivo))
+                .OrderBy(g => g.TituloGenero)
+                .Select(g => g.TituloGenero)
+                .ToListAsync();
+
+            var empresas = await _context.Jogos
+                .AsNoTracking()
+                .Where(j => j.EstaAtivo && j.Empresa != null && j.Empresa.EstaAtivo)
+                .Select(j => j.Empresa.NomeEmpresa)
+                .Distinct()
+                .OrderBy(n => n)
+                .ToListAsync();
+
+            var anoAtual = DateTime.UtcNow.Year + 1;
+            var anos = Enumerable.Range(1985, anoAtual - 1985 + 1).OrderByDescending(a => a).ToList();
+
+            return new MetadadosFiltrosDTO
+            {
+                Generos = generos,
+                Empresas = empresas,
+                Anos = anos
+            };
+        }
     }
 }

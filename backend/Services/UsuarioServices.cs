@@ -273,82 +273,397 @@ namespace GameLog_Backend.Services
             return true;
         }
 
-        public async Task<List<GeneroFavoritoDTO>> IdentificaTopNGenerosFavoritos(int id, int topN = 3)
+        public async Task<List<GeneroFavoritoDTO>> IdentificaTopNGenerosFavoritos(int id, int topN = 5)
         {
-            var avaliacoesDoUsuario = await _context.Avaliacoes
+            var favoritos = await _context.JogosFavoritosUsuarios
+                .AsNoTracking()
+                .Where(f => f.Usuario.Id == id && f.EstaAtivo)
+                .Include(f => f.Jogo)
+                    .ThenInclude(j => j.Generos)
+                .ToListAsync();
+
+            var avaliacoes = await _context.Avaliacoes
                 .AsNoTracking()
                 .Where(a => a.Usuario.Id == id && a.EstaAtivo)
                 .Include(a => a.Jogo)
-                    .ThenInclude(j => j.Generos) 
-                .ToListAsync(); 
+                    .ThenInclude(j => j.Generos)
+                .ToListAsync();
 
-            if (!avaliacoesDoUsuario.Any())
+            var biblioteca = await _context.ItensBiblioteca
+                .AsNoTracking()
+                .Where(b => b.Usuario.Id == id && b.EstaAtivo)
+                .Include(b => b.Jogo)
+                    .ThenInclude(j => j.Generos)
+                .ToListAsync();
+
+            var pontuacaoGeneros = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var fav in favoritos.Where(f => f.Jogo?.Generos != null))
             {
-                return new List<GeneroFavoritoDTO>();
+                foreach (var g in fav.Jogo.Generos)
+                {
+                    pontuacaoGeneros[g.TituloGenero] = pontuacaoGeneros.GetValueOrDefault(g.TituloGenero) + 15.0;
+                }
             }
 
-            var generosComNotas = avaliacoesDoUsuario
-                .Where(a => a.Jogo != null && a.Jogo.Generos != null)
-                .SelectMany(a => a.Jogo.Generos.Select(g => new { Genero = g.TituloGenero, Nota = a.Nota }));
-
-            var topGeneros = generosComNotas
-                .GroupBy(x => x.Genero)
-                .Select(g => new
+            foreach (var av in avaliacoes.Where(a => a.Jogo?.Generos != null))
+            {
+                foreach (var g in av.Jogo.Generos)
                 {
-                    Genero = g.Key,
-                    MediaNotas = g.Average(x => (double)x.Nota), 
-                    QuantidadeJogos = g.Count() 
-                })
-                .OrderByDescending(x => x.MediaNotas)
-                .ThenByDescending(x => x.QuantidadeJogos)
-                .Take(topN) 
+                    double peso = av.Nota >= 4 ? 2.5 : (av.Nota == 3 ? 1.0 : -1.0);
+                    pontuacaoGeneros[g.TituloGenero] = pontuacaoGeneros.GetValueOrDefault(g.TituloGenero) + (av.Nota * peso);
+                }
+            }
+
+            foreach (var bib in biblioteca.Where(b => b.Jogo?.Generos != null))
+            {
+                foreach (var g in bib.Jogo.Generos)
+                {
+                    pontuacaoGeneros[g.TituloGenero] = pontuacaoGeneros.GetValueOrDefault(g.TituloGenero) + 3.0;
+                }
+            }
+
+            var topGeneros = pontuacaoGeneros
+                .Where(kv => kv.Value > 0)
+                .OrderByDescending(kv => kv.Value)
+                .Take(topN)
+                .Select(kv => new GeneroFavoritoDTO { Genero = kv.Key })
                 .ToList();
 
-             return topGeneros.Select(g => new GeneroFavoritoDTO { Genero = g.Genero }).ToList();
+            return topGeneros;
         }
 
         public async Task<IEnumerable<JogoRecomendacaoDTO>> RecomendarJogos(int usuarioId)
         {
-            var topGeneros = await IdentificaTopNGenerosFavoritos(usuarioId, 3);
-
-            if (!topGeneros.Any())
-            {
-                return Enumerable.Empty<JogoRecomendacaoDTO>();
-            }
-
+            // 1. Coletar IDs de jogos para exclusão anti-redundância
             var jogosAvaliadosIds = await _context.Avaliacoes
                 .AsNoTracking()
                 .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
                 .Select(a => a.Jogo.Id)
                 .ToListAsync();
 
-            var generosParaBuscar = topGeneros.Select(g => g.Genero).ToList();
-
-            var jogosCandidatos = await _context.Jogos
+            var jogosFavoritos = await _context.JogosFavoritosUsuarios
                 .AsNoTracking()
-                .Include(j => j.Generos)
-                .Where(j => j.EstaAtivo && !jogosAvaliadosIds.Contains(j.Id) &&
-                            j.Generos.Any(g => generosParaBuscar.Contains(g.TituloGenero)))
-                .OrderByDescending(j => j.DataLancamento)
-                .Take(10)
+                .Where(f => f.Usuario.Id == usuarioId && f.EstaAtivo)
+                .Include(f => f.Jogo)
+                    .ThenInclude(j => j.Generos)
+                .Include(f => f.Jogo)
+                    .ThenInclude(j => j.Empresa)
                 .ToListAsync();
 
-            var recomendados = jogosCandidatos.Select(j =>
+            var jogosFavoritosIds = jogosFavoritos.Select(f => f.Jogo.Id).ToList();
+
+            var bibliotecaIds = await _context.ItensBiblioteca
+                .AsNoTracking()
+                .Where(b => b.Usuario.Id == usuarioId && b.EstaAtivo && b.Status != StatusJogo.QueroJogar)
+                .Select(b => b.Jogo.Id)
+                .ToListAsync();
+
+            var jogosExcluidos = new HashSet<int>(jogosAvaliadosIds.Concat(jogosFavoritosIds).Concat(bibliotecaIds));
+
+            // 2. Extrair Perfil Ponderado de Afinidades do Usuário (Gêneros e Estúdios)
+            var afinidadeGeneros = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            var afinidadeEstudios = new Dictionary<int, double>();
+            var nomesEstudiosFavoritos = new Dictionary<int, string>();
+
+            // Sinais do Pódio de Favoritos (Peso 3.0x)
+            foreach (var fav in jogosFavoritos.Where(f => f.Jogo != null))
             {
-                var generoCorrespondente = j.Generos.FirstOrDefault(g => generosParaBuscar.Contains(g.TituloGenero))?.TituloGenero
-                                          ?? topGeneros.First().Genero;
-                return new JogoRecomendacaoDTO
+                if (fav.Jogo.Generos != null)
+                {
+                    foreach (var g in fav.Jogo.Generos)
+                    {
+                        afinidadeGeneros[g.TituloGenero] = afinidadeGeneros.GetValueOrDefault(g.TituloGenero) + 15.0;
+                    }
+                }
+                if (fav.Jogo.Empresa != null)
+                {
+                    afinidadeEstudios[fav.Jogo.Empresa.Id] = afinidadeEstudios.GetValueOrDefault(fav.Jogo.Empresa.Id) + 12.0;
+                    nomesEstudiosFavoritos[fav.Jogo.Empresa.Id] = fav.Jogo.Empresa.NomeEmpresa;
+                }
+            }
+
+            // Sinais das Avaliações (Peso 2.5x para 4-5 estrelas)
+            var avaliacoesCompletas = await _context.Avaliacoes
+                .AsNoTracking()
+                .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
+                .Include(a => a.Jogo)
+                    .ThenInclude(j => j.Generos)
+                .Include(a => a.Jogo)
+                    .ThenInclude(j => j.Empresa)
+                .ToListAsync();
+
+            foreach (var av in avaliacoesCompletas.Where(a => a.Jogo != null))
+            {
+                double multiplicador = av.Nota >= 4 ? 2.5 : (av.Nota == 3 ? 1.0 : -1.5);
+                double scoreAcao = av.Nota * multiplicador;
+
+                if (av.Jogo.Generos != null)
+                {
+                    foreach (var g in av.Jogo.Generos)
+                    {
+                        afinidadeGeneros[g.TituloGenero] = afinidadeGeneros.GetValueOrDefault(g.TituloGenero) + scoreAcao;
+                    }
+                }
+                if (av.Jogo.Empresa != null && av.Nota >= 4)
+                {
+                    afinidadeEstudios[av.Jogo.Empresa.Id] = afinidadeEstudios.GetValueOrDefault(av.Jogo.Empresa.Id) + scoreAcao;
+                    nomesEstudiosFavoritos[av.Jogo.Empresa.Id] = av.Jogo.Empresa.NomeEmpresa;
+                }
+            }
+
+            // Sinais da Biblioteca (Peso 1.5x)
+            var bibliotecaCompleta = await _context.ItensBiblioteca
+                .AsNoTracking()
+                .Where(b => b.Usuario.Id == usuarioId && b.EstaAtivo)
+                .Include(b => b.Jogo)
+                    .ThenInclude(j => j.Generos)
+                .Include(b => b.Jogo)
+                    .ThenInclude(j => j.Empresa)
+                .ToListAsync();
+
+            foreach (var bib in bibliotecaCompleta.Where(b => b.Jogo != null))
+            {
+                if (bib.Jogo.Generos != null)
+                {
+                    foreach (var g in bib.Jogo.Generos)
+                    {
+                        afinidadeGeneros[g.TituloGenero] = afinidadeGeneros.GetValueOrDefault(g.TituloGenero) + 4.0;
+                    }
+                }
+                if (bib.Jogo.Empresa != null)
+                {
+                    afinidadeEstudios[bib.Jogo.Empresa.Id] = afinidadeEstudios.GetValueOrDefault(bib.Jogo.Empresa.Id) + 3.0;
+                    nomesEstudiosFavoritos[bib.Jogo.Empresa.Id] = bib.Jogo.Empresa.NomeEmpresa;
+                }
+            }
+
+            // Sinais Sociais: Jogos bem avaliados por quem o usuário segue
+            var seguidosIds = await _context.SegueUsuarios
+                .AsNoTracking()
+                .Where(s => s.UsuarioSeguidor.Id == usuarioId && s.EstaAtivo)
+                .Select(s => s.UsuarioSeguido.Id)
+                .ToListAsync();
+
+            var socialBoostJogos = new Dictionary<int, double>();
+            if (seguidosIds.Any())
+            {
+                var avaliacoesSeguidos = await _context.Avaliacoes
+                    .AsNoTracking()
+                    .Where(a => seguidosIds.Contains(a.Usuario.Id) && a.EstaAtivo && a.Nota >= 4)
+                    .Select(a => new { JogoId = a.Jogo.Id, Nota = a.Nota })
+                    .ToListAsync();
+
+                foreach (var av in avaliacoesSeguidos)
+                {
+                    socialBoostJogos[av.JogoId] = socialBoostJogos.GetValueOrDefault(av.JogoId) + (av.Nota * 1.5);
+                }
+            }
+
+            var generosPositivos = afinidadeGeneros
+                .Where(kv => kv.Value > 0)
+                .OrderByDescending(kv => kv.Value)
+                .Select(kv => kv.Key)
+                .Take(6)
+                .ToList();
+
+            // 3. Tratar Cenário de Cold Start (Usuário Novo sem interações suficientes)
+            if (!generosPositivos.Any() && !afinidadeEstudios.Any())
+            {
+                var jogosBase = await _context.Jogos
+                    .AsNoTracking()
+                    .Include(j => j.Generos)
+                    .Include(j => j.Empresa)
+                    .Where(j => j.EstaAtivo && !jogosExcluidos.Contains(j.Id))
+                    .ToListAsync();
+
+                var statsGeral = await _context.Avaliacoes
+                    .AsNoTracking()
+                    .Where(a => a.EstaAtivo)
+                    .GroupBy(a => a.Jogo.Id)
+                    .Select(g => new
+                    {
+                        JogoId = g.Key,
+                        Media = g.Average(x => (double)x.Nota),
+                        Total = g.Count()
+                    })
+                    .ToDictionaryAsync(x => x.JogoId);
+
+                var topObrasPrimas = jogosBase
+                    .Select(j =>
+                    {
+                        statsGeral.TryGetValue(j.Id, out var s);
+                        return new
+                        {
+                            Jogo = j,
+                            Media = s != null ? (double?)s.Media : null,
+                            TotalReviews = s?.Total ?? 0
+                        };
+                    })
+                    .OrderByDescending(x => x.TotalReviews > 0 ? (x.Media ?? 0) : 0)
+                    .ThenByDescending(x => x.TotalReviews)
+                    .ThenByDescending(x => x.Jogo.DataLancamento)
+                    .Take(12)
+                    .ToList();
+
+                return topObrasPrimas.Select(item => new JogoRecomendacaoDTO
+                {
+                    JogoId = item.Jogo.Id,
+                    Titulo = item.Jogo.Titulo,
+                    Descricao = item.Jogo.Descricao,
+                    Imagem = item.Jogo.Imagem,
+                    DataLancamento = item.Jogo.DataLancamento,
+                    GeneroFavorito = item.Jogo.Generos.FirstOrDefault()?.TituloGenero ?? "Destaque",
+                    NomeEmpresa = item.Jogo.Empresa?.NomeEmpresa,
+                    MediaAvaliacoes = item.Media.HasValue ? Math.Round(item.Media.Value, 1) : null,
+                    MotivoRecomendacao = item.TotalReviews > 0 ? "Aclamado pela Comunidade" : "Destaque do Catálogo",
+                    Score = (item.Media ?? 4.0) * 10
+                });
+            }
+
+            // 4. Buscar Jogos Candidatos para Recomendação Ponderada
+            var afinidadeEstudiosIds = afinidadeEstudios.Keys.ToList();
+
+            var candidatos = await _context.Jogos
+                .AsNoTracking()
+                .Include(j => j.Generos)
+                .Include(j => j.Empresa)
+                .Where(j => j.EstaAtivo && !jogosExcluidos.Contains(j.Id) &&
+                           (j.Generos.Any(g => generosPositivos.Contains(g.TituloGenero)) ||
+                            (j.Empresa != null && afinidadeEstudiosIds.Contains(j.Empresa.Id))))
+                .ToListAsync();
+
+            var candidatosIds = candidatos.Select(c => c.Id).ToList();
+            var statsCandidatos = await _context.Avaliacoes
+                .AsNoTracking()
+                .Where(a => a.EstaAtivo && candidatosIds.Contains(a.Jogo.Id))
+                .GroupBy(a => a.Jogo.Id)
+                .Select(g => new
+                {
+                    JogoId = g.Key,
+                    Media = g.Average(x => (double)x.Nota)
+                })
+                .ToDictionaryAsync(x => x.JogoId, x => x.Media);
+
+            // 5. Motor de Pontuação Multi-Fator
+            var pontuados = new List<JogoRecomendacaoDTO>();
+
+            foreach (var j in candidatos)
+            {
+                double scoreFinal = 0.0;
+                string motivo = string.Empty;
+                string generoDestaque = generosPositivos.FirstOrDefault() ?? "Recomendado";
+
+                // A) Score de Gênero (Múltiplos Matches & Peso dos Gêneros Favoritos)
+                double scoreGeneroJogo = 0.0;
+                int generosCombinados = 0;
+                string? melhorGeneroMatch = null;
+
+                foreach (var g in j.Generos)
+                {
+                    if (afinidadeGeneros.TryGetValue(g.TituloGenero, out double pesoG))
+                    {
+                        scoreGeneroJogo += pesoG;
+                        generosCombinados++;
+                        if (melhorGeneroMatch == null || pesoG > afinidadeGeneros.GetValueOrDefault(melhorGeneroMatch))
+                        {
+                            melhorGeneroMatch = g.TituloGenero;
+                        }
+                    }
+                }
+
+                if (generosCombinados > 0)
+                {
+                    double multiplicadorOverlap = 1.0 + (generosCombinados - 1) * 0.35;
+                    scoreFinal += (scoreGeneroJogo * multiplicadorOverlap) * 0.45;
+                    if (melhorGeneroMatch != null)
+                    {
+                        generoDestaque = melhorGeneroMatch;
+                        motivo = $"Porque você curte {melhorGeneroMatch}";
+                    }
+                }
+
+                // B) Score de Estúdio / Desenvolvedor
+                if (j.Empresa != null && afinidadeEstudios.TryGetValue(j.Empresa.Id, out double pesoEstudio))
+                {
+                    scoreFinal += pesoEstudio * 0.30;
+                    if (nomesEstudiosFavoritos.TryGetValue(j.Empresa.Id, out var nomeEmp))
+                    {
+                        motivo = $"Do mesmo estúdio de seus favoritos ({nomeEmp})";
+                    }
+                }
+
+                // C) Sinal Social
+                if (socialBoostJogos.TryGetValue(j.Id, out double boostSocial))
+                {
+                    scoreFinal += boostSocial * 0.20;
+                    motivo = "Bem avaliado por pessoas que você segue";
+                }
+
+                // D) Média Comunitária (apenas pontua e exibe se houver avaliações reais)
+                double? mediaReal = statsCandidatos.TryGetValue(j.Id, out var m) ? m : null;
+                if (mediaReal.HasValue)
+                {
+                    scoreFinal += mediaReal.Value * 2.0;
+                }
+                else
+                {
+                    scoreFinal += 4.0;
+                }
+
+                // E) Bônus de Recência para Lançamentos
+                if (j.DataLancamento.Year >= 2022)
+                {
+                    scoreFinal += 3.0;
+                }
+
+                if (string.IsNullOrWhiteSpace(motivo))
+                {
+                    motivo = $"Baseado no seu perfil de {generoDestaque}";
+                }
+
+                pontuados.Add(new JogoRecomendacaoDTO
                 {
                     JogoId = j.Id,
                     Titulo = j.Titulo,
                     Descricao = j.Descricao,
                     Imagem = j.Imagem,
                     DataLancamento = j.DataLancamento,
-                    GeneroFavorito = generoCorrespondente
-                };
-            }).ToList();
+                    GeneroFavorito = generoDestaque,
+                    NomeEmpresa = j.Empresa?.NomeEmpresa,
+                    MediaAvaliacoes = mediaReal.HasValue ? Math.Round(mediaReal.Value, 1) : null,
+                    MotivoRecomendacao = motivo,
+                    Score = scoreFinal
+                });
+            }
 
-            return recomendados;
+            // 6. Diversificação Inteligente dos Resultados (Máximo 2 jogos por estúdio no top 12)
+            var selecionados = new List<JogoRecomendacaoDTO>();
+            var contagemPorEstudio = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            var ordenadosPorScore = pontuados.OrderByDescending(p => p.Score).ToList();
+
+            foreach (var item in ordenadosPorScore)
+            {
+                var est = item.NomeEmpresa ?? "Outro";
+                int qtd = contagemPorEstudio.GetValueOrDefault(est);
+                if (qtd < 2)
+                {
+                    selecionados.Add(item);
+                    contagemPorEstudio[est] = qtd + 1;
+                    if (selecionados.Count >= 12) break;
+                }
+            }
+
+            if (selecionados.Count < 12)
+            {
+                var restantes = ordenadosPorScore
+                    .Where(p => !selecionados.Any(s => s.JogoId == p.JogoId))
+                    .Take(12 - selecionados.Count);
+                selecionados.AddRange(restantes);
+            }
+
+            return selecionados;
         }
 
         // ======================= SISTEMA SOCIAL (SEGUIR & FEED) ======================= //
