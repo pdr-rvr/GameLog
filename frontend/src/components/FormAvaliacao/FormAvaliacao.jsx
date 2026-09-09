@@ -11,7 +11,8 @@ const FormAvaliacao = ({
   error = null, 
   jogos = [], 
   initialData = null, 
-  isEditing = false 
+  isEditing = false,
+  lockGame = false
 }) => {
   const [avaliacao, setAvaliacao] = useState({
     jogoId: '',
@@ -29,18 +30,18 @@ const FormAvaliacao = ({
   // Initialize or reset state only when modal opens or initialData changes
   useEffect(() => {
     if (isOpen) {
-      if (isEditing && initialData) {
-        const currentJogoId = initialData.jogoId || initialData.id || '';
-        const currentNota = initialData.nota || 0;
-        const currentTexto = initialData.textoAvaliacao || '';
-        const gameObj = (jogos || []).find(j => (j.jogoId || j.id) === currentJogoId);
+      if (initialData || lockGame || isEditing) {
+        const currentJogoId = initialData?.jogoId || initialData?.id || (jogos?.length === 1 ? (jogos[0].jogoId || jogos[0].id) : '');
+        const currentNota = initialData?.nota || 0;
+        const currentTexto = initialData?.textoAvaliacao || '';
+        const gameObj = (jogos || []).find(j => Number(j.jogoId || j.id) === Number(currentJogoId)) || (jogos?.length === 1 ? jogos[0] : null);
 
         setAvaliacao({
           jogoId: currentJogoId,
           nota: currentNota,
           textoAvaliacao: currentTexto
         });
-        setSearchTerm(initialData.tituloJogo || initialData.nomeJogo || (gameObj ? (gameObj.titulo || gameObj.nome) : ''));
+        setSearchTerm(initialData?.tituloJogo || initialData?.nomeJogo || gameObj?.titulo || gameObj?.nome || '');
         setSelectedGame(gameObj || null);
       } else {
         setAvaliacao({
@@ -54,7 +55,7 @@ const FormAvaliacao = ({
       setHoverRating(0);
       setShowSuggestions(false);
     }
-  }, [isOpen, isEditing, initialData?.avaliacaoId, initialData?.jogoId]);
+  }, [isOpen, isEditing, lockGame, initialData?.avaliacaoId, initialData?.jogoId]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -107,6 +108,7 @@ const FormAvaliacao = ({
   };
 
   const handleClearSelectedGame = () => {
+    if (lockGame) return;
     setAvaliacao(prev => ({ ...prev, jogoId: '' }));
     setSelectedGame(null);
     setSearchTerm('');
@@ -115,7 +117,7 @@ const FormAvaliacao = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!isEditing && !avaliacao.jogoId) return;
+    if (!isEditing && !lockGame && !avaliacao.jogoId) return;
     if (avaliacao.nota <= 0) return;
     if (!avaliacao.textoAvaliacao.trim()) return;
 
@@ -158,27 +160,32 @@ const FormAvaliacao = ({
 
         <form onSubmit={handleSubmit} className="modal-form">
           {/* Seleção do Jogo */}
-          {!isEditing ? (
-            <div className="modal-form-group" ref={searchContainerRef}>
-              <label htmlFor="jogoSearch">Selecionar Jogo</label>
+          <div className="modal-form-group" ref={searchContainerRef}>
+            <label htmlFor="jogoSearch">Jogo Avaliado</label>
 
-              {avaliacao.jogoId && selectedGame ? (
-                /* Card do Jogo Selecionado */
-                <div className="selected-game-banner">
-                  <img 
-                    src={selectedGame.imagem || selectedGame.foto || "/game-images/default_game_cover.png"} 
-                    alt={selectedGame.titulo || selectedGame.nome}
-                    className="selected-game-thumb"
-                  />
-                  <div className="selected-game-info">
-                    <span className="selected-game-title">
-                      <FaCheckCircle className="check-icon" /> {selectedGame.titulo || selectedGame.nome}
-                    </span>
-                    <span className="selected-game-meta">
-                      {selectedGame.dataLancamento ? String(selectedGame.dataLancamento).substring(0, 4) : ''} 
-                      {selectedGame.nomeEmpresa ? ` • ${selectedGame.nomeEmpresa}` : ''}
-                    </span>
-                  </div>
+            {/* Jogo Pré-selecionado / Travado ou Selecionado */}
+            {(lockGame || isEditing || (avaliacao.jogoId && selectedGame) || (searchTerm && !showSuggestions)) ? (
+              <div className="selected-game-banner">
+                <img 
+                  src={selectedGame?.imagem || selectedGame?.foto || "/game-images/default_game_cover.png"} 
+                  alt={selectedGame?.titulo || selectedGame?.nome || searchTerm || "Jogo"}
+                  className="selected-game-thumb"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "/game-images/default_game_cover.png";
+                  }}
+                />
+                <div className="selected-game-info">
+                  <span className="selected-game-title">
+                    <FaCheckCircle className="check-icon" /> {selectedGame?.titulo || selectedGame?.nome || searchTerm || "Jogo Selecionado"}
+                  </span>
+                  <span className="selected-game-meta">
+                    {selectedGame?.dataLancamento ? String(selectedGame.dataLancamento).substring(0, 4) : ''} 
+                    {selectedGame?.nomeEmpresa ? ` • ${selectedGame.nomeEmpresa}` : ''}
+                    {lockGame && " • Página do Jogo"}
+                  </span>
+                </div>
+                {!lockGame && !isEditing && (
                   <button 
                     type="button" 
                     className="btn-change-game" 
@@ -187,79 +194,73 @@ const FormAvaliacao = ({
                   >
                     <FaExchangeAlt /> <span>Trocar</span>
                   </button>
-                </div>
-              ) : (
-                /* Campo de Busca de Jogo */
-                <div className="input-search-wrapper">
-                  <FaSearch className="search-icon" />
-                  <input
-                    type="text"
-                    id="jogoSearch"
-                    placeholder="Pesquise o jogo para avaliar..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setShowSuggestions(true);
-                    }}
-                    onFocus={() => setShowSuggestions(true)}
-                    autoComplete="off"
-                    required={!avaliacao.jogoId}
-                  />
-                  {searchTerm && (
-                    <button 
-                      type="button" 
-                      className="search-clear-btn" 
-                      onClick={() => setSearchTerm('')}
-                    >
-                      <FaTimes />
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
+            ) : (
+              /* Campo de Busca de Jogo (Apenas quando não estiver travado) */
+              <div className="input-search-wrapper">
+                <FaSearch className="search-icon" />
+                <input
+                  type="text"
+                  id="jogoSearch"
+                  placeholder="Pesquise o jogo para avaliar..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  autoComplete="off"
+                  required={!avaliacao.jogoId}
+                />
+                {searchTerm && (
+                  <button 
+                    type="button" 
+                    className="search-clear-btn" 
+                    onClick={() => setSearchTerm('')}
+                  >
+                    <FaTimes />
+                  </button>
+                )}
+              </div>
+            )}
 
-              {/* Lista de Sugestões / Dropdown */}
-              {!avaliacao.jogoId && showSuggestions && (
-                <ul className="modal-suggestions-list">
-                  {filteredJogos.length > 0 ? (
-                    filteredJogos.map((jogo) => (
-                      <li 
-                        key={jogo.jogoId || jogo.id} 
-                        onClick={() => handleSelectGame(jogo)}
-                        className="suggestion-item"
-                      >
-                        <img 
-                          src={jogo.imagem || jogo.foto || "/game-images/default_game_cover.png"} 
-                          alt={jogo.titulo || jogo.nome}
-                          className="suggestion-thumb" 
-                        />
-                        <div className="suggestion-info">
-                          <strong>{jogo.titulo || jogo.nome}</strong>
-                          <span>
-                            {jogo.dataLancamento ? String(jogo.dataLancamento).substring(0, 4) : ''} 
-                            {jogo.nomeEmpresa ? ` • ${jogo.nomeEmpresa}` : ''}
-                          </span>
-                        </div>
-                      </li>
-                    ))
-                  ) : (
-                    <li className="modal-no-suggestions">
-                      Nenhum jogo encontrado com "{searchTerm}".
+            {/* Lista de Sugestões / Dropdown (apenas no modo busca livre) */}
+            {!lockGame && !isEditing && !avaliacao.jogoId && showSuggestions && (
+              <ul className="modal-suggestions-list">
+                {filteredJogos.length > 0 ? (
+                  filteredJogos.map((jogo) => (
+                    <li 
+                      key={jogo.jogoId || jogo.id} 
+                      onClick={() => handleSelectGame(jogo)}
+                      className="suggestion-item"
+                    >
+                      <img 
+                        src={jogo.imagem || jogo.foto || "/game-images/default_game_cover.png"} 
+                        alt={jogo.titulo || jogo.nome}
+                        className="suggestion-thumb" 
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "/game-images/default_game_cover.png";
+                        }}
+                      />
+                      <div className="suggestion-info">
+                        <strong>{jogo.titulo || jogo.nome}</strong>
+                        <span>
+                          {jogo.dataLancamento ? String(jogo.dataLancamento).substring(0, 4) : ''} 
+                          {jogo.nomeEmpresa ? ` • ${jogo.nomeEmpresa}` : ''}
+                        </span>
+                      </div>
                     </li>
-                  )}
-                </ul>
-              )}
-            </div>
-          ) : (
-            <div className="modal-form-group">
-              <label>Jogo</label>
-              <input 
-                type="text" 
-                value={searchTerm || 'Jogo selecionado'} 
-                disabled 
-                className="input-disabled" 
-              />
-            </div>
-          )}
+                  ))
+                ) : (
+                  <li className="modal-no-suggestions">
+                    Nenhum jogo encontrado com "{searchTerm}".
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
 
           {/* Seleção de Nota */}
           <div className="modal-form-group">

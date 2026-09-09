@@ -1,3 +1,6 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+
 namespace GameLog_Backend.DTOs
 {
     public class AvaliacaoDTO
@@ -22,14 +25,24 @@ namespace GameLog_Backend.DTOs
 
     public class CriarAvaliacaoDTO
     {
+        [Required(ErrorMessage = "A nota é obrigatória.")]
+        [Range(1, 5, ErrorMessage = "A nota da avaliação deve estar entre 1 e 5 estrelas.")]
         public int Nota { get; set; }
+
+        [Required(ErrorMessage = "O jogo é obrigatório.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Identificador de jogo inválido.")]
         public int JogoId { get; set; }
+
+        [MaxLength(500, ErrorMessage = "A análise pode ter no máximo 500 caracteres.")]
         public string TextoAvaliacao { get; set; } = string.Empty;
     }
 
     public class EditarAvaliacaoDTO
     {
+        [Range(1, 5, ErrorMessage = "A nota da avaliação deve estar entre 1 e 5 estrelas.")]
         public int? Nota { get; set; }
+
+        [MaxLength(500, ErrorMessage = "A análise pode ter no máximo 500 caracteres.")]
         public string? TextoAvaliacao { get; set; }
     }
 
@@ -49,6 +62,8 @@ namespace GameLog_Backend.DTOs
 
     public class CriarRespostaDTO
     {
+        [Required(ErrorMessage = "O comentário não pode ser vazio.")]
+        [MaxLength(500, ErrorMessage = "O comentário pode ter no máximo 500 caracteres.")]
         public string Comentario { get; set; } = string.Empty;
     }
 }

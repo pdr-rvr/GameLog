@@ -103,6 +103,10 @@ const PodioFavoritos = ({ favoritos = [], isOwner = false, onEditar }) => {
                         className="podio-poster-img"
                         loading="eager"
                         decoding="async"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "/game-images/default_game_cover.png";
+                        }}
                       />
                       <div className="podio-poster-overlay">
                         <span className="overlay-titulo">{item.tituloJogo}</span>

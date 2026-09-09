@@ -85,10 +85,127 @@
     filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4));
 }
 
-.jogo-biblioteca-seletor-wrapper {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
+/* Barra de Ações Integrada (Biblioteca + Avaliação) */
+.jogo-acoes-container {
+    margin-top: 1rem;
+    padding-top: 1rem;
     border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.jogo-biblioteca-seletor-wrapper {
+    flex-shrink: 0;
+}
+
+.jogo-avaliar-btn-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.btn-avaliar-jogo-principal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.15));
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    color: #fbbf24;
+    padding: 0.55rem 1.15rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+}
+
+.btn-avaliar-jogo-principal:hover {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(217, 119, 6, 0.25));
+    border-color: #f59e0b;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+}
+
+.btn-avaliar-jogo-principal .star-btn-icon {
+    font-size: 0.95rem;
+    color: #f59e0b;
+}
+
+.minha-avaliacao-status-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+}
+
+.minha-nota-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: #f8fafc;
+}
+
+.minha-nota-tag strong {
+    color: #fbbf24;
+}
+
+.btn-editar-minha-avaliacao {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #94a3b8;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-editar-minha-avaliacao:hover {
+    background: rgba(109, 40, 217, 0.3);
+    border-color: #6d28d9;
+    color: #38bdf8;
+}
+
+.no-avaliations-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+    padding: 1.5rem 0;
+}
+
+.btn-seja-o-primeiro-avaliar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #6d28d9, #4f46e5);
+    border: 1px solid rgba(109, 40, 217, 0.6);
+    color: #ffffff;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(109, 40, 217, 0.3);
+    transition: all 0.2s ease;
+}
+
+.btn-seja-o-primeiro-avaliar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(109, 40, 217, 0.45);
+    filter: brightness(1.1);
 }
 
 .jogo-empresa-link {

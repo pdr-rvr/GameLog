@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import JogoCard from "../../components/JogoCard/JogoCard";
@@ -31,10 +31,21 @@ function PaginaJogos() {
 
     // Filter states
     const [termoPesquisa, setTermoPesquisa] = useState(searchParams.get("q") || "");
+    const [buscaAtiva, setBuscaAtiva] = useState(searchParams.get("q") || "");
     const [generoSelecionado, setGeneroSelecionado] = useState(searchParams.get("genero") || "");
     const [anoSelecionado, setAnoSelecionado] = useState(searchParams.get("ano") || "");
     const [empresaSelecionada, setEmpresaSelecionada] = useState(searchParams.get("empresa") || "");
     const [ordenacao, setOrdenacao] = useState(searchParams.get("ordem") || "melhores");
+
+    const debounceTimerRef = useRef(null);
+
+    useEffect(() => {
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
+    }, []);
 
     // Dynamic filter options
     const [generosDisponiveis, setGenerosDisponiveis] = useState([]);
@@ -89,7 +100,7 @@ function PaginaJogos() {
             const res = await buscarJogosPaginados({
                 pagina: paginaAtual,
                 itensPorPagina: ITENS_POR_PAGINA,
-                busca: termoPesquisa,
+                busca: buscaAtiva,
                 genero: generoSelecionado,
                 ano: anoSelecionado ? parseInt(anoSelecionado, 10) : null,
                 empresa: empresaSelecionada,
@@ -105,7 +116,7 @@ function PaginaJogos() {
         } finally {
             setLoading(false);
         }
-    }, [paginaAtual, termoPesquisa, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao]);
+    }, [paginaAtual, buscaAtiva, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao]);
 
     useEffect(() => {
         carregarJogos();
@@ -114,43 +125,63 @@ function PaginaJogos() {
     const handleSearchChange = (e) => {
         const val = e.target.value;
         setTermoPesquisa(val);
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+        debounceTimerRef.current = setTimeout(() => {
+            setPaginaAtual(1);
+            setBuscaAtiva(val);
+            atualizarUrl(1, val, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao);
+        }, 300);
+    };
+
+    const handleLimparBusca = () => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+        setTermoPesquisa("");
+        setBuscaAtiva("");
         setPaginaAtual(1);
-        atualizarUrl(1, val, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao);
+        atualizarUrl(1, "", generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao);
     };
 
     const handleGeneroChange = (val) => {
         setGeneroSelecionado(val);
         setPaginaAtual(1);
-        atualizarUrl(1, termoPesquisa, val, anoSelecionado, empresaSelecionada, ordenacao);
+        atualizarUrl(1, buscaAtiva, val, anoSelecionado, empresaSelecionada, ordenacao);
     };
 
     const handleAnoChange = (val) => {
         setAnoSelecionado(val);
         setPaginaAtual(1);
-        atualizarUrl(1, termoPesquisa, generoSelecionado, val, empresaSelecionada, ordenacao);
+        atualizarUrl(1, buscaAtiva, generoSelecionado, val, empresaSelecionada, ordenacao);
     };
 
     const handleEmpresaChange = (val) => {
         setEmpresaSelecionada(val);
         setPaginaAtual(1);
-        atualizarUrl(1, termoPesquisa, generoSelecionado, anoSelecionado, val, ordenacao);
+        atualizarUrl(1, buscaAtiva, generoSelecionado, anoSelecionado, val, ordenacao);
     };
 
     const handleOrdenacaoChange = (val) => {
         setOrdenacao(val);
         setPaginaAtual(1);
-        atualizarUrl(1, termoPesquisa, generoSelecionado, anoSelecionado, empresaSelecionada, val);
+        atualizarUrl(1, buscaAtiva, generoSelecionado, anoSelecionado, empresaSelecionada, val);
     };
 
     const handleMudarPagina = (novaPagina) => {
         if (novaPagina < 1 || novaPagina > totalPaginas || novaPagina === paginaAtual) return;
         setPaginaAtual(novaPagina);
-        atualizarUrl(novaPagina, termoPesquisa, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao);
+        atualizarUrl(novaPagina, buscaAtiva, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const limparFiltros = () => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
         setTermoPesquisa("");
+        setBuscaAtiva("");
         setGeneroSelecionado("");
         setAnoSelecionado("");
         setEmpresaSelecionada("");
@@ -233,11 +264,7 @@ function PaginaJogos() {
                             <button
                                 type="button"
                                 className="btn-limpar-busca"
-                                onClick={() => {
-                                    setTermoPesquisa("");
-                                    setPaginaAtual(1);
-                                    atualizarUrl(1, "", generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao);
-                                }}
+                                onClick={handleLimparBusca}
                             >
                                 <FaTimes />
                             </button>

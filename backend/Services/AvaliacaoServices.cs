@@ -388,10 +388,21 @@ namespace GameLog_Backend.Services
         public async Task<bool> DeletarResposta(int respostaId, int usuarioId)
         {
             var resposta = await _context.RespostasDeAvaliacao
-                .FirstOrDefaultAsync(r => r.Id == respostaId && r.UsuarioId == usuarioId && r.EstaAtivo);
+                .Include(r => r.Avaliacao)
+                    .ThenInclude(a => a.Usuario)
+                .FirstOrDefaultAsync(r => r.Id == respostaId && r.EstaAtivo);
 
             if (resposta == null)
                 return false;
+
+            // Permitir se for o autor do comentário OU o dono da avaliação (poder de moderação)
+            var isAutorResposta = resposta.UsuarioId == usuarioId;
+            var isDonoAvaliacao = resposta.Avaliacao != null && resposta.Avaliacao.Usuario != null && resposta.Avaliacao.Usuario.Id == usuarioId;
+
+            if (!isAutorResposta && !isDonoAvaliacao)
+            {
+                return false;
+            }
 
             resposta.EstaAtivo = false;
             await _context.SaveChangesAsync();
