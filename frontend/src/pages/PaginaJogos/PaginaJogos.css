@@ -2,72 +2,314 @@
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background-color: #0f172a;
-    color: #f8fafc;
+    background-color: var(--bg-main, #070913);
+    color: var(--text-primary, #f8fafc);
 }
 
 .pagina-jogos-content {
     flex-grow: 1;
-    padding: 2rem 5%;
-    max-width: 1400px;
+    padding: 2.5rem 1.5rem 4rem;
+    max-width: 1300px;
     margin: 0 auto;
     width: 100%;
+    box-sizing: border-box;
 }
 
-.pagina-jogos-titulo {
-    font-size: 2.2rem;
-    color: #38bdf8;
-    margin-bottom: 2rem;
+/* Header */
+.pagina-jogos-header {
     text-align: center;
-}
-
-.filtros-secao {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
     margin-bottom: 2.5rem;
-    justify-content: center;
+    display: flex;
+    flex-direction: column;
     align-items: center;
 }
 
-.filtro-input, .filtro-select {
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    border: 1px solid #334155;
-    background-color: #1e293b;
+.catalogo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(109, 40, 217, 0.2);
+    color: var(--accent-purple-light, #a78bfa);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+}
+
+.pagina-jogos-titulo {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.03em;
+    margin: 0 0 0.5rem 0;
+}
+
+.pagina-jogos-subtitulo {
+    color: var(--text-muted, #94a3b8);
+    font-size: 1.05rem;
+    max-width: 580px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Card de Filtros */
+.filtros-card {
+    background: var(--bg-card, #0d1222);
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+    border-radius: var(--radius-lg, 16px);
+    padding: 1.5rem 1.75rem;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    backdrop-filter: blur(16px);
+}
+
+.filtro-busca-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.filtro-busca-icon {
+    position: absolute;
+    left: 16px;
+    color: var(--text-muted, #64748b);
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.filtro-input-busca {
+    width: 100%;
+    padding: 0.85rem 2.8rem 0.85rem 2.8rem;
+    border-radius: var(--radius-md, 10px);
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.12));
+    background-color: rgba(7, 9, 19, 0.7);
     color: #f8fafc;
     font-size: 0.95rem;
     outline: none;
-    transition: border-color 0.2s;
+    transition: all 0.2s ease;
 }
 
-.filtro-busca {
-    min-width: 280px;
-    flex-grow: 1;
-    max-width: 450px;
+.filtro-input-busca:focus {
+    border-color: var(--accent-purple-light, #a78bfa);
+    box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.25);
+    background-color: #0b0f19;
 }
 
-.filtro-input:focus, .filtro-select:focus {
-    border-color: #38bdf8;
-}
-
-.btn-limpar-filtros {
-    padding: 0.75rem 1.25rem;
-    border-radius: 8px;
-    background-color: #e11d48;
-    color: #ffffff;
+.btn-limpar-busca {
+    position: absolute;
+    right: 14px;
+    background: none;
     border: none;
+    color: var(--text-muted, #94a3b8);
+    font-size: 1.3rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    transition: color 0.15s ease;
+}
+
+.btn-limpar-busca:hover {
+    color: #ffffff;
+}
+
+/* Grid de Seletores */
+.filtros-seletores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.filtro-select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filtro-select-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.filtro-select-group label svg {
+    color: var(--accent-purple-light, #a78bfa);
+}
+
+.filtro-select-modern {
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm, 8px);
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
+    background-color: rgba(7, 9, 19, 0.7);
+    color: #f8fafc;
+    font-size: 0.92rem;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filtro-select-modern:focus {
+    border-color: var(--accent-purple-light, #a78bfa);
+    box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.25);
+}
+
+.filtro-select-modern option {
+    background-color: #0d1222;
+    color: #f8fafc;
+}
+
+.filtros-actions-bar {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.06));
+}
+
+.btn-limpar-filtros-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.55rem 1.1rem;
+    border-radius: var(--radius-sm, 8px);
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
 }
 
-.btn-limpar-filtros:hover {
-    background-color: #be123c;
+.btn-limpar-filtros-modern:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: #ef4444;
+    color: #ffffff;
 }
 
-.jogos-grid {
+/* Status Bar */
+.catalogo-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.88rem;
+}
+
+.resultados-contagem strong {
+    color: var(--accent-cyan, #38bdf8);
+    font-size: 1rem;
+}
+
+/* Grid de Jogos */
+.jogos-grid-modern {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.75rem;
+}
+
+/* Loading & Empty States */
+.catalogo-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 350px;
+    gap: 1rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.catalogo-spinner {
+    width: 44px;
+    height: 44px;
+    border: 4px solid rgba(139, 92, 246, 0.2);
+    border-top-color: var(--accent-purple-light, #a78bfa);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.no-games-found {
+    background: var(--bg-card, #0d1222);
+    border: 1px dashed var(--border-glass, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-lg, 16px);
+    padding: 4rem 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.no-games-found .empty-icon {
+    font-size: 3rem;
+    color: var(--text-muted, #64748b);
+    opacity: 0.4;
+}
+
+.no-games-found h3 {
+    color: #ffffff;
+    font-size: 1.25rem;
+    margin: 0;
+}
+
+.no-games-found p {
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.btn-reset-filters {
+    margin-top: 0.5rem;
+    padding: 0.65rem 1.4rem;
+    background: var(--accent-gradient-purple, linear-gradient(135deg, #6d28d9, #4c1d95));
+    border: none;
+    border-radius: var(--radius-sm, 8px);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(109, 40, 217, 0.35);
+    transition: all 0.2s ease;
+}
+
+.btn-reset-filters:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(109, 40, 217, 0.5);
+}
+
+@media (max-width: 768px) {
+    .pagina-jogos-content {
+        padding: 1.5rem 1rem 3rem;
+    }
+
+    .pagina-jogos-titulo {
+        font-size: 1.9rem;
+    }
+
+    .filtros-seletores-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .jogos-grid-modern {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 1rem;
+    }
 }
