@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using AutoMapper;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
@@ -21,7 +25,7 @@ namespace GameLog_Backend.Services
         {
             var jogo = await _context.Jogos.FindAsync(jogoId);
             if (jogo == null || !jogo.EstaAtivo)
-                throw new Exception("Jogo não encontrado");
+                throw new KeyNotFoundException("Jogo não encontrado.");
             return jogo;
         }
 
@@ -29,23 +33,29 @@ namespace GameLog_Backend.Services
         {
             var avaliacaoExistente = await _context.Avaliacoes
                 .AnyAsync(a => a.Usuario.Id == usuarioId &&
-                              a.Jogo.Id == jogoId &&
-                              a.EstaAtivo);
+                               a.Jogo.Id == jogoId &&
+                               a.EstaAtivo);
 
             if (avaliacaoExistente)
-                throw new Exception("Você já possui uma avaliação ativa para este jogo");
+                throw new InvalidOperationException("Você já possui uma avaliação ativa para este jogo.");
         }
 
         public async Task<AvaliacaoDTO> CriarAvaliacao(CriarAvaliacaoDTO avaliacaoDTO, int usuarioId)
         {
+            if (avaliacaoDTO.Nota < 1 || avaliacaoDTO.Nota > 5)
+            {
+                throw new ArgumentException("A nota da avaliação deve estar entre 1 e 5 estrelas.");
+            }
+
             var jogo = await VerificarJogoExiste(avaliacaoDTO.JogoId);
             await VerificarAvaliacaoDuplicada(usuarioId, avaliacaoDTO.JogoId);
 
             var usuario = await _context.Usuarios.FindAsync(usuarioId);
             if (usuario == null || !usuario.EstaAtivo)
-                throw new Exception("Usuário não encontrado");
+                throw new KeyNotFoundException("Usuário não encontrado.");
 
             var avaliacao = _mapper.Map<Avaliacao>(avaliacaoDTO);
+            avaliacao.TextoAvaliacao = avaliacaoDTO.TextoAvaliacao?.Trim() ?? string.Empty;
             avaliacao.DataPublicacao = DateTime.UtcNow;
             avaliacao.EstaAtivo = true;
             avaliacao.Jogo = jogo;
@@ -60,6 +70,7 @@ namespace GameLog_Backend.Services
         public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoes(int? usuarioId = null)
         {
             return await _context.Avaliacoes
+                .AsNoTracking()
                 .Where(a => a.EstaAtivo)
                 .OrderByDescending(a => a.DataPublicacao)
                 .Select(a => new AvaliacaoDTO
@@ -87,6 +98,7 @@ namespace GameLog_Backend.Services
         public async Task<AvaliacaoDTO?> ObterAvaliacaoPorId(int id, int? usuarioId = null)
         {
             return await _context.Avaliacoes
+                .AsNoTracking()
                 .Where(a => a.Id == id && a.EstaAtivo)
                 .Select(a => new AvaliacaoDTO
                 {
@@ -113,6 +125,7 @@ namespace GameLog_Backend.Services
         public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorUsuario(int usuarioId, int? usuarioSolicitanteId = null)
         {
             return await _context.Avaliacoes
+                .AsNoTracking()
                 .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
                 .OrderByDescending(a => a.DataPublicacao)
                 .Select(a => new AvaliacaoDTO
@@ -140,6 +153,7 @@ namespace GameLog_Backend.Services
         public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorJogo(int jogoId, int? usuarioId = null)
         {
             return await _context.Avaliacoes
+                .AsNoTracking()
                 .Where(a => a.Jogo.Id == jogoId && a.EstaAtivo)
                 .OrderByDescending(a => a.DataPublicacao)
                 .Select(a => new AvaliacaoDTO
@@ -168,13 +182,26 @@ namespace GameLog_Backend.Services
         {
             var avaliacao = await _context.Avaliacoes
                 .FirstOrDefaultAsync(a => a.Id == id &&
-                                        a.Usuario.Id == usuarioId &&
-                                        a.EstaAtivo);
+                                          a.Usuario.Id == usuarioId &&
+                                          a.EstaAtivo);
 
             if (avaliacao == null)
                 return null;
 
-            _mapper.Map(avaliacaoDTO, avaliacao);
+            if (avaliacaoDTO.Nota.HasValue)
+            {
+                if (avaliacaoDTO.Nota.Value < 1 || avaliacaoDTO.Nota.Value > 5)
+                {
+                    throw new ArgumentException("A nota deve estar entre 1 e 5.");
+                }
+                avaliacao.Nota = avaliacaoDTO.Nota.Value;
+            }
+
+            if (avaliacaoDTO.TextoAvaliacao != null)
+            {
+                avaliacao.TextoAvaliacao = avaliacaoDTO.TextoAvaliacao.Trim();
+            }
+
             await _context.SaveChangesAsync();
 
             return await ObterAvaliacaoDto(avaliacao.Id, usuarioId);
@@ -184,8 +211,8 @@ namespace GameLog_Backend.Services
         {
             var avaliacao = await _context.Avaliacoes
                 .FirstOrDefaultAsync(a => a.Id == id &&
-                                        a.Usuario.Id == usuarioId &&
-                                        a.EstaAtivo);
+                                          a.Usuario.Id == usuarioId &&
+                                          a.EstaAtivo);
 
             if (avaliacao == null)
                 return false;
@@ -199,6 +226,7 @@ namespace GameLog_Backend.Services
         private async Task<AvaliacaoDTO> ObterAvaliacaoDto(int id, int? usuarioId = null)
         {
             return await _context.Avaliacoes
+                .AsNoTracking()
                 .Where(a => a.Id == id)
                 .Select(a => new AvaliacaoDTO
                 {
@@ -229,7 +257,7 @@ namespace GameLog_Backend.Services
                 .FirstOrDefaultAsync(a => a.Id == avaliacaoId && a.EstaAtivo);
 
             if (avaliacao == null)
-                throw new Exception("Avaliação não encontrada");
+                throw new KeyNotFoundException("Avaliação não encontrada.");
 
             if (avaliacao.Usuario.Id == usuarioId)
                 throw new InvalidOperationException("Você não pode curtir sua própria avaliação.");
@@ -259,43 +287,6 @@ namespace GameLog_Backend.Services
             await _context.SaveChangesAsync();
             var total = await ContarCurtidas(avaliacaoId);
             return (novoEstadoCurtida, total);
-        }
-
-        public async Task<bool> AdicionarCurtida(int avaliacaoId, int usuarioId)
-        {
-            var avaliacao = await _context.Avaliacoes
-                .Include(a => a.Usuario)
-                .FirstOrDefaultAsync(a => a.Id == avaliacaoId && a.EstaAtivo);
-
-            if (avaliacao == null) return false;
-            if (avaliacao.Usuario.Id == usuarioId)
-                throw new InvalidOperationException("Você não pode curtir sua própria avaliação.");
-
-            var curtidaExistente = await _context.CurtidasDeAvaliacoes
-                .FirstOrDefaultAsync(c => c.AvaliacaoId == avaliacaoId && c.UsuarioId == usuarioId);
-
-            if (curtidaExistente != null)
-            {
-                if (curtidaExistente.EstaAtivo && curtidaExistente.Curtida) return false;
-                curtidaExistente.EstaAtivo = true;
-                curtidaExistente.Curtida = true;
-            }
-            else
-            {
-                var usuario = await _context.Usuarios.FindAsync(usuarioId);
-                if (usuario == null) return false;
-
-                _context.CurtidasDeAvaliacoes.Add(new CurtidaDeAvaliacao
-                {
-                    AvaliacaoId = avaliacaoId,
-                    UsuarioId = usuarioId,
-                    Curtida = true,
-                    EstaAtivo = true
-                });
-            }
-
-            await _context.SaveChangesAsync();
-            return true;
         }
 
         public async Task<bool> RemoverCurtida(int avaliacaoId, int usuarioId)
@@ -331,19 +322,25 @@ namespace GameLog_Backend.Services
             if (string.IsNullOrWhiteSpace(dto.Comentario))
                 throw new ArgumentException("O comentário não pode ser vazio.");
 
+            var comentario = dto.Comentario.Trim();
+            if (comentario.Length > 500)
+            {
+                throw new ArgumentException("O comentário pode ter no máximo 500 caracteres.");
+            }
+
             var avaliacao = await _context.Avaliacoes.FirstOrDefaultAsync(a => a.Id == avaliacaoId && a.EstaAtivo);
             if (avaliacao == null)
-                throw new Exception("Avaliação não encontrada");
+                throw new KeyNotFoundException("Avaliação não encontrada.");
 
             var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId && u.EstaAtivo);
             if (usuario == null)
-                throw new Exception("Usuário não encontrado");
+                throw new KeyNotFoundException("Usuário não encontrado.");
 
             var resposta = new RespostaDeAvaliacao
             {
                 AvaliacaoId = avaliacaoId,
                 UsuarioId = usuarioId,
-                Comentario = dto.Comentario.Trim(),
+                Comentario = comentario,
                 DataCriacao = DateTime.UtcNow,
                 EstaAtivo = true
             };
@@ -369,6 +366,7 @@ namespace GameLog_Backend.Services
         public async Task<IEnumerable<RespostaDeAvaliacaoDTO>> ListarRespostasPorAvaliacao(int avaliacaoId, int? usuarioId = null)
         {
             return await _context.RespostasDeAvaliacao
+                .AsNoTracking()
                 .Where(r => r.AvaliacaoId == avaliacaoId && r.EstaAtivo)
                 .OrderBy(r => r.DataCriacao)
                 .Select(r => new RespostaDeAvaliacaoDTO
@@ -406,7 +404,7 @@ namespace GameLog_Backend.Services
                 .FirstOrDefaultAsync(r => r.Id == respostaId && r.EstaAtivo);
 
             if (resposta == null)
-                throw new Exception("Resposta não encontrada");
+                throw new KeyNotFoundException("Resposta não encontrada.");
 
             if (resposta.UsuarioId == usuarioId)
                 throw new InvalidOperationException("Você não pode curtir seu próprio comentário.");

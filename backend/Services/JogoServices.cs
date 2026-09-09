@@ -19,11 +19,33 @@ namespace GameLog_Backend.Services
 
         public async Task<IEnumerable<JogoDTO>> ListarJogos()
         {
-            return await _context.Jogos
+            var jogos = await _context.Jogos
+                .AsNoTracking()
                 .Where(j => j.EstaAtivo)
                 .Include(j => j.Generos)
                 .Include(j => j.Empresa)
-                .Select(j => new JogoDTO
+                .ToListAsync();
+
+            if (!jogos.Any())
+                return Enumerable.Empty<JogoDTO>();
+
+            // Otimização em lote: 1 query de agregação para todas as avaliações ativas
+            var stats = await _context.Avaliacoes
+                .AsNoTracking()
+                .Where(a => a.EstaAtivo)
+                .GroupBy(a => a.Jogo.Id)
+                .Select(g => new
+                {
+                    JogoId = g.Key,
+                    Media = g.Average(x => (double)x.Nota),
+                    Total = g.Count()
+                })
+                .ToDictionaryAsync(x => x.JogoId);
+
+            return jogos.Select(j =>
+            {
+                stats.TryGetValue(j.Id, out var s);
+                return new JogoDTO
                 {
                     JogoId = j.Id,
                     Titulo = j.Titulo,
@@ -31,17 +53,14 @@ namespace GameLog_Backend.Services
                     Imagem = j.Imagem,
                     DataLancamento = j.DataLancamento,
                     ClassificacaoIndicativa = j.ClassificacaoIndicativa,
-                    EmpresaId = j.Empresa.Id,
-                    NomeEmpresa = j.Empresa.NomeEmpresa,
+                    EmpresaId = j.Empresa?.Id ?? 0,
+                    NomeEmpresa = j.Empresa?.NomeEmpresa ?? string.Empty,
                     EstaAtivo = j.EstaAtivo,
                     Generos = j.Generos.Select(g => g.TituloGenero).ToList(),
-                    MediaAvaliacoes = _context.Avaliacoes
-                        .Where(a => a.Jogo.Id == j.Id && a.EstaAtivo)
-                        .Average(a => (double?)a.Nota),
-                    TotalAvaliacoes = _context.Avaliacoes
-                        .Count(a => a.Jogo.Id == j.Id && a.EstaAtivo)
-                })
-                .ToListAsync();
+                    MediaAvaliacoes = s != null ? s.Media : null,
+                    TotalAvaliacoes = s?.Total ?? 0
+                };
+            }).ToList();
         }
 
         public async Task<PagedResult<JogoDTO>> ListarJogosPaginados(
@@ -57,11 +76,12 @@ namespace GameLog_Backend.Services
             itensPorPagina = Math.Clamp(itensPorPagina, 1, 100);
 
             var query = _context.Jogos
+                .AsNoTracking()
                 .Include(j => j.Generos)
                 .Include(j => j.Empresa)
                 .Where(j => j.EstaAtivo);
 
-            // Filtros
+            // Filtros com sanitização
             if (!string.IsNullOrWhiteSpace(busca))
             {
                 var termo = busca.Trim().ToLower();
@@ -72,7 +92,8 @@ namespace GameLog_Backend.Services
 
             if (!string.IsNullOrWhiteSpace(genero))
             {
-                query = query.Where(j => j.Generos.Any(g => g.TituloGenero.ToLower() == genero.Trim().ToLower()));
+                var generoTerm = genero.Trim().ToLower();
+                query = query.Where(j => j.Generos.Any(g => g.TituloGenero.ToLower() == generoTerm));
             }
 
             if (ano.HasValue)
@@ -82,7 +103,8 @@ namespace GameLog_Backend.Services
 
             if (!string.IsNullOrWhiteSpace(empresa))
             {
-                query = query.Where(j => j.Empresa != null && j.Empresa.NomeEmpresa.ToLower() == empresa.Trim().ToLower());
+                var empresaTerm = empresa.Trim().ToLower();
+                query = query.Where(j => j.Empresa != null && j.Empresa.NomeEmpresa.ToLower() == empresaTerm);
             }
 
             var totalItens = await query.CountAsync();
@@ -108,7 +130,7 @@ namespace GameLog_Backend.Services
             });
 
             // Ordenação
-            jogosQuery = ordenacao.ToLower() switch
+            jogosQuery = (ordenacao ?? "melhores").ToLower() switch
             {
                 "recentes" => jogosQuery.OrderByDescending(j => j.DataLancamento),
                 "antigos" => jogosQuery.OrderBy(j => j.DataLancamento),
@@ -127,34 +149,47 @@ namespace GameLog_Backend.Services
 
         public async Task<JogoDTO?> ObterJogoPorId(int id)
         {
-            return await _context.Jogos
+            var jogo = await _context.Jogos
+                .AsNoTracking()
                 .Where(j => j.Id == id && j.EstaAtivo)
                 .Include(j => j.Generos)
                 .Include(j => j.Empresa)
-                .Select(j => new JogoDTO
+                .FirstOrDefaultAsync();
+
+            if (jogo == null) return null;
+
+            var stats = await _context.Avaliacoes
+                .AsNoTracking()
+                .Where(a => a.Jogo.Id == id && a.EstaAtivo)
+                .GroupBy(a => a.Jogo.Id)
+                .Select(g => new
                 {
-                    JogoId = j.Id,
-                    Titulo = j.Titulo,
-                    Descricao = j.Descricao,
-                    Imagem = j.Imagem,
-                    DataLancamento = j.DataLancamento,
-                    ClassificacaoIndicativa = j.ClassificacaoIndicativa,
-                    EmpresaId = j.Empresa.Id,
-                    NomeEmpresa = j.Empresa.NomeEmpresa,
-                    EstaAtivo = j.EstaAtivo,
-                    Generos = j.Generos.Select(g => g.TituloGenero).ToList(),
-                    MediaAvaliacoes = _context.Avaliacoes
-                        .Where(a => a.Jogo.Id == j.Id && a.EstaAtivo)
-                        .Average(a => (double?)a.Nota),
-                    TotalAvaliacoes = _context.Avaliacoes
-                        .Count(a => a.Jogo.Id == j.Id && a.EstaAtivo)
+                    Media = g.Average(x => (double)x.Nota),
+                    Total = g.Count()
                 })
                 .FirstOrDefaultAsync();
+
+            return new JogoDTO
+            {
+                JogoId = jogo.Id,
+                Titulo = jogo.Titulo,
+                Descricao = jogo.Descricao,
+                Imagem = jogo.Imagem,
+                DataLancamento = jogo.DataLancamento,
+                ClassificacaoIndicativa = jogo.ClassificacaoIndicativa,
+                EmpresaId = jogo.Empresa?.Id ?? 0,
+                NomeEmpresa = jogo.Empresa?.NomeEmpresa ?? string.Empty,
+                EstaAtivo = jogo.EstaAtivo,
+                Generos = jogo.Generos.Select(g => g.TituloGenero).ToList(),
+                MediaAvaliacoes = stats?.Media,
+                TotalAvaliacoes = stats?.Total ?? 0
+            };
         }
 
         public async Task<IEnumerable<JogoDTO>> ListarTop10JogosMelhorAvaliados()
         {
             return await _context.Avaliacoes
+                .AsNoTracking()
                 .Where(a => a.EstaAtivo && a.Jogo.EstaAtivo)
                 .GroupBy(a => a.Jogo)
                 .Select(g => new JogoDTO

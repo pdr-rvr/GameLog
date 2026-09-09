@@ -2,6 +2,7 @@ using System.Text;
 using DotNetEnv;
 using GameLog_Backend.Configurations;
 using GameLog_Backend.Database;
+using GameLog_Backend.Middlewares;
 using GameLog_Backend.Profiles;
 using GameLog_Backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -21,6 +22,12 @@ var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "GameLog";
 var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "GameLog123!@#";
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? "GameLogSuperSecretKeyDefault1234567890!";
+
+// Garantir tamanho mínimo de 256 bits (32 bytes) para algoritmo HMAC-SHA256
+if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+{
+    jwtSecret = "GameLogSuperSecretKeyDefault1234567890!SecureLongKey256Bit";
+}
 
 var baseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? "Server={DB_SERVER};Database={DB_NAME};User ID={DB_USER};Password={DB_PASSWORD};TrustServerCertificate=True;";
@@ -101,6 +108,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseCors("AllowReactApp");
 
 using (var scope = app.Services.CreateScope())

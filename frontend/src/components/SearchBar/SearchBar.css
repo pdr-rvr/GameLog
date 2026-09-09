@@ -162,7 +162,8 @@
   border: 1px solid rgba(139, 92, 246, 0.4);
 }
 
-.suggestion-empresa-fallback {
+.suggestion-empresa-fallback,
+.suggestion-lista-fallback {
   width: 38px;
   height: 38px;
   border-radius: 8px;
@@ -174,6 +175,12 @@
   justify-content: center;
   font-size: 1.05rem;
   flex-shrink: 0;
+}
+
+.suggestion-lista-fallback {
+  background: linear-gradient(135deg, rgba(109, 40, 217, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);
+  border-color: rgba(168, 85, 247, 0.4);
+  color: var(--accent-purple-light, #a78bfa);
 }
 
 .suggestion-avatar-fallback {

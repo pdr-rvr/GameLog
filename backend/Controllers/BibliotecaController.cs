@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
+using GameLog_Backend.Extensions;
 using GameLog_Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,20 +19,6 @@ namespace GameLog_Backend.Controllers
             _bibliotecaServices = bibliotecaServices;
         }
 
-        private int? GetCurrentUserId()
-        {
-            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                     ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)
-                     ?? User.FindFirst("id")?.Value
-                     ?? User.FindFirst("sub")?.Value;
-
-            if (int.TryParse(claim, out var id))
-            {
-                return id;
-            }
-            return null;
-        }
-
         /// <summary>
         /// Adiciona ou atualiza um jogo na biblioteca do usuário autenticado.
         /// </summary>
@@ -42,22 +26,9 @@ namespace GameLog_Backend.Controllers
         [Authorize]
         public async Task<IActionResult> SalvarItem([FromBody] SalvarItemBibliotecaDTO dto)
         {
-            var usuarioId = GetCurrentUserId();
-            if (!usuarioId.HasValue) return Unauthorized(new { message = "Usuário não autenticado." });
-
-            try
-            {
-                var item = await _bibliotecaServices.SalvarItemBiblioteca(usuarioId.Value, dto);
-                return Ok(item);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Erro ao salvar na biblioteca.", details = ex.Message });
-            }
+            var usuarioId = User.GetUserId();
+            var item = await _bibliotecaServices.SalvarItemBiblioteca(usuarioId, dto);
+            return Ok(item);
         }
 
         /// <summary>
@@ -67,10 +38,8 @@ namespace GameLog_Backend.Controllers
         [Authorize]
         public async Task<IActionResult> ObterStatusJogo(int jogoId)
         {
-            var usuarioId = GetCurrentUserId();
-            if (!usuarioId.HasValue) return Unauthorized(new { message = "Usuário não autenticado." });
-
-            var item = await _bibliotecaServices.ObterStatusJogo(usuarioId.Value, jogoId);
+            var usuarioId = User.GetUserId();
+            var item = await _bibliotecaServices.ObterStatusJogo(usuarioId, jogoId);
             if (item == null)
             {
                 return Ok(new { naBiblioteca = false });
@@ -86,10 +55,8 @@ namespace GameLog_Backend.Controllers
         [Authorize]
         public async Task<IActionResult> RemoverItem(int jogoId)
         {
-            var usuarioId = GetCurrentUserId();
-            if (!usuarioId.HasValue) return Unauthorized(new { message = "Usuário não autenticado." });
-
-            var sucesso = await _bibliotecaServices.RemoverDaBiblioteca(usuarioId.Value, jogoId);
+            var usuarioId = User.GetUserId();
+            var sucesso = await _bibliotecaServices.RemoverDaBiblioteca(usuarioId, jogoId);
             if (!sucesso)
             {
                 return NotFound(new { message = "Jogo não encontrado na sua biblioteca." });
@@ -138,10 +105,8 @@ namespace GameLog_Backend.Controllers
         [Authorize]
         public async Task<IActionResult> SalvarMeusFavoritos([FromBody] SalvarJogosFavoritosDTO dto)
         {
-            var usuarioId = GetCurrentUserId();
-            if (!usuarioId.HasValue) return Unauthorized(new { message = "Usuário não autenticado." });
-
-            var atualizados = await _bibliotecaServices.SalvarJogosFavoritos(usuarioId.Value, dto);
+            var usuarioId = User.GetUserId();
+            var atualizados = await _bibliotecaServices.SalvarJogosFavoritos(usuarioId, dto);
             return Ok(atualizados);
         }
     }
