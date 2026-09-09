@@ -40,7 +40,7 @@ const MinhasAvaliacoes = () => {
   }, [carregarMinhasAvaliacoes]);
 
   const handleEdit = (avaliacaoId) => {
-    navigate(`/avaliacoes/editar/${avaliacaoId}`);
+    navigate(`/avaliacoes/editar/${avaliacaoId}`, { state: { from: "/minhas-avaliacoes" } });
   };
 
   const handleDeleteRequest = (avaliacaoId) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import { fetchReviewById, updateReview } from "./actions/EditarAvaliacaoActions";
 import { useToast } from "../../context/ToastContext";
@@ -18,7 +18,10 @@ const EditarAvaliacao = () => {
   const params = useParams();
   const reviewId = params.reviewId || params.avaliacaoId || params.id;
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
+
+  const returnUrl = location.state?.from || (reviewId ? `/avaliacoes/${reviewId}` : "/minhas-avaliacoes");
 
   const [formData, setFormData] = useState({
     nomeJogo: "",
@@ -71,7 +74,7 @@ const EditarAvaliacao = () => {
         textoAvaliacao: formData.textoAvaliacao.trim()
       });
       toast.success("Avaliação atualizada com sucesso!");
-      navigate("/minhas-avaliacoes");
+      navigate(returnUrl);
     } catch (err) {
       setError(err.message || "Erro ao atualizar a avaliação.");
       toast.error(err.message || "Erro ao atualizar a avaliação.");
@@ -91,9 +94,9 @@ const EditarAvaliacao = () => {
             <button
               type="button"
               className="btn-back-link"
-              onClick={() => navigate("/minhas-avaliacoes")}
+              onClick={() => navigate(returnUrl)}
             >
-              <FaArrowLeft /> <span>Voltar para minhas avaliações</span>
+              <FaArrowLeft /> <span>{returnUrl.includes("minhas-avaliacoes") ? "Voltar para minhas avaliações" : "Voltar"}</span>
             </button>
             <h1 className="editar-title">Editar Avaliação</h1>
           </header>
@@ -178,7 +181,7 @@ const EditarAvaliacao = () => {
                 <button
                   type="button"
                   className="btn-editar-cancel"
-                  onClick={() => navigate("/minhas-avaliacoes")}
+                  onClick={() => navigate(returnUrl)}
                   disabled={submitting}
                 >
                   Cancelar

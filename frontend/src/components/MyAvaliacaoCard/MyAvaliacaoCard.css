@@ -9,6 +9,7 @@
   width: 100%;
   box-sizing: border-box;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.25s ease,
               box-shadow 0.25s ease;
@@ -163,4 +164,96 @@
   word-break: break-word;
   overflow-wrap: break-word;
   white-space: pre-line;
-}
+}
+
+/* Social Actions Bar */
+.my-review-social-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.my-review-social-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 5px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.my-review-social-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #f1f5f9;
+}
+
+.my-review-social-btn .heart-icon {
+  font-size: 0.9rem;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
+}
+
+.my-review-social-btn.like-btn:hover .heart-icon {
+  transform: scale(1.2);
+  color: #f43f5e;
+}
+
+.my-review-social-btn.like-btn.liked {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: rgba(244, 63, 94, 0.4);
+  color: #fb7185;
+}
+
+.my-review-social-btn.like-btn.liked .heart-icon.active {
+  color: #f43f5e;
+  filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.6));
+  animation: heartPop 0.3s ease-out;
+}
+
+.my-review-social-btn.like-btn.disabled-self {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.my-review-social-btn.like-btn.disabled-self:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted, #94a3b8);
+}
+
+.my-review-social-btn.like-btn.disabled-self:hover .heart-icon {
+  transform: none;
+  color: inherit;
+}
+
+.my-review-social-btn.comment-btn:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: var(--accent-cyan, #38bdf8);
+}
+
+.my-review-social-btn.comment-btn.active {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: var(--accent-cyan, #38bdf8);
+}
+
+/* Thread / Replies Section */
+.my-review-thread-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(4, 7, 15, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 4px;
+  animation: threadFadeIn 0.25s ease-out;
+}
+

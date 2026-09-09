@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/TelaLogin/TelaLogin';
 import Cadastro from './pages/TelaCadastro/TelaCadastro';
 import Home from './pages/TelaHome/TelaHome';
@@ -11,6 +11,7 @@ import PaginaEmpresa from './pages/PaginaEmpresa/PaginaEmpresa';
 import ConfiguracoesConta from './pages/ConfiguracoesConta/ConfiguracoesConta';
 import MinhasAvaliacoes from './pages/MinhasAvaliacoes/MinhasAvaliacoes';
 import EditarAvaliacao from './pages/EditarAvaliacao/EditarAvaliacao';
+import PaginaDetalhesAvaliacao from './pages/PaginaDetalhesAvaliacao/PaginaDetalhesAvaliacao';
 
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext'; 
@@ -32,6 +33,7 @@ function App() {
             <Route path="/jogos" element={<PaginaJogos />} />
             <Route path="/jogos/:jogoId" element={<TelaJogo />} />
             <Route path="/avaliacoes" element={<PaginaAvaliacoes />} />
+            <Route path="/avaliacoes/:id" element={<PaginaDetalhesAvaliacao />} />
             <Route path="/empresas/:empresaId" element={<PaginaEmpresa />} />
             <Route path="/perfil/:userId" element={<PerfilUsuario />} />
 
