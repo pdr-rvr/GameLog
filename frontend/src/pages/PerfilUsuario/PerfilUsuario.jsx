@@ -6,6 +6,7 @@ import ConfirmModal from "../../components/ConfirmModal/ConfirmModal";
 import PodioFavoritos from "../../components/PodioFavoritos/PodioFavoritos";
 import ModalEditarFavoritos from "../../components/ModalEditarFavoritos/ModalEditarFavoritos";
 import ModalCriarLista from "../../components/ModalCriarLista/ModalCriarLista";
+import ModalConexoes from "../../components/ModalConexoes/ModalConexoes";
 import BibliotecaCard from "../../components/BibliotecaCard/BibliotecaCard";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -13,6 +14,7 @@ import { fetchUserProfile, fetchUserReviews, fetchUserTopGenres } from "./action
 import { deleteReview } from "../../pages/MinhasAvaliacoes/actions/MinhasAvaliacoesActions";
 import { BibliotecaService, STATUS_JOGO } from "../../services/bibliotecaService";
 import { ListaService } from "../../services/listaService";
+import { SocialService } from "../../services/socialService";
 import { 
   FaGamepad, 
   FaStar, 
@@ -26,7 +28,10 @@ import {
   FaTimes,
   FaPlus,
   FaGlobe,
-  FaLock
+  FaLock,
+  FaUserPlus,
+  FaUserCheck,
+  FaUserFriends
 } from "react-icons/fa";
 import "./PerfilUsuario.css";
 
@@ -43,6 +48,16 @@ const PerfilUsuario = () => {
   const [error, setError] = useState("");
   const [itemParaExcluir, setItemParaExcluir] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Social Stats & Follow State
+  const [statsSociais, setStatsSociais] = useState({
+    totalSeguidores: 0,
+    totalSeguindo: 0,
+    seguidoPorMim: false
+  });
+  const [modalConexoesAberto, setModalConexoesAberto] = useState(false);
+  const [modalConexoesTab, setModalConexoesTab] = useState("seguidores");
+  const [processandoSeguir, setProcessandoSeguir] = useState(false);
 
   // Top 5 Favorites State
   const [favoritos, setFavoritos] = useState([]);
@@ -85,7 +100,7 @@ const PerfilUsuario = () => {
     setLoading(true);
     setError("");
     try {
-      const [dadosUsuario, dadosAvaliacoes, dadosGeneros, dadosFavoritos, dadosStats, dadosListas] = await Promise.all([
+      const [dadosUsuario, dadosAvaliacoes, dadosGeneros, dadosFavoritos, dadosStats, dadosListas, dadosSociais] = await Promise.all([
         fetchUserProfile(targetId),
         fetchUserReviews(targetId),
         fetchUserTopGenres(targetId),
@@ -98,7 +113,12 @@ const PerfilUsuario = () => {
           totalPausados: 0,
           totalAbandonados: 0,
         })),
-        ListaService.listarListasDoUsuario(targetId).catch(() => [])
+        ListaService.listarListasDoUsuario(targetId).catch(() => []),
+        SocialService.obterEstatisticasSociais(targetId).catch(() => ({
+          totalSeguidores: 0,
+          totalSeguindo: 0,
+          seguidoPorMim: false
+        }))
       ]);
 
       setPerfil(dadosUsuario);
@@ -107,6 +127,7 @@ const PerfilUsuario = () => {
       setFavoritos(dadosFavoritos || []);
       setStatsBiblioteca(dadosStats);
       setListas(dadosListas || []);
+      setStatsSociais(dadosSociais);
     } catch (err) {
       console.error("Erro ao carregar perfil:", err);
       setError(err.message || "Não foi possível carregar o perfil do jogador.");
@@ -161,6 +182,28 @@ const PerfilUsuario = () => {
   const mediaNotas = totalAvaliacoes > 0
     ? (avaliacoes.reduce((acc, curr) => acc + (Number(curr.nota) || 0), 0) / totalAvaliacoes).toFixed(1)
     : "0.0";
+
+  const handleToggleSeguirPerfil = async () => {
+    if (!user) {
+      toast.warning("Faça login para seguir outros jogadores.");
+      return;
+    }
+    setProcessandoSeguir(true);
+    try {
+      const res = await SocialService.alternarSeguir(targetId);
+      setStatsSociais((prev) => ({
+        ...prev,
+        seguidoPorMim: res.seguido,
+        totalSeguidores: res.totalSeguidores
+      }));
+      toast.success(res.seguido ? `Você agora está seguindo ${perfil.nomeUsuario}.` : `Você deixou de seguir ${perfil.nomeUsuario}.`);
+    } catch (err) {
+      console.error("Erro ao alterar seguir:", err);
+      toast.error(err.response?.data?.detail || err.response?.data?.message || "Erro ao atualizar relacionamento.");
+    } finally {
+      setProcessandoSeguir(false);
+    }
+  };
 
   const handleEditReview = (avaliacao) => {
     const id = avaliacao?.avaliacaoId || avaliacao?.id || avaliacao;
@@ -259,12 +302,59 @@ const PerfilUsuario = () => {
                     </span>
                   </div>
 
-                  {/* Botão de Configurações - Somente visível para o dono */}
-                  {isOwner && (
-                    <Link to="/configuracoes" className="btn-edit-settings">
-                      <FaCog /> <span>Configurações de Conta</span>
-                    </Link>
-                  )}
+                  <div className="gamer-hero-actions">
+                    {/* Botão de Seguir - Somente visível para outros perfis */}
+                    {!isOwner && user && (
+                      <button
+                        type="button"
+                        className={`btn-follow-profile ${statsSociais.seguidoPorMim ? "following" : ""}`}
+                        disabled={processandoSeguir}
+                        onClick={handleToggleSeguirPerfil}
+                      >
+                        {statsSociais.seguidoPorMim ? (
+                          <>
+                            <FaUserCheck /> <span>Seguindo</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaUserPlus /> <span>Seguir</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {/* Botão de Configurações - Somente visível para o dono */}
+                    {isOwner && (
+                      <Link to="/configuracoes" className="btn-edit-settings">
+                        <FaCog /> <span>Configurações de Conta</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contadores Sociais (Seguidores & Seguindo) */}
+                <div className="gamer-social-counters">
+                  <button
+                    type="button"
+                    className="social-counter-btn"
+                    onClick={() => {
+                      setModalConexoesTab("seguidores");
+                      setModalConexoesAberto(true);
+                    }}
+                  >
+                    <strong>{statsSociais.totalSeguidores}</strong> <span>{statsSociais.totalSeguidores === 1 ? "Seguidor" : "Seguidores"}</span>
+                  </button>
+                  <span className="counter-dot">•</span>
+                  <button
+                    type="button"
+                    className="social-counter-btn"
+                    onClick={() => {
+                      setModalConexoesTab("seguindo");
+                      setModalConexoesAberto(true);
+                    }}
+                  >
+                    <strong>{statsSociais.totalSeguindo}</strong> <span>Seguindo</span>
+                  </button>
                 </div>
 
                 {/* Bio Gamer */}
@@ -659,6 +749,18 @@ const PerfilUsuario = () => {
         onConfirm={handleConfirmRemoverBiblioteca}
         onCancel={() => setJogoParaRemoverBiblioteca(null)}
       />
+
+      {/* Modal de Conexões Sociais (Seguidores & Seguindo) */}
+      {modalConexoesAberto && (
+        <ModalConexoes
+          isOpen={modalConexoesAberto}
+          onClose={() => setModalConexoesAberto(false)}
+          usuarioId={targetId}
+          nomeUsuario={perfil?.nomeUsuario}
+          initialTab={modalConexoesTab}
+          onConexaoAlterada={carregarDadosPerfil}
+        />
+      )}
     </div>
   );
 };

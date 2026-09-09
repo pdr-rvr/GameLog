@@ -350,5 +350,265 @@ namespace GameLog_Backend.Services
 
             return recomendados;
         }
+
+        // ======================= SISTEMA SOCIAL (SEGUIR & FEED) ======================= //
+
+        public async Task<(bool Seguido, int TotalSeguidores)> AlternarSeguirUsuario(int seguidorId, int seguidoId)
+        {
+            if (seguidorId == seguidoId)
+            {
+                throw new InvalidOperationException("Você não pode seguir seu próprio perfil.");
+            }
+
+            var seguido = await _context.Usuarios.FindAsync(seguidoId);
+            if (seguido == null || !seguido.EstaAtivo)
+            {
+                throw new KeyNotFoundException("Usuário não encontrado.");
+            }
+
+            var seguidor = await _context.Usuarios.FindAsync(seguidorId);
+            if (seguidor == null || !seguidor.EstaAtivo)
+            {
+                throw new KeyNotFoundException("Usuário autenticado não encontrado.");
+            }
+
+            var relacaoExistente = await _context.SegueUsuarios
+                .Include(s => s.UsuarioSeguidor)
+                .Include(s => s.UsuarioSeguido)
+                .FirstOrDefaultAsync(s => s.UsuarioSeguidor.Id == seguidorId && s.UsuarioSeguido.Id == seguidoId);
+
+            bool novoEstado;
+            if (relacaoExistente == null)
+            {
+                _context.SegueUsuarios.Add(new SegueUsuario
+                {
+                    UsuarioSeguidor = seguidor,
+                    UsuarioSeguido = seguido,
+                    EstaAtivo = true
+                });
+                novoEstado = true;
+            }
+            else
+            {
+                novoEstado = !relacaoExistente.EstaAtivo;
+                relacaoExistente.EstaAtivo = novoEstado;
+            }
+
+            await _context.SaveChangesAsync();
+
+            var totalSeguidores = await _context.SegueUsuarios
+                .CountAsync(s => s.UsuarioSeguido.Id == seguidoId && s.EstaAtivo);
+
+            return (novoEstado, totalSeguidores);
+        }
+
+        public async Task<bool> VerificarSeSegue(int seguidorId, int seguidoId)
+        {
+            if (seguidorId == seguidoId) return false;
+
+            return await _context.SegueUsuarios
+                .AnyAsync(s => s.UsuarioSeguidor.Id == seguidorId && s.UsuarioSeguido.Id == seguidoId && s.EstaAtivo);
+        }
+
+        public async Task<EstatisticasSociaisDTO> ObterEstatisticasSociais(int usuarioId, int? solicitanteId = null)
+        {
+            var totalSeguidores = await _context.SegueUsuarios
+                .CountAsync(s => s.UsuarioSeguido.Id == usuarioId && s.EstaAtivo);
+
+            var totalSeguindo = await _context.SegueUsuarios
+                .CountAsync(s => s.UsuarioSeguidor.Id == usuarioId && s.EstaAtivo);
+
+            var seguidoPorMim = solicitanteId.HasValue && await VerificarSeSegue(solicitanteId.Value, usuarioId);
+
+            return new EstatisticasSociaisDTO
+            {
+                TotalSeguidores = totalSeguidores,
+                TotalSeguindo = totalSeguindo,
+                SeguidoPorMim = seguidoPorMim
+            };
+        }
+
+        public async Task<List<UsuarioConexaoDTO>> ObterSeguidores(int usuarioId, int? solicitanteId = null)
+        {
+            var conexoes = await _context.SegueUsuarios
+                .AsNoTracking()
+                .Include(s => s.UsuarioSeguidor)
+                .Where(s => s.UsuarioSeguido.Id == usuarioId && s.EstaAtivo && s.UsuarioSeguidor.EstaAtivo)
+                .ToListAsync();
+
+            var seguidorIds = conexoes.Select(c => c.UsuarioSeguidor.Id).Distinct().ToList();
+
+            var seguidosPeloSolicitante = new HashSet<int>();
+            if (solicitanteId.HasValue)
+            {
+                seguidosPeloSolicitante = (await _context.SegueUsuarios
+                    .AsNoTracking()
+                    .Where(s => s.UsuarioSeguidor.Id == solicitanteId.Value && seguidorIds.Contains(s.UsuarioSeguido.Id) && s.EstaAtivo)
+                    .Select(s => s.UsuarioSeguido.Id)
+                    .ToListAsync())
+                    .ToHashSet();
+            }
+
+            return conexoes.Select(c => new UsuarioConexaoDTO
+            {
+                UsuarioId = c.UsuarioSeguidor.Id,
+                NomeUsuario = c.UsuarioSeguidor.NomeUsuario,
+                FotoPerfil = c.UsuarioSeguidor.FotoDePerfil,
+                Bio = c.UsuarioSeguidor.Bio,
+                SeguidoPorMim = solicitanteId.HasValue && seguidosPeloSolicitante.Contains(c.UsuarioSeguidor.Id)
+            }).ToList();
+        }
+
+        public async Task<List<UsuarioConexaoDTO>> ObterSeguindo(int usuarioId, int? solicitanteId = null)
+        {
+            var conexoes = await _context.SegueUsuarios
+                .AsNoTracking()
+                .Include(s => s.UsuarioSeguido)
+                .Where(s => s.UsuarioSeguidor.Id == usuarioId && s.EstaAtivo && s.UsuarioSeguido.EstaAtivo)
+                .ToListAsync();
+
+            var seguidoIds = conexoes.Select(c => c.UsuarioSeguido.Id).Distinct().ToList();
+
+            var seguidosPeloSolicitante = new HashSet<int>();
+            if (solicitanteId.HasValue)
+            {
+                seguidosPeloSolicitante = (await _context.SegueUsuarios
+                    .AsNoTracking()
+                    .Where(s => s.UsuarioSeguidor.Id == solicitanteId.Value && seguidoIds.Contains(s.UsuarioSeguido.Id) && s.EstaAtivo)
+                    .Select(s => s.UsuarioSeguido.Id)
+                    .ToListAsync())
+                    .ToHashSet();
+            }
+
+            return conexoes.Select(c => new UsuarioConexaoDTO
+            {
+                UsuarioId = c.UsuarioSeguido.Id,
+                NomeUsuario = c.UsuarioSeguido.NomeUsuario,
+                FotoPerfil = c.UsuarioSeguido.FotoDePerfil,
+                Bio = c.UsuarioSeguido.Bio,
+                SeguidoPorMim = solicitanteId.HasValue && seguidosPeloSolicitante.Contains(c.UsuarioSeguido.Id)
+            }).ToList();
+        }
+
+        public async Task<List<ItemFeedSocialDTO>> ObterFeedSocial(int usuarioId, int pagina = 1, int itensPorPagina = 20)
+        {
+            pagina = Math.Max(1, pagina);
+            itensPorPagina = Math.Clamp(itensPorPagina, 1, 50);
+
+            var seguindoIds = await _context.SegueUsuarios
+                .AsNoTracking()
+                .Where(s => s.UsuarioSeguidor.Id == usuarioId && s.EstaAtivo)
+                .Select(s => s.UsuarioSeguido.Id)
+                .ToListAsync();
+
+            if (!seguindoIds.Any())
+            {
+                return new List<ItemFeedSocialDTO>();
+            }
+
+            // 1. Avaliações postadas pelos seguidos
+            var avaliacoes = await _context.Avaliacoes
+                .AsNoTracking()
+                .Include(a => a.Usuario)
+                .Include(a => a.Jogo)
+                    .ThenInclude(j => j.Empresa)
+                .Where(a => seguindoIds.Contains(a.Usuario.Id) && a.EstaAtivo)
+                .OrderByDescending(a => a.DataPublicacao)
+                .Take(itensPorPagina * 2)
+                .Select(a => new ItemFeedSocialDTO
+                {
+                    Id = "eval-" + a.Id,
+                    TipoAtividade = "Avaliacao",
+                    DataAtividade = a.DataPublicacao,
+                    AutorId = a.Usuario.Id,
+                    AutorNome = a.Usuario.NomeUsuario,
+                    AutorFoto = a.Usuario.FotoDePerfil,
+                    JogoId = a.Jogo.Id,
+                    JogoTitulo = a.Jogo.Titulo,
+                    JogoImagem = a.Jogo.Imagem,
+                    NomeEmpresa = a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
+                    AvaliacaoId = a.Id,
+                    Nota = a.Nota,
+                    TextoAvaliacao = a.TextoAvaliacao,
+                    TotalCurtidas = a.CurtidasDeAvaliacao.Count(c => c.EstaAtivo && c.Curtida),
+                    CurtidaPorMim = a.CurtidasDeAvaliacao.Any(c => c.UsuarioId == usuarioId && c.EstaAtivo && c.Curtida),
+                    TotalRespostas = a.RespostasDeAvaliacao.Count(r => r.EstaAtivo)
+                })
+                .ToListAsync();
+
+            // 2. Jogos Zerados adicionados à biblioteca
+            var zerados = await _context.ItensBiblioteca
+                .AsNoTracking()
+                .Include(b => b.Jogo)
+                    .ThenInclude(j => j.Empresa)
+                .Where(b => seguindoIds.Contains(b.UsuarioId) && b.Status == StatusJogo.Zerado && b.EstaAtivo)
+                .OrderByDescending(b => b.DataAtualizacao)
+                .Take(itensPorPagina * 2)
+                .ToListAsync();
+
+            var zeradosUserIds = zerados.Select(z => z.UsuarioId).Distinct().ToList();
+            var usuariosMap = await _context.Usuarios
+                .AsNoTracking()
+                .Where(u => zeradosUserIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => new { u.NomeUsuario, u.FotoDePerfil });
+
+            var zeradosItems = zerados.Select(z =>
+            {
+                usuariosMap.TryGetValue(z.UsuarioId, out var u);
+                return new ItemFeedSocialDTO
+                {
+                    Id = "zerado-" + z.Id,
+                    TipoAtividade = "JogoZerado",
+                    DataAtividade = z.DataConclusao ?? z.DataAtualizacao,
+                    AutorId = z.UsuarioId,
+                    AutorNome = u?.NomeUsuario ?? "Gamer",
+                    AutorFoto = u?.FotoDePerfil,
+                    JogoId = z.JogoId,
+                    JogoTitulo = z.Jogo.Titulo,
+                    JogoImagem = z.Jogo.Imagem,
+                    NomeEmpresa = z.Jogo.Empresa?.NomeEmpresa
+                };
+            }).ToList();
+
+            // 3. Listas públicas criadas pelos seguidos
+            var listas = await _context.ListasDeJogos
+                .AsNoTracking()
+                .Include(l => l.Usuario)
+                .Include(l => l.Itens)
+                    .ThenInclude(i => i.Jogo)
+                .Where(l => seguindoIds.Contains(l.UsuarioId) && l.EstaPublica && l.EstaAtivo)
+                .OrderByDescending(l => l.DataCriacao)
+                .Take(itensPorPagina * 2)
+                .ToListAsync();
+
+            var listasItems = listas.Select(l => new ItemFeedSocialDTO
+            {
+                Id = "lista-" + l.Id,
+                TipoAtividade = "ListaCriada",
+                DataAtividade = l.DataCriacao,
+                AutorId = l.UsuarioId,
+                AutorNome = l.Usuario.NomeUsuario,
+                AutorFoto = l.Usuario.FotoDePerfil,
+                ListaId = l.Id,
+                ListaTitulo = l.Titulo,
+                ListaDescricao = l.Descricao,
+                TotalJogosLista = l.Itens.Count(i => i.EstaAtivo),
+                CapasPreviewLista = l.Itens
+                    .Where(i => i.EstaAtivo && i.Jogo != null && !string.IsNullOrEmpty(i.Jogo.Imagem))
+                    .OrderBy(i => i.Ordem)
+                    .Select(i => i.Jogo.Imagem)
+                    .Take(4)
+                    .ToList()
+            }).ToList();
+
+            // Combinar e ordenar todas as atividades por data decrescente
+            return avaliacoes
+                .Concat(zeradosItems)
+                .Concat(listasItems)
+                .OrderByDescending(item => item.DataAtividade)
+                .Skip((pagina - 1) * itensPorPagina)
+                .Take(itensPorPagina)
+                .ToList();
+        }
     }
 }

@@ -122,5 +122,67 @@ namespace GameLog_Backend.Controllers
             var recomendacoes = await _usuarioServices.RecomendarJogos(id);
             return Ok(recomendacoes);
         }
+
+        // ======================= SISTEMA SOCIAL (SEGUIR & FEED) ======================= //
+
+        [HttpPost("{id}/seguir")]
+        [Authorize]
+        public async Task<IActionResult> AlternarSeguir(int id)
+        {
+            var seguidorId = User.GetUserId();
+            var (seguido, totalSeguidores) = await _usuarioServices.AlternarSeguirUsuario(seguidorId, id);
+
+            return Ok(new
+            {
+                seguido,
+                totalSeguidores,
+                message = seguido ? "Usuário seguido com sucesso" : "Você deixou de seguir este usuário"
+            });
+        }
+
+        [HttpGet("{id}/status-seguir")]
+        [Authorize]
+        public async Task<IActionResult> VerificarStatusSeguir(int id)
+        {
+            var seguidorId = User.GetUserId();
+            var seguido = await _usuarioServices.VerificarSeSegue(seguidorId, id);
+            return Ok(new { seguido });
+        }
+
+        [HttpGet("{id}/estatisticas-sociais")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ObterEstatisticasSociais(int id)
+        {
+            var solicitanteId = User.GetUserIdOrNull();
+            var stats = await _usuarioServices.ObterEstatisticasSociais(id, solicitanteId);
+            return Ok(stats);
+        }
+
+        [HttpGet("{id}/seguidores")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ObterSeguidores(int id)
+        {
+            var solicitanteId = User.GetUserIdOrNull();
+            var seguidores = await _usuarioServices.ObterSeguidores(id, solicitanteId);
+            return Ok(seguidores);
+        }
+
+        [HttpGet("{id}/seguindo")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ObterSeguindo(int id)
+        {
+            var solicitanteId = User.GetUserIdOrNull();
+            var seguindo = await _usuarioServices.ObterSeguindo(id, solicitanteId);
+            return Ok(seguindo);
+        }
+
+        [HttpGet("feed")]
+        [Authorize]
+        public async Task<IActionResult> ObterFeedSocial([FromQuery] int pagina = 1, [FromQuery] int itensPorPagina = 20)
+        {
+            var usuarioId = User.GetUserId();
+            var feed = await _usuarioServices.ObterFeedSocial(usuarioId, pagina, itensPorPagina);
+            return Ok(feed);
+        }
     }
 }
