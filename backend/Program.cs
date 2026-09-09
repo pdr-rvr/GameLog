@@ -94,6 +94,7 @@ builder.Services.AddScoped<AvaliacaoServices>();
 builder.Services.AddAutoMapper(typeof(EmpresaProfile));
 builder.Services.AddScoped<EmpresaServices>();
 builder.Services.AddScoped<BibliotecaServices>();
+builder.Services.AddScoped<ListaServices>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -220,6 +221,43 @@ using (var scope = app.Services.CreateScope())
                             CONSTRAINT [FK_JogosFavoritos_Jogos] FOREIGN KEY ([JogoId]) REFERENCES [dbo].[Jogos]([JogoId]) ON DELETE CASCADE
                         );
                         CREATE UNIQUE INDEX [IX_JogosFavoritos_Usuario_Posicao] ON [dbo].[JogosFavoritosUsuarios]([UsuarioId], [Posicao]);
+                    END
+
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.tables 
+                        WHERE name = 'ListasDeJogos'
+                    )
+                    BEGIN
+                        CREATE TABLE [dbo].[ListasDeJogos] (
+                            [ListaDeJogosId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            [UsuarioId] INT NOT NULL,
+                            [Titulo] NVARCHAR(100) NOT NULL,
+                            [Descricao] NVARCHAR(500) NULL,
+                            [EstaPublica] BIT NOT NULL DEFAULT 1,
+                            [DataCriacao] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                            [DataAtualizacao] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                            [EstaAtivo] BIT NOT NULL DEFAULT 1,
+                            CONSTRAINT [FK_ListasDeJogos_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios]([UsuarioId]) ON DELETE CASCADE
+                        );
+                        CREATE INDEX [IX_ListasDeJogos_UsuarioId] ON [dbo].[ListasDeJogos]([UsuarioId]);
+                    END
+
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.tables 
+                        WHERE name = 'ItensDeListas'
+                    )
+                    BEGIN
+                        CREATE TABLE [dbo].[ItensDeListas] (
+                            [ItemDeListaId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            [ListaDeJogosId] INT NOT NULL,
+                            [JogoId] INT NOT NULL,
+                            [Ordem] INT NOT NULL DEFAULT 1,
+                            [DataAdicionado] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                            [EstaAtivo] BIT NOT NULL DEFAULT 1,
+                            CONSTRAINT [FK_ItensDeListas_Listas] FOREIGN KEY ([ListaDeJogosId]) REFERENCES [dbo].[ListasDeJogos]([ListaDeJogosId]) ON DELETE CASCADE,
+                            CONSTRAINT [FK_ItensDeListas_Jogos] FOREIGN KEY ([JogoId]) REFERENCES [dbo].[Jogos]([JogoId]) ON DELETE CASCADE
+                        );
+                        CREATE UNIQUE INDEX [IX_ItensDeListas_Lista_Jogo] ON [dbo].[ItensDeListas]([ListaDeJogosId], [JogoId]);
                     END
                 ");
             }
