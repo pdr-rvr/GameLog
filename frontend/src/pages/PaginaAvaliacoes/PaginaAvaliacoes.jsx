@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar/Navbar";
 import AvaliacaoCard from "../../components/AvaliacaoCard/AvaliacaoCard";
 import { buscarAvaliacoes } from "../TelaHome/actions/TelaHomeActions";
+import { FaSearch, FaComments } from "react-icons/fa";
 import "./PaginaAvaliacoes.css";
 
 const PaginaAvaliacoes = () => {
@@ -14,7 +15,7 @@ const PaginaAvaliacoes = () => {
       setLoading(true);
       try {
         const dados = await buscarAvaliacoes();
-        setAvaliacoes(dados);
+        setAvaliacoes(dados || []);
       } catch (error) {
         console.error("Erro ao carregar avaliações:", error);
       } finally {
@@ -26,11 +27,11 @@ const PaginaAvaliacoes = () => {
   }, []);
 
   const avaliacoesFiltradas = avaliacoes.filter((avaliacao) => {
-    const termo = searchTerm.toLowerCase();
+    if (!searchTerm.trim()) return true;
+    const termo = searchTerm.toLowerCase().trim();
     const nomeJogo = (avaliacao.nomeJogo || "").toLowerCase();
     const nomeUsuario = (avaliacao.nomeUsuario || "").toLowerCase();
-    const comentario = (avaliacao.textoAvaliacao || "").toLowerCase();
-    return nomeJogo.includes(termo) || nomeUsuario.includes(termo) || comentario.includes(termo);
+    return nomeJogo.includes(termo) || nomeUsuario.includes(termo);
   });
 
   return (
@@ -38,29 +39,57 @@ const PaginaAvaliacoes = () => {
       <Navbar />
       <div className="pagina-avaliacoes-content">
         <header className="pagina-avaliacoes-header">
+          <div className="avaliacoes-header-badge">
+            <FaComments /> Comunidade GameLog
+          </div>
           <h1>Todas as Avaliações</h1>
-          <p>Veja o que a comunidade do GameLog está achando dos jogos mais recentes e populares.</p>
+          <p>Veja o que os jogadores estão achando dos jogos mais recentes e populares.</p>
+          
           <div className="search-bar-avaliacoes">
+            <FaSearch className="search-input-icon" />
             <input
               type="text"
-              placeholder="Buscar por jogo, usuário ou comentário..."
+              placeholder="Buscar avaliações por jogo ou usuário..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+            {searchTerm && (
+              <button 
+                type="button" 
+                className="btn-clear-search"
+                onClick={() => setSearchTerm("")}
+              >
+                ×
+              </button>
+            )}
           </div>
         </header>
 
         {loading ? (
-          <div className="loading-message">Carregando avaliações...</div>
-        ) : avaliacoesFiltradas.length > 0 ? (
-          <div className="avaliacoes-grid">
-            {avaliacoesFiltradas.map((avaliacao) => (
-              <AvaliacaoCard key={avaliacao.avaliacaoId} avaliacao={avaliacao} />
-            ))}
+          <div className="avaliacoes-loading-state">
+            <div className="avaliacoes-spinner"></div>
+            <span>Carregando avaliações...</span>
           </div>
+        ) : avaliacoesFiltradas.length > 0 ? (
+          <>
+            <div className="avaliacoes-counter-bar">
+              <span>{avaliacoesFiltradas.length} {avaliacoesFiltradas.length === 1 ? "avaliação encontrada" : "avaliações encontradas"}</span>
+            </div>
+            <div className="avaliacoes-grid">
+              {avaliacoesFiltradas.map((avaliacao) => (
+                <AvaliacaoCard key={avaliacao.avaliacaoId || avaliacao.id} avaliacao={avaliacao} />
+              ))}
+            </div>
+          </>
         ) : (
           <div className="no-avaliations-message">
-            Nenhuma avaliação encontrada{searchTerm ? " para o termo buscado" : ""}.
+            <FaComments className="empty-icon" />
+            <h3>Nenhuma avaliação encontrada</h3>
+            <p>
+              {searchTerm 
+                ? `Nenhuma avaliação corresponde ao termo "${searchTerm}".`
+                : "Ainda não há avaliações cadastradas."}
+            </p>
           </div>
         )}
       </div>
@@ -69,3 +98,4 @@ const PaginaAvaliacoes = () => {
 };
 
 export default PaginaAvaliacoes;
+

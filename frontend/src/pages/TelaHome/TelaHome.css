@@ -1,46 +1,47 @@
 .home-container {
-  background-color: #1a1a1a; 
+  background-color: var(--bg-main, #070913);
   min-height: 100vh;
-  color: white;
+  color: var(--text-primary, #f8fafc);
   display: flex;
   flex-direction: column;
 }
 
 .home-content {
   flex-grow: 1;
-  padding-top: 20px; 
+  padding-top: 1.5rem;
+  padding-bottom: 4rem;
 }
 
-.loading, .sem-avaliacoes {
+.loading, .sem-avaliacoes, .sem-recomendacoes {
   text-align: center;
-  padding: 30px;
-  color: #777;
-  font-size: 1.1rem;
+  padding: 40px 20px;
+  color: var(--text-muted, #94a3b8);
+  font-size: 1.05rem;
 }
 
 .floating-button {
   position: fixed;
   bottom: 30px;
   right: 30px;
-  width: 60px;
-  height: 60px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
-  background-color: #56386A;
-  color: white;
+  background: var(--accent-gradient-purple, linear-gradient(135deg, #6d28d9, #38bdf8));
+  color: #ffffff;
   border: none;
-  font-size: 28px;
+  font-size: 24px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  z-index: 10;
+  box-shadow: 0 4px 20px rgba(109, 40, 217, 0.4), 0 0 15px rgba(56, 189, 248, 0.2);
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .floating-button:hover {
-  background-color: #3a2549;
-  transform: scale(1.1);
+  transform: translateY(-3px) scale(1.08);
+  box-shadow: 0 8px 30px rgba(109, 40, 217, 0.6), 0 0 25px rgba(56, 189, 248, 0.4);
 }
 
 .form-overlay {
@@ -49,25 +50,18 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(7, 9, 19, 0.85);
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 1000;
   padding: 20px;
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.25s ease-out;
   overflow-y: auto;
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-.sem-recomendacoes {
-  text-align: center;
-  padding: 30px;
-  color: #777;
-  font-size: 1.1rem;
-  margin-top: 40px;
 }
