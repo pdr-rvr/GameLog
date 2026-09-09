@@ -75,7 +75,7 @@ const PerfilUsuario = () => {
 
   const handleEditReview = (avaliacao) => {
     const id = avaliacao?.avaliacaoId || avaliacao?.id || avaliacao;
-    navigate(`/avaliacoes/editar/${id}`);
+    navigate(`/avaliacoes/editar/${id}`, { state: { from: `/perfil/${targetId}` } });
   };
 
   const handleDeleteRequest = (avaliacaoId) => {
