@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using GameLog_Backend.DTOs;
+using System.Threading.Tasks;
 using GameLog_Backend.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GameLog_Backend.Controllers
 {
@@ -27,64 +27,42 @@ namespace GameLog_Backend.Controllers
             [FromQuery] string? empresa,
             [FromQuery] string? ordenacao)
         {
-            try
+            if (pagina.HasValue)
             {
-                // Se pagina for especificada, retorna PagedResult
-                if (pagina.HasValue)
-                {
-                    var paged = await _jogoServices.ListarJogosPaginados(
-                        pagina.Value,
-                        itensPorPagina ?? 12,
-                        busca,
-                        genero,
-                        ano,
-                        empresa,
-                        ordenacao ?? "melhores"
-                    );
-                    return Ok(paged);
-                }
+                var paged = await _jogoServices.ListarJogosPaginados(
+                    pagina.Value,
+                    itensPorPagina ?? 12,
+                    busca,
+                    genero,
+                    ano,
+                    empresa,
+                    ordenacao ?? "melhores"
+                );
+                return Ok(paged);
+            }
 
-                var jogos = await _jogoServices.ListarJogos();
-                return Ok(jogos);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Erro interno: " + ex.Message });
-            }
+            var jogos = await _jogoServices.ListarJogos();
+            return Ok(jogos);
         }
 
         [HttpGet("{id}")]
         [AllowAnonymous]
         public async Task<IActionResult> ObterJogoPorId(int id)
         {
-            try
+            var jogo = await _jogoServices.ObterJogoPorId(id);
+            if (jogo == null)
             {
-                var jogo = await _jogoServices.ObterJogoPorId(id);
-
-                if (jogo == null)
-                    return NotFound(new { message = "Jogo não encontrado" });
-
-                return Ok(jogo);
+                return NotFound(new { message = "Jogo não encontrado" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Erro interno: " + ex.Message });
-            }
+            return Ok(jogo);
         }
 
         [HttpGet("top-avaliados")]
         [AllowAnonymous]
         public async Task<IActionResult> ListarTop10MelhorAvaliados()
         {
-            try
-            {
-                var jogos = await _jogoServices.ListarTop10JogosMelhorAvaliados();
-                return Ok(jogos);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Erro interno: " + ex.Message });
-            }
+            var jogos = await _jogoServices.ListarTop10JogosMelhorAvaliados();
+            return Ok(jogos);
         }
     }
 }

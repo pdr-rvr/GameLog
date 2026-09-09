@@ -1,13 +1,18 @@
+using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using AutoMapper;
 using GameLog_Backend.Configurations;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 namespace GameLog_Backend.Services
@@ -31,41 +36,57 @@ namespace GameLog_Backend.Services
             };
         }
 
-        private void ValidarEmailESenha(string email, string senha, string? nomeUsuario = null)
+        private void ValidarEmailESenha(string email, string? senha, string? nomeUsuario = null)
         {
-            if (string.IsNullOrWhiteSpace(email) || !Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            if (string.IsNullOrWhiteSpace(email) || !Regex.IsMatch(email.Trim(), @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
             {
-                throw new Exception("Informe um endereço de e-mail válido.");
+                throw new ArgumentException("Informe um endereço de e-mail válido.");
             }
 
             if (!string.IsNullOrEmpty(senha))
             {
                 if (senha.Length < 6)
                 {
-                    throw new Exception("A senha deve ter no mínimo 6 caracteres.");
+                    throw new ArgumentException("A senha deve ter no mínimo 6 caracteres.");
                 }
 
                 if (!Regex.IsMatch(senha, @"[A-Z]"))
                 {
-                    throw new Exception("A senha deve conter pelo menos uma letra maiúscula.");
+                    throw new ArgumentException("A senha deve conter pelo menos uma letra maiúscula.");
                 }
 
                 if (!Regex.IsMatch(senha, @"[0-9]"))
                 {
-                    throw new Exception("A senha deve conter pelo menos um número.");
+                    throw new ArgumentException("A senha deve conter pelo menos um número.");
                 }
             }
 
-            if (nomeUsuario != null && (nomeUsuario.Length < 3 || nomeUsuario.Length > 50))
+            if (nomeUsuario != null)
             {
-                throw new Exception("O nome de usuário deve ter entre 3 e 50 caracteres.");
+                var trimmed = nomeUsuario.Trim();
+                if (trimmed.Length < 3 || trimmed.Length > 50)
+                {
+                    throw new ArgumentException("O nome de usuário deve ter entre 3 e 50 caracteres.");
+                }
+
+                if (!Regex.IsMatch(trimmed, @"^[a-zA-Z0-9_\.]+$"))
+                {
+                    throw new ArgumentException("O nome de usuário pode conter apenas letras, números, ponto (.) e sublinhado (_).");
+                }
             }
         }
 
         public async Task<(UsuarioDTO? usuario, string? token, DateTime expiraEm)> AutenticarUsuario(UsuarioLoginDTO loginDTO)
         {
+            if (string.IsNullOrWhiteSpace(loginDTO.Email) || string.IsNullOrWhiteSpace(loginDTO.Senha))
+            {
+                return (null, null, DateTime.MinValue);
+            }
+
+            var email = loginDTO.Email.Trim().ToLower();
             var usuario = await _context.Usuarios
-                .FirstOrDefaultAsync(u => u.Email == loginDTO.Email && u.EstaAtivo);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email && u.EstaAtivo);
 
             if (usuario == null || !VerificarSenha(loginDTO.Senha, usuario.Senha))
                 return (null, null, DateTime.MinValue);
@@ -108,17 +129,17 @@ namespace GameLog_Backend.Services
 
         public async Task<IEnumerable<UsuarioDTO>> ListarUsuarios()
         {
-            var usuarios = await _context.Usuarios
+            return await _context.Usuarios
+                .AsNoTracking()
                 .Where(u => u.EstaAtivo)
                 .Select(u => _mapper.Map<UsuarioDTO>(u))
                 .ToListAsync();
-
-            return usuarios;
         }
 
         public async Task<UsuarioDTO?> ObterUsuarioPorId(int id)
         {
             var usuario = await _context.Usuarios
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == id && u.EstaAtivo);
 
             return usuario != null ? _mapper.Map<UsuarioDTO>(usuario) : null;
@@ -126,16 +147,19 @@ namespace GameLog_Backend.Services
 
         public async Task<UsuarioDTO> CriarUsuario(CriarUsuarioDTO usuarioDTO)
         {
+            usuarioDTO.Email = usuarioDTO.Email?.Trim() ?? string.Empty;
+            usuarioDTO.NomeUsuario = usuarioDTO.NomeUsuario?.Trim() ?? string.Empty;
+
             ValidarEmailESenha(usuarioDTO.Email, usuarioDTO.Senha, usuarioDTO.NomeUsuario);
 
             if (await EmailEmUso(usuarioDTO.Email))
             {
-                throw new Exception("Este e-mail já está em uso por outra conta.");
+                throw new InvalidOperationException("Este e-mail já está em uso por outra conta.");
             }
 
             if (await NomeUsuarioEmUso(usuarioDTO.NomeUsuario))
             {
-                throw new Exception("Este nome de usuário já está em uso.");
+                throw new InvalidOperationException("Este nome de usuário já está em uso.");
             }
 
             var usuario = _mapper.Map<Usuario>(usuarioDTO);
@@ -178,14 +202,16 @@ namespace GameLog_Backend.Services
 
         public async Task<bool> EmailEmUso(string email)
         {
+            var emailLimpo = email.Trim().ToLower();
             return await _context.Usuarios
-                .AnyAsync(u => u.Email.ToLower() == email.ToLower() && u.EstaAtivo);
+                .AnyAsync(u => u.Email.ToLower() == emailLimpo && u.EstaAtivo);
         }
 
         public async Task<bool> NomeUsuarioEmUso(string nomeUsuario)
         {
+            var nomeLimpo = nomeUsuario.Trim().ToLower();
             return await _context.Usuarios
-                .AnyAsync(u => u.NomeUsuario.ToLower() == nomeUsuario.ToLower() && u.EstaAtivo);
+                .AnyAsync(u => u.NomeUsuario.ToLower() == nomeLimpo && u.EstaAtivo);
         }
 
         public async Task<UsuarioDTO?> EditarUsuario(int id, string senhaAtual, EditarUsuarioDTO usuarioDTO)
@@ -196,20 +222,33 @@ namespace GameLog_Backend.Services
                 return null;
             }
 
-            ValidarEmailESenha(usuarioDTO.Email, usuarioDTO.NovaSenha ?? "", usuarioDTO.NomeUsuario);
+            // Sanitização de entradas
+            usuarioDTO.Email = usuarioDTO.Email?.Trim() ?? usuarioExistente.Email;
+            usuarioDTO.NomeUsuario = usuarioDTO.NomeUsuario?.Trim() ?? usuarioExistente.NomeUsuario;
+            if (usuarioDTO.Bio != null)
+            {
+                usuarioDTO.Bio = usuarioDTO.Bio.Trim();
+                if (usuarioDTO.Bio.Length > 300)
+                {
+                    usuarioDTO.Bio = usuarioDTO.Bio.Substring(0, 300);
+                }
+            }
+
+            ValidarEmailESenha(usuarioDTO.Email, usuarioDTO.NovaSenha, usuarioDTO.NomeUsuario);
 
             if (usuarioDTO.Email.ToLower() != usuarioExistente.Email.ToLower() && await EmailEmUso(usuarioDTO.Email))
             {
-                throw new Exception("O novo e-mail já está em uso por outro usuário.");
+                throw new InvalidOperationException("O novo e-mail já está em uso por outro usuário.");
             }
 
             if (usuarioDTO.NomeUsuario.ToLower() != usuarioExistente.NomeUsuario.ToLower() && await NomeUsuarioEmUso(usuarioDTO.NomeUsuario))
             {
-                throw new Exception("O novo nome de usuário já está em uso.");
+                throw new InvalidOperationException("O novo nome de usuário já está em uso.");
             }
 
             _mapper.Map(usuarioDTO, usuarioExistente);
 
+            // Atualização segura de senha: apenas se NovaSenha foi expressamente fornecida
             if (!string.IsNullOrWhiteSpace(usuarioDTO.NovaSenha))
             {
                 usuarioExistente.Senha = HashSenha(usuarioDTO.NovaSenha);
@@ -236,6 +275,7 @@ namespace GameLog_Backend.Services
         public async Task<List<GeneroFavoritoDTO>> IdentificaTopNGenerosFavoritos(int id, int topN = 3)
         {
             var avaliacoesDoUsuario = await _context.Avaliacoes
+                .AsNoTracking()
                 .Where(a => a.Usuario.Id == id && a.EstaAtivo)
                 .Include(a => a.Jogo)
                     .ThenInclude(j => j.Generos) 
@@ -276,6 +316,7 @@ namespace GameLog_Backend.Services
             }
 
             var jogosAvaliadosIds = await _context.Avaliacoes
+                .AsNoTracking()
                 .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
                 .Select(a => a.Jogo.Id)
                 .ToListAsync();
@@ -283,6 +324,7 @@ namespace GameLog_Backend.Services
             var generosParaBuscar = topGeneros.Select(g => g.Genero).ToList();
 
             var jogosCandidatos = await _context.Jogos
+                .AsNoTracking()
                 .Include(j => j.Generos)
                 .Where(j => j.EstaAtivo && !jogosAvaliadosIds.Contains(j.Id) &&
                             j.Generos.Any(g => generosParaBuscar.Contains(g.TituloGenero)))

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaSearch, FaTimes, FaGamepad, FaUser, FaBuilding, FaChevronRight } from 'react-icons/fa';
+import { FaSearch, FaTimes, FaGamepad, FaUser, FaLayerGroup, FaChevronRight } from 'react-icons/fa';
 import api from '../../services/api';
 import './SearchBar.css';
 
@@ -8,68 +8,47 @@ const SearchBar = ({
   onSearch, 
   suggestions = [], 
   onSelectSuggestion, 
-  placeholder = "Buscar jogos, desenvolvedores ou usuários...",
+  placeholder = "Buscar jogos, jogadores ou coleções...",
   globalMode = false 
 }) => {
   const [query, setQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [globalResults, setGlobalResults] = useState({ jogos: [], empresas: [], usuarios: [] });
+  const [globalResults, setGlobalResults] = useState({ jogos: [], usuarios: [], listas: [] });
   const searchBarRef = useRef(null);
   const debounceTimerRef = useRef(null);
+  const abortControllerRef = useRef(null);
   const navigate = useNavigate();
 
   const fetchGlobalSuggestions = useCallback(async (searchTerm) => {
     if (!searchTerm || searchTerm.trim().length < 2) {
-      setGlobalResults({ jogos: [], empresas: [], usuarios: [] });
+      setGlobalResults({ jogos: [], usuarios: [], listas: [] });
       setLoading(false);
       return;
     }
 
+    // Cancelar requisição anterior em andamento
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     setLoading(true);
     try {
-      const termLower = searchTerm.toLowerCase();
-      const [jogosRes, empresasRes, usuariosRes] = await Promise.allSettled([
-        api.get('/Jogos'),
-        api.get('/Empresas'),
-        api.get('/Usuarios')
-      ]);
+      const response = await api.get(`/BuscaGlobal?q=${encodeURIComponent(searchTerm.trim())}&limite=5`, {
+        signal: abortControllerRef.current.signal
+      });
 
-      let jogosFiltrados = [];
-      if (jogosRes.status === 'fulfilled' && Array.isArray(jogosRes.value.data)) {
-        jogosFiltrados = jogosRes.value.data
-          .filter(j => {
-            const title = (j.titulo || j.nome || '').toLowerCase();
-            const desc = (j.descricao || '').toLowerCase();
-            const empresa = (j.nomeEmpresa || '').toLowerCase();
-            return title.includes(termLower) || desc.includes(termLower) || empresa.includes(termLower);
-          })
-          .slice(0, 5);
-      }
-
-      let empresasFiltradas = [];
-      if (empresasRes.status === 'fulfilled' && Array.isArray(empresasRes.value.data)) {
-        empresasFiltradas = empresasRes.value.data
-          .filter(e => {
-            const name = (e.nomeEmpresa || e.nome || '').toLowerCase();
-            return name.includes(termLower);
-          })
-          .slice(0, 3);
-      }
-
-      let usuariosFiltrados = [];
-      if (usuariosRes.status === 'fulfilled' && Array.isArray(usuariosRes.value.data)) {
-        usuariosFiltrados = usuariosRes.value.data
-          .filter(u => {
-            const name = (u.nomeUsuario || u.nome || '').toLowerCase();
-            return name.includes(termLower);
-          })
-          .slice(0, 3);
-      }
-
-      setGlobalResults({ jogos: jogosFiltrados, empresas: empresasFiltradas, usuarios: usuariosFiltrados });
+      const data = response.data || {};
+      setGlobalResults({
+        jogos: data.jogos || [],
+        usuarios: data.usuarios || [],
+        listas: data.listas || []
+      });
     } catch (err) {
-      console.error("Erro na busca global:", err);
+      if (err.name !== 'CanceledError' && err.code !== 'ERR_CANCELED') {
+        console.error("Erro na busca global:", err);
+      }
     } finally {
       setLoading(false);
     }
@@ -92,7 +71,7 @@ const SearchBar = ({
         }, 250);
       } else {
         setShowSuggestions(false);
-        setGlobalResults({ jogos: [], empresas: [], usuarios: [] });
+        setGlobalResults({ jogos: [], usuarios: [], listas: [] });
       }
     } else {
       setShowSuggestions(value.trim().length > 0);
@@ -110,18 +89,18 @@ const SearchBar = ({
     }
   };
 
-  const handleSelectEmpresa = (empresa) => {
-    setShowSuggestions(false);
-    setQuery('');
-    const id = empresa.empresaId || empresa.id;
-    if (id) navigate(`/empresas/${id}`);
-  };
-
   const handleSelectUser = (user) => {
     setShowSuggestions(false);
     setQuery('');
-    const id = user.id || user.usuarioId;
+    const id = user.usuarioId || user.id;
     if (id) navigate(`/perfil/${id}`);
+  };
+
+  const handleSelectList = (lista) => {
+    setShowSuggestions(false);
+    setQuery('');
+    const id = lista.listaId || lista.id;
+    if (id) navigate(`/listas/${id}`);
   };
 
   const handleKeyDown = (e) => {
@@ -135,7 +114,7 @@ const SearchBar = ({
 
   const handleClear = () => {
     setQuery('');
-    setGlobalResults({ jogos: [], empresas: [], usuarios: [] });
+    setGlobalResults({ jogos: [], usuarios: [], listas: [] });
     if (onSearch) onSearch('');
     setShowSuggestions(false);
   };
@@ -151,13 +130,14 @@ const SearchBar = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, []);
 
   const hasGlobalResults = 
     globalResults.jogos.length > 0 || 
-    globalResults.empresas.length > 0 || 
-    globalResults.usuarios.length > 0;
+    globalResults.usuarios.length > 0 || 
+    globalResults.listas.length > 0;
 
   return (
     <div className="search-bar-container" ref={searchBarRef}>
@@ -197,9 +177,10 @@ const SearchBar = ({
             </div>
           )}
 
-          {/* Modo Global: Categorias de Jogos, Empresas e Usuários */}
+          {/* Modo Global: Categorias de Jogos, Listas/Coleções e Usuários */}
           {globalMode && !loading && (
             <>
+              {/* Jogos */}
               {globalResults.jogos.length > 0 && (
                 <div className="suggestion-section">
                   <div className="suggestion-section-header">
@@ -209,7 +190,7 @@ const SearchBar = ({
                   {globalResults.jogos.map((jogo) => {
                     const id = jogo.jogoId || jogo.id;
                     const title = jogo.titulo || jogo.nome || 'Jogo';
-                    const year = jogo.dataLancamento ? String(jogo.dataLancamento).substring(0, 4) : '';
+                    const year = jogo.anoLancamento || (jogo.dataLancamento ? String(jogo.dataLancamento).substring(0, 4) : '');
                     const image = jogo.imagem || jogo.foto;
 
                     return (
@@ -238,29 +219,32 @@ const SearchBar = ({
                 </div>
               )}
 
-              {globalResults.empresas.length > 0 && (
+              {/* Coleções / Listas */}
+              {globalResults.listas.length > 0 && (
                 <div className="suggestion-section">
                   <div className="suggestion-section-header">
-                    <FaBuilding className="section-icon" />
-                    <span>Empresas & Estúdios</span>
+                    <FaLayerGroup className="section-icon" />
+                    <span>Coleções & Listas</span>
                   </div>
-                  {globalResults.empresas.map((empresa) => {
-                    const id = empresa.empresaId || empresa.id;
-                    const name = empresa.nomeEmpresa || empresa.nome || 'Empresa';
+                  {globalResults.listas.map((lista) => {
+                    const id = lista.listaId || lista.id;
+                    const title = lista.titulo || 'Coleção';
+                    const creator = lista.nomeCriador ? `por @${lista.nomeCriador}` : '';
+                    const count = `${lista.totalJogos || 0} ${lista.totalJogos === 1 ? 'jogo' : 'jogos'}`;
 
                     return (
                       <div 
-                        key={`empresa-${id}`} 
-                        className="suggestion-item empresa-item" 
-                        onClick={() => handleSelectEmpresa(empresa)}
+                        key={`lista-${id}`} 
+                        className="suggestion-item" 
+                        onClick={() => handleSelectList(lista)}
                       >
-                        <div className="suggestion-empresa-fallback">
-                          <FaBuilding />
+                        <div className="suggestion-lista-fallback">
+                          <FaLayerGroup />
                         </div>
                         <div className="suggestion-meta">
-                          <span className="suggestion-title">{name}</span>
+                          <span className="suggestion-title">{title}</span>
                           <span className="suggestion-sub">
-                            {empresa.totalJogos !== undefined ? `${empresa.totalJogos} ${empresa.totalJogos === 1 ? 'jogo' : 'jogos'}` : 'Estúdio'}
+                            {count} {creator ? `• ${creator}` : ''}
                           </span>
                         </div>
                         <FaChevronRight className="suggestion-arrow" />
@@ -270,14 +254,15 @@ const SearchBar = ({
                 </div>
               )}
 
+              {/* Jogadores / Usuários */}
               {globalResults.usuarios.length > 0 && (
                 <div className="suggestion-section">
                   <div className="suggestion-section-header">
                     <FaUser className="section-icon" />
-                    <span>Usuários</span>
+                    <span>Jogadores</span>
                   </div>
                   {globalResults.usuarios.map((usuario) => {
-                    const id = usuario.id || usuario.usuarioId;
+                    const id = usuario.usuarioId || usuario.id;
                     const name = usuario.nomeUsuario || usuario.nome || 'Gamer';
                     const initial = name.charAt(0).toUpperCase();
 
@@ -295,8 +280,10 @@ const SearchBar = ({
                           </div>
                         )}
                         <div className="suggestion-meta">
-                          <span className="suggestion-title">{name}</span>
-                          <span className="suggestion-sub">Perfil de Gamer</span>
+                          <span className="suggestion-title">@{name}</span>
+                          <span className="suggestion-sub">
+                            {usuario.bio ? usuario.bio.substring(0, 45) + (usuario.bio.length > 45 ? '...' : '') : 'Membro GameLog'}
+                          </span>
                         </div>
                         <FaChevronRight className="suggestion-arrow" />
                       </div>
@@ -307,7 +294,7 @@ const SearchBar = ({
 
               {!hasGlobalResults && (
                 <div className="suggestions-empty">
-                  Nenhum jogo, estúdio ou usuário encontrado para "{query}".
+                  Nenhum jogo, coleção ou jogador encontrado para "{query}".
                 </div>
               )}
             </>
@@ -350,4 +337,3 @@ const SearchBar = ({
 };
 
 export default SearchBar;
-
