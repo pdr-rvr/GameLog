@@ -12,6 +12,7 @@ import ConfiguracoesConta from './pages/ConfiguracoesConta/ConfiguracoesConta';
 import MinhasAvaliacoes from './pages/MinhasAvaliacoes/MinhasAvaliacoes';
 import EditarAvaliacao from './pages/EditarAvaliacao/EditarAvaliacao';
 import PaginaDetalhesAvaliacao from './pages/PaginaDetalhesAvaliacao/PaginaDetalhesAvaliacao';
+import PaginaDetalhesLista from './pages/PaginaDetalhesLista/PaginaDetalhesLista';
 
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext'; 
@@ -36,6 +37,7 @@ function App() {
             <Route path="/avaliacoes/:id" element={<PaginaDetalhesAvaliacao />} />
             <Route path="/empresas/:empresaId" element={<PaginaEmpresa />} />
             <Route path="/perfil/:userId" element={<PerfilUsuario />} />
+            <Route path="/listas/:id" element={<PaginaDetalhesLista />} />
 
             {/* Rotas Protegidas (exigem autenticação) */}
             <Route 

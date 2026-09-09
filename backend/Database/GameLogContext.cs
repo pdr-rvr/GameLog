@@ -16,9 +16,11 @@ namespace GameLog_Backend.Database
         public DbSet<RespostaDeAvaliacao> RespostasDeAvaliacao { get; set; }
         public DbSet<CurtidaDeAvaliacao> CurtidasDeAvaliacoes { get; set; }
         public DbSet<CurtidaDeResposta> CurtidasDeRespostas { get; set; }
-        public DbSet<SegueUsuario> SegueUsuarios { get; set;}
+        public DbSet<SegueUsuario> SegueUsuarios { get; set; }
         public DbSet<BibliotecaJogo> ItensBiblioteca { get; set; }
         public DbSet<JogoFavoritoUsuario> JogosFavoritosUsuarios { get; set; }
+        public DbSet<ListaDeJogos> ListasDeJogos { get; set; }
+        public DbSet<ItemDeLista> ItensDeListas { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -39,8 +41,8 @@ namespace GameLog_Backend.Database
             modelBuilder.ApplyConfiguration(new SegueUsuarioConfigurations());
             modelBuilder.ApplyConfiguration(new BibliotecaConfigurations());
             modelBuilder.ApplyConfiguration(new JogoFavoritoConfigurations());
+            modelBuilder.ApplyConfiguration(new ListaDeJogosConfigurations());
+            modelBuilder.ApplyConfiguration(new ItemDeListaConfigurations());
         }
     }
-
-    
 }

@@ -18,16 +18,38 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> ListarTodosJogos()
+        public async Task<IActionResult> ListarTodosJogos(
+            [FromQuery] int? pagina,
+            [FromQuery] int? itensPorPagina,
+            [FromQuery] string? busca,
+            [FromQuery] string? genero,
+            [FromQuery] int? ano,
+            [FromQuery] string? empresa,
+            [FromQuery] string? ordenacao)
         {
             try
             {
+                // Se pagina for especificada, retorna PagedResult
+                if (pagina.HasValue)
+                {
+                    var paged = await _jogoServices.ListarJogosPaginados(
+                        pagina.Value,
+                        itensPorPagina ?? 12,
+                        busca,
+                        genero,
+                        ano,
+                        empresa,
+                        ordenacao ?? "melhores"
+                    );
+                    return Ok(paged);
+                }
+
                 var jogos = await _jogoServices.ListarJogos();
                 return Ok(jogos);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Internal server error: " + ex.Message });
+                return StatusCode(500, new { message = "Erro interno: " + ex.Message });
             }
         }
 
@@ -46,7 +68,7 @@ namespace GameLog_Backend.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Internal server error: " + ex.Message });
+                return StatusCode(500, new { message = "Erro interno: " + ex.Message });
             }
         }
 
@@ -61,7 +83,7 @@ namespace GameLog_Backend.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Internal server error: " + ex.Message });
+                return StatusCode(500, new { message = "Erro interno: " + ex.Message });
             }
         }
     }
