@@ -39,10 +39,7 @@ const PaginaAvaliacoes = () => {
       <Navbar />
       <div className="pagina-avaliacoes-content">
         <header className="pagina-avaliacoes-header">
-          <div className="avaliacoes-header-badge">
-            <FaComments /> Comunidade GameLog
-          </div>
-          <h1>Todas as Avaliações</h1>
+          <h1>Comunidade GameLog</h1>
           <p>Veja o que os jogadores estão achando dos jogos mais recentes e populares.</p>
           
           <div className="search-bar-avaliacoes">

@@ -33,7 +33,8 @@ const JogoCard = ({ jogo }) => {
             src={imagem}
             alt={titulo}
             className="jogo-card-image"
-            loading="lazy"
+            loading="eager"
+            decoding="async"
             onError={(e) => {
               e.target.onerror = null;
               e.target.src = "/game-images/default_game_cover.png";
