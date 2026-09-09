@@ -1,10 +1,11 @@
 import axios from "axios";
 
 const getBaseUrl = () => {
-  if (process.env.REACT_APP_API_BASE_URL) {
-    return process.env.REACT_APP_API_BASE_URL.endsWith("/api") 
-      ? process.env.REACT_APP_API_BASE_URL 
-      : `${process.env.REACT_APP_API_BASE_URL}/api`;
+  const envUrl = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) 
+    || (typeof process !== "undefined" && process.env?.REACT_APP_API_BASE_URL);
+
+  if (envUrl) {
+    return envUrl.endsWith("/api") ? envUrl : `${envUrl}/api`;
   }
   return "http://localhost:7096/api";
 };
