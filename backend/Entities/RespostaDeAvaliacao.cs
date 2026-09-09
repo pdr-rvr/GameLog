@@ -8,5 +8,11 @@ namespace GameLog_Backend.Entities
         public int? UsuarioId { get; set; }
         public virtual Usuario? Usuario { get; set; }
         public DateTime DataCriacao { get; set; } = DateTime.UtcNow;
+        public virtual ICollection<CurtidaDeResposta> CurtidasDeRespostas { get; set; }
+
+        public RespostaDeAvaliacao()
+        {
+            CurtidasDeRespostas = new List<CurtidaDeResposta>();
+        }
     }
 }
