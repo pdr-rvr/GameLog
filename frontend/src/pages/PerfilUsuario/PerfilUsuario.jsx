@@ -3,10 +3,14 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import AvaliacaoCard from "../../components/AvaliacaoCard/AvaliacaoCard";
 import ConfirmModal from "../../components/ConfirmModal/ConfirmModal";
+import PodioFavoritos from "../../components/PodioFavoritos/PodioFavoritos";
+import ModalEditarFavoritos from "../../components/ModalEditarFavoritos/ModalEditarFavoritos";
+import BibliotecaCard from "../../components/BibliotecaCard/BibliotecaCard";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { fetchUserProfile, fetchUserReviews, fetchUserTopGenres } from "./actions/PerfilUsuarioActions";
 import { deleteReview } from "../../pages/MinhasAvaliacoes/actions/MinhasAvaliacoesActions";
+import { BibliotecaService, STATUS_JOGO } from "../../services/bibliotecaService";
 import { 
   FaGamepad, 
   FaStar, 
@@ -14,7 +18,10 @@ import {
   FaComments, 
   FaLayerGroup, 
   FaCalendarAlt,
-  FaAward
+  FaAward,
+  FaBookmark,
+  FaSearch,
+  FaTimes
 } from "react-icons/fa";
 import "./PerfilUsuario.css";
 
@@ -32,6 +39,25 @@ const PerfilUsuario = () => {
   const [itemParaExcluir, setItemParaExcluir] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Top 5 Favorites State
+  const [favoritos, setFavoritos] = useState([]);
+  const [modalFavoritosAberto, setModalFavoritosAberto] = useState(false);
+
+  // Library State
+  const [itensBiblioteca, setItensBiblioteca] = useState([]);
+  const [statsBiblioteca, setStatsBiblioteca] = useState({
+    totalJogos: 0,
+    totalQueroJogar: 0,
+    totalJogando: 0,
+    totalZerados: 0,
+    totalPausados: 0,
+    totalAbandonados: 0,
+  });
+  const [statusFiltro, setStatusFiltro] = useState(null);
+  const [buscaBiblioteca, setBuscaBiblioteca] = useState("");
+  const [loadingBiblioteca, setLoadingBiblioteca] = useState(false);
+  const [jogoParaRemoverBiblioteca, setJogoParaRemoverBiblioteca] = useState(null);
+
   // Target User ID to load
   const targetId = userId ? parseInt(userId, 10) : user?.id;
   const isOwner = user && targetId && Number(user.id) === Number(targetId);
@@ -46,15 +72,26 @@ const PerfilUsuario = () => {
     setLoading(true);
     setError("");
     try {
-      const [dadosUsuario, dadosAvaliacoes, dadosGeneros] = await Promise.all([
+      const [dadosUsuario, dadosAvaliacoes, dadosGeneros, dadosFavoritos, dadosStats] = await Promise.all([
         fetchUserProfile(targetId),
         fetchUserReviews(targetId),
-        fetchUserTopGenres(targetId)
+        fetchUserTopGenres(targetId),
+        BibliotecaService.obterFavoritos(targetId).catch(() => []),
+        BibliotecaService.obterEstatisticas(targetId).catch(() => ({
+          totalJogos: 0,
+          totalQueroJogar: 0,
+          totalJogando: 0,
+          totalZerados: 0,
+          totalPausados: 0,
+          totalAbandonados: 0,
+        }))
       ]);
 
       setPerfil(dadosUsuario);
       setAvaliacoes(dadosAvaliacoes || []);
       setTopGeneros(dadosGeneros || []);
+      setFavoritos(dadosFavoritos || []);
+      setStatsBiblioteca(dadosStats);
     } catch (err) {
       console.error("Erro ao carregar perfil:", err);
       setError(err.message || "Não foi possível carregar o perfil do jogador.");
@@ -66,6 +103,43 @@ const PerfilUsuario = () => {
   useEffect(() => {
     carregarDadosPerfil();
   }, [carregarDadosPerfil]);
+
+  // Load Library Items with filters
+  const carregarItensBiblioteca = useCallback(async () => {
+    if (!targetId) return;
+    setLoadingBiblioteca(true);
+    try {
+      const itens = await BibliotecaService.listarBibliotecaUsuario(
+        targetId,
+        statusFiltro,
+        buscaBiblioteca
+      );
+      setItensBiblioteca(itens || []);
+    } catch (err) {
+      console.error("Erro ao carregar biblioteca:", err);
+    } finally {
+      setLoadingBiblioteca(false);
+    }
+  }, [targetId, statusFiltro, buscaBiblioteca]);
+
+  useEffect(() => {
+    carregarItensBiblioteca();
+  }, [carregarItensBiblioteca]);
+
+  // Refresh Stats and Library
+  const recarregarBibliotecaCompleta = async () => {
+    if (!targetId) return;
+    try {
+      const [itens, stats] = await Promise.all([
+        BibliotecaService.listarBibliotecaUsuario(targetId, statusFiltro, buscaBiblioteca),
+        BibliotecaService.obterEstatisticas(targetId)
+      ]);
+      setItensBiblioteca(itens || []);
+      setStatsBiblioteca(stats);
+    } catch (err) {
+      console.error("Erro ao recarregar estatísticas da biblioteca:", err);
+    }
+  };
 
   // Statistics calculation
   const totalAvaliacoes = avaliacoes.length;
@@ -96,6 +170,28 @@ const PerfilUsuario = () => {
       setItemParaExcluir(null);
     }
   };
+
+  const handleConfirmRemoverBiblioteca = async () => {
+    if (!jogoParaRemoverBiblioteca) return;
+    try {
+      await BibliotecaService.removerItem(jogoParaRemoverBiblioteca);
+      toast.success("Jogo removido da biblioteca.");
+      setJogoParaRemoverBiblioteca(null);
+      await recarregarBibliotecaCompleta();
+    } catch (err) {
+      console.error("Erro ao remover da biblioteca:", err);
+      toast.error(err.response?.data?.message || "Erro ao remover jogo da biblioteca.");
+    }
+  };
+
+  const tabsFiltroBiblioteca = [
+    { status: null, label: "Todos", count: statsBiblioteca.totalJogos },
+    { status: STATUS_JOGO.QUERO_JOGAR, label: "Quero Jogar", count: statsBiblioteca.totalQueroJogar },
+    { status: STATUS_JOGO.JOGANDO, label: "Jogando", count: statsBiblioteca.totalJogando },
+    { status: STATUS_JOGO.ZERADO, label: "Zerado", count: statsBiblioteca.totalZerados },
+    { status: STATUS_JOGO.PAUSADO, label: "Pausado", count: statsBiblioteca.totalPausados },
+    { status: STATUS_JOGO.ABANDONADO, label: "Abandonado", count: statsBiblioteca.totalAbandonados },
+  ];
 
   return (
     <div className="perfil-social-page">
@@ -160,21 +256,31 @@ const PerfilUsuario = () => {
                     <FaCalendarAlt /> Membro da Comunidade
                   </span>
                   <span className="gamer-meta-item">
+                    <FaBookmark /> {statsBiblioteca.totalJogos} {statsBiblioteca.totalJogos === 1 ? "Jogo na Biblioteca" : "Jogos na Biblioteca"}
+                  </span>
+                  <span className="gamer-meta-item">
                     <FaAward /> {totalAvaliacoes} {totalAvaliacoes === 1 ? "Review" : "Reviews"}
                   </span>
                 </div>
               </div>
             </header>
 
+            {/* Top 5 Jogos Favoritos (Pódio Letterboxd) */}
+            <PodioFavoritos
+              favoritos={favoritos}
+              isOwner={isOwner}
+              onEditar={() => setModalFavoritosAberto(true)}
+            />
+
             {/* Dashboard de Estatísticas Gamer */}
             <section className="gamer-stats-grid">
               <div className="stat-card">
                 <div className="stat-icon-badge purple">
-                  <FaComments />
+                  <FaBookmark />
                 </div>
                 <div className="stat-data">
-                  <span className="stat-value">{totalAvaliacoes}</span>
-                  <span className="stat-label">Jogos Avaliados</span>
+                  <span className="stat-value">{statsBiblioteca.totalJogos}</span>
+                  <span className="stat-label">Jogos na Biblioteca</span>
                 </div>
               </div>
 
@@ -209,12 +315,104 @@ const PerfilUsuario = () => {
               </div>
             </section>
 
+            {/* Biblioteca Gamer Pública */}
+            <section className="gamer-library-section">
+              <div className="library-section-header">
+                <div>
+                  <h2 className="section-title">
+                    Biblioteca de {isOwner ? "Você" : perfil.nomeUsuario}
+                  </h2>
+                  <span className="section-subtitle">Coleção e status de progresso dos jogos</span>
+                </div>
+              </div>
+
+              {/* Filter Tabs and Search Bar */}
+              <div className="library-toolbar">
+                <div className="library-tabs-row">
+                  {tabsFiltroBiblioteca.map((tab, idx) => {
+                    const isAtivo = statusFiltro === tab.status;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={`library-tab-btn ${isAtivo ? "ativo" : ""}`}
+                        onClick={() => setStatusFiltro(tab.status)}
+                      >
+                        <span className="tab-label">{tab.label}</span>
+                        <span className="tab-count">{tab.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="library-search-input-wrap">
+                  <FaSearch className="search-icon" />
+                  <input
+                    type="text"
+                    placeholder="Buscar na biblioteca..."
+                    value={buscaBiblioteca}
+                    onChange={(e) => setBuscaBiblioteca(e.target.value)}
+                  />
+                  {buscaBiblioteca && (
+                    <button
+                      type="button"
+                      className="btn-clear-library-search"
+                      onClick={() => setBuscaBiblioteca("")}
+                    >
+                      <FaTimes />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Library Cards Grid */}
+              {loadingBiblioteca ? (
+                <div className="library-loading-state">
+                  <div className="perfil-spinner small"></div>
+                  <span>Atualizando biblioteca...</span>
+                </div>
+              ) : itensBiblioteca.length === 0 ? (
+                <div className="library-empty-state">
+                  <FaBookmark className="empty-lib-icon" />
+                  <h3>Nenhum jogo encontrado</h3>
+                  <p>
+                    {statusFiltro !== null
+                      ? "Nenhum jogo corresponde a esse filtro de status."
+                      : buscaBiblioteca
+                      ? "Nenhum jogo encontrado com esse termo de busca."
+                      : isOwner
+                      ? "Sua biblioteca está vazia. Comece a adicionar os jogos que você está jogando ou já zerou!"
+                      : `${perfil.nomeUsuario} ainda não adicionou jogos a esta categoria.`}
+                  </p>
+                  {isOwner && (
+                    <Link to="/jogos" className="btn-browse-games">
+                      Explorar Catálogo de Jogos
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="library-cards-grid">
+                  {itensBiblioteca.map((item) => (
+                    <BibliotecaCard
+                      key={item.id || item.jogoId}
+                      item={item}
+                      isOwner={isOwner}
+                      onRemover={(id) => setJogoParaRemoverBiblioteca(id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+
             {/* Feed de Avaliações do Usuário */}
             <section className="gamer-reviews-section">
               <div className="section-header">
-                <h2 className="section-title">
-                  Avaliações de {isOwner ? "Você" : perfil.nomeUsuario}
-                </h2>
+                <div>
+                  <h2 className="section-title">
+                    Avaliações de {isOwner ? "Você" : perfil.nomeUsuario}
+                  </h2>
+                  <span className="section-subtitle">Críticas e impressões detalhadas</span>
+                </div>
                 <span className="section-counter">{totalAvaliacoes} {totalAvaliacoes === 1 ? "publicação" : "publicações"}</span>
               </div>
 
@@ -251,7 +449,15 @@ const PerfilUsuario = () => {
         )}
       </main>
 
-      {/* Modal de Confirmação para exclusão */}
+      {/* Modal de Personalização dos 5 Favoritos (Pódio) */}
+      <ModalEditarFavoritos
+        isOpen={modalFavoritosAberto}
+        onClose={() => setModalFavoritosAberto(false)}
+        favoritosAtuais={favoritos}
+        onSalvo={(novos) => setFavoritos(novos || [])}
+      />
+
+      {/* Modal de Confirmação para exclusão de Avaliação */}
       <ConfirmModal
         isOpen={Boolean(itemParaExcluir)}
         title="Excluir Avaliação"
@@ -263,9 +469,20 @@ const PerfilUsuario = () => {
         onConfirm={handleConfirmDelete}
         onCancel={() => !isDeleting && setItemParaExcluir(null)}
       />
+
+      {/* Modal de Confirmação para remoção de Jogo da Biblioteca */}
+      <ConfirmModal
+        isOpen={Boolean(jogoParaRemoverBiblioteca)}
+        title="Remover da Biblioteca"
+        message="Deseja realmente remover este jogo da sua biblioteca de jogos?"
+        confirmText="Remover"
+        cancelText="Cancelar"
+        confirmVariant="danger"
+        onConfirm={handleConfirmRemoverBiblioteca}
+        onCancel={() => setJogoParaRemoverBiblioteca(null)}
+      />
     </div>
   );
 };
 
 export default PerfilUsuario;
-

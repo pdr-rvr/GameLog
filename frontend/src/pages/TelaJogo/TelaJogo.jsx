@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import AvaliacaoCarrossel from "../../components/AvaliacaoCarrossel/AvaliacaoCarrossel";
+import { FaStar } from "react-icons/fa";
+import SeletorStatusBiblioteca from "../../components/SeletorStatusBiblioteca/SeletorStatusBiblioteca";
 import { buscarJogoPorId, buscarAvaliacoesPorJogoId } from "./actions/TelaJogoActions";
 import "./TelaJogo.css";
 
@@ -83,6 +85,7 @@ function TelaJogo() {
                     <div className="jogo-info-principal">
                         <h1 className="jogo-detalhes-titulo">{jogo.titulo}</h1>
                         <p className="jogo-detalhes-descricao">{jogo.descricao}</p>
+                        
                         <div className="jogo-detalhes-info">
                             <p><strong>Lançamento:</strong> {formatarData(jogo.dataLancamento)}</p>
                             <p><strong>Classificação Indicativa:</strong> {jogo.classificacaoIndicativa !== null ? `${jogo.classificacaoIndicativa} anos` : "Livre"}</p>
@@ -100,8 +103,15 @@ function TelaJogo() {
                                 <p><strong>Gêneros:</strong> {jogo.generos.join(", ")}</p>
                             )}
                             {jogo.mediaAvaliacoes !== null && jogo.mediaAvaliacoes !== undefined && (
-                                <p><strong>Média de Avaliações:</strong> ⭐ {jogo.mediaAvaliacoes.toFixed(1)} ({jogo.totalAvaliacoes || 0} avaliações)</p>
+                                <p className="media-avaliacoes-tag">
+                                    <strong>Média da Comunidade:</strong> <FaStar className="star-inline" /> {jogo.mediaAvaliacoes.toFixed(1)} ({jogo.totalAvaliacoes || 0} avaliações)
+                                </p>
                             )}
+                        </div>
+
+                        {/* Seletor de Status na Biblioteca */}
+                        <div className="jogo-biblioteca-seletor-wrapper">
+                            <SeletorStatusBiblioteca jogoId={Number(jogo.jogoId ?? jogo.id ?? jogoId)} />
                         </div>
                     </div>
                 </div>

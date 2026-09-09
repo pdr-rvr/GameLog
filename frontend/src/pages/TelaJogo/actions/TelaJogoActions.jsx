@@ -7,8 +7,13 @@ export const buscarJogoPorId = async (jogoId) => {
         if (!jogo) {
             throw new Error("Jogo não encontrado.");
         }
-        jogo.imagem = jogo.imagem || "/game-images/default_game_cover.png";
-        return jogo;
+        const idReal = Number(jogo.jogoId ?? jogo.id ?? jogoId);
+        return {
+            ...jogo,
+            id: idReal,
+            jogoId: idReal,
+            imagem: jogo.imagem || "/game-images/default_game_cover.png"
+        };
     } catch (error) {
         console.error(`Erro ao buscar jogo com ID ${jogoId}:`, error);
         throw new Error(error.response?.data?.message || "Não foi possível carregar os detalhes do jogo.");
