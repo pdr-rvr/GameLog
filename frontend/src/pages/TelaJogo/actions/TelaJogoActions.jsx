@@ -16,7 +16,7 @@ export const buscarJogoPorId = async (jogoId) => {
         };
     } catch (error) {
         console.error(`Erro ao buscar jogo com ID ${jogoId}:`, error);
-        throw new Error(error.response?.data?.message || "Não foi possível carregar os detalhes do jogo.");
+        throw new Error(error.userMessage || error.response?.data?.detail || error.response?.data?.message || "Não foi possível carregar os detalhes do jogo.");
     }
 };
 

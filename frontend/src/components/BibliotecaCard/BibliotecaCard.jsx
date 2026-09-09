@@ -28,6 +28,10 @@ const BibliotecaCard = ({ item, isOwner = false, onRemover }) => {
             className="biblioteca-cover-img"
             loading="lazy"
             decoding="async"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "/game-images/default_game_cover.png";
+            }}
           />
           <div className="biblioteca-cover-overlay">
             <span className="cover-view-text">Ver Detalhes</span>
@@ -54,7 +58,7 @@ const BibliotecaCard = ({ item, isOwner = false, onRemover }) => {
           {item.minhaNota !== null && item.minhaNota !== undefined ? (
             <div className="my-rating-tag" title="Sua Avaliação">
               <FaStar className="star-gold" />
-              <span>Sua Nota: <strong>{item.minhaNota}/10</strong></span>
+              <span>Sua Nota: <strong>{item.minhaNota}/5</strong></span>
             </div>
           ) : item.mediaAvaliacoes !== null && item.mediaAvaliacoes !== undefined ? (
             <div className="avg-rating-tag" title="Média Geral da Comunidade">

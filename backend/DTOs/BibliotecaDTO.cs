@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using GameLog_Backend.Entities;
 
 namespace GameLog_Backend.DTOs
@@ -9,13 +10,13 @@ namespace GameLog_Backend.DTOs
         public int Id { get; set; }
         public int UsuarioId { get; set; }
         public int JogoId { get; set; }
-        public string TituloJogo { get; set; }
-        public string ImagemJogo { get; set; }
+        public string TituloJogo { get; set; } = string.Empty;
+        public string ImagemJogo { get; set; } = string.Empty;
         public string? NomeEmpresa { get; set; }
         public int? EmpresaId { get; set; }
         public string? DataLancamento { get; set; }
         public int Status { get; set; }
-        public string StatusNome { get; set; }
+        public string StatusNome { get; set; } = string.Empty;
         public DateTime DataAtualizacao { get; set; }
         public DateTime? DataConclusao { get; set; }
         public int? MinhaNota { get; set; }
@@ -24,7 +25,12 @@ namespace GameLog_Backend.DTOs
 
     public class SalvarItemBibliotecaDTO
     {
+        [Required(ErrorMessage = "O jogo é obrigatório.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Identificador de jogo inválido.")]
         public int JogoId { get; set; }
+
+        [Required(ErrorMessage = "O status do jogo é obrigatório.")]
+        [EnumDataType(typeof(StatusJogo), ErrorMessage = "Status do jogo inválido.")]
         public StatusJogo Status { get; set; }
     }
 
@@ -42,8 +48,8 @@ namespace GameLog_Backend.DTOs
     {
         public int Posicao { get; set; }
         public int JogoId { get; set; }
-        public string TituloJogo { get; set; }
-        public string ImagemJogo { get; set; }
+        public string TituloJogo { get; set; } = string.Empty;
+        public string ImagemJogo { get; set; } = string.Empty;
         public string? NomeEmpresa { get; set; }
         public int? EmpresaId { get; set; }
         public string? DataLancamento { get; set; }
@@ -52,7 +58,12 @@ namespace GameLog_Backend.DTOs
 
     public class ItemFavoritoPosicaoDTO
     {
+        [Required]
+        [Range(1, 5, ErrorMessage = "A posição do favorito deve estar entre 1 e 5.")]
         public int Posicao { get; set; }
+
+        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "Identificador de jogo inválido.")]
         public int JogoId { get; set; }
     }
 

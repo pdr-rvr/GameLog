@@ -66,9 +66,11 @@ export const AuthProvider = ({ children }) => {
             loadUserFromToken();
         };
         window.addEventListener("storage", handleStorageChange);
+        window.addEventListener("gamelog-unauthorized", handleStorageChange);
 
         return () => {
             window.removeEventListener("storage", handleStorageChange);
+            window.removeEventListener("gamelog-unauthorized", handleStorageChange);
         };
     }, [loadUserFromToken]);
 

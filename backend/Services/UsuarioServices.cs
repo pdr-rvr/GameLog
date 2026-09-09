@@ -13,6 +13,7 @@ using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace GameLog_Backend.Services
@@ -23,15 +24,15 @@ namespace GameLog_Backend.Services
         private readonly IMapper _mapper;
         private readonly JwtSettings _jwtSettings;
 
-        public UsuarioServices(GameLogContext context, IMapper mapper, IConfiguration configuration)
+        public UsuarioServices(GameLogContext context, IMapper mapper, IOptions<JwtSettings> jwtOptions)
         {
             _context = context;
             _mapper = mapper;
-            _jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings
+            _jwtSettings = jwtOptions.Value ?? new JwtSettings
             {
-                Key = configuration["Jwt:Key"] ?? "***REDACTED_JWT_SECRET***",
-                Issuer = configuration["Jwt:Issuer"] ?? "GameLogAPI",
-                Audience = configuration["Jwt:Audience"] ?? "GameLogClient",
+                Key = "***REDACTED_JWT_SECRET***",
+                Issuer = "GameLogAPI",
+                Audience = "GameLogClient",
                 ExpireHours = 24
             };
         }

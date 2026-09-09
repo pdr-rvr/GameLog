@@ -167,7 +167,15 @@ const PaginaDetalhesLista = () => {
               <div className="hero-meta-footer">
                 <Link to={`/perfil/${lista.usuarioId}`} className="author-chip">
                   {lista.fotoPerfilUsuario ? (
-                    <img src={lista.fotoPerfilUsuario} alt={lista.nomeUsuario} className="author-avatar" />
+                    <img
+                      src={lista.fotoPerfilUsuario}
+                      alt={lista.nomeUsuario}
+                      className="author-avatar"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80";
+                      }}
+                    />
                   ) : (
                     <div className="author-avatar fallback">
                       <span>{lista.nomeUsuario ? lista.nomeUsuario.charAt(0).toUpperCase() : "G"}</span>
@@ -242,7 +250,11 @@ const PaginaDetalhesLista = () => {
           onClose={() => setModalEditarAberto(false)}
           listaParaEditar={lista}
           onListaSalva={(atualizada) => {
-            setLista(atualizada);
+            if (atualizada && atualizada.itens) {
+              setLista(atualizada);
+            } else {
+              carregarLista();
+            }
           }}
         />
       )}
