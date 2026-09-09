@@ -1,4 +1,4 @@
-﻿using GameLog_Backend.Entities;
+using GameLog_Backend.Entities;
 
 namespace GameLog_Backend.DTOs
 {
@@ -16,5 +16,12 @@ namespace GameLog_Backend.DTOs
         public double? MediaAvaliacoes { get; set; }
         public List<string> Generos { get; set; } = new List<string>(); 
         public int TotalAvaliacoes { get; set; }
+    }
+
+    public class MetadadosFiltrosDTO
+    {
+        public List<string> Generos { get; set; } = new();
+        public List<string> Empresas { get; set; } = new();
+        public List<int> Anos { get; set; } = new();
     }
 }

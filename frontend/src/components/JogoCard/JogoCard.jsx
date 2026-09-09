@@ -10,7 +10,7 @@ const JogoCard = ({ jogo }) => {
   const titulo = jogo.titulo || jogo.nome || "Jogo sem título";
   const imagem = jogo.imagem || jogo.foto || "/game-images/default_game_cover.png";
   const empresa = jogo.nomeEmpresa || jogo.empresa || "";
-  const genero = jogo.genero || "";
+  const genero = jogo.genero || jogo.generoFavorito || (Array.isArray(jogo.generos) && jogo.generos[0]) || "";
   
   let anoLancamento = null;
   if (jogo.dataLancamento) {
@@ -20,8 +20,9 @@ const JogoCard = ({ jogo }) => {
     }
   }
 
-  const media = jogo.mediaAvaliacoes !== null && jogo.mediaAvaliacoes !== undefined
-    ? Number(jogo.mediaAvaliacoes).toFixed(1)
+  const mediaNum = Number(jogo.mediaAvaliacoes);
+  const media = jogo.mediaAvaliacoes !== null && jogo.mediaAvaliacoes !== undefined && !isNaN(mediaNum) && mediaNum > 0
+    ? mediaNum.toFixed(1)
     : null;
 
   return (

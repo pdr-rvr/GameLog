@@ -1,4 +1,4 @@
-﻿using GameLog_Backend.Entities;
+using GameLog_Backend.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,7 +16,7 @@ namespace GameLog_Backend.Configurations
                 .IsRequired();
 
             builder.Property(p => p.NomeEmpresa)
-                .HasMaxLength(30)
+                .HasMaxLength(150)
                 .IsRequired();
 
             builder.HasIndex(p => p.NomeEmpresa)

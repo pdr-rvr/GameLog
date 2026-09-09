@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaSearch, FaTimes, FaGamepad, FaUser, FaLayerGroup, FaChevronRight } from 'react-icons/fa';
 import api from '../../services/api';
+import rawgService from '../../services/rawgService';
 import './SearchBar.css';
 
 const SearchBar = ({ 
@@ -78,14 +79,26 @@ const SearchBar = ({
     }
   };
 
-  const handleSelectGame = (jogo) => {
+  const handleSelectGame = async (jogo) => {
     setShowSuggestions(false);
     setQuery('');
     if (onSelectSuggestion) {
       onSelectSuggestion(jogo);
     } else {
-      const id = jogo.jogoId || jogo.id;
-      if (id) navigate(`/jogos/${id}`);
+      if (jogo.ehExterno && jogo.rawgId) {
+        try {
+          const imported = await rawgService.importarJogoRawg(jogo.rawgId);
+          const targetId = imported.jogoId || imported.id;
+          navigate(`/jogos/${targetId}`);
+        } catch (err) {
+          console.error("Erro ao importar jogo selecionado:", err);
+          const fallbackId = jogo.jogoId || jogo.id;
+          if (fallbackId > 0) navigate(`/jogos/${fallbackId}`);
+        }
+      } else {
+        const id = jogo.jogoId || jogo.id;
+        if (id) navigate(`/jogos/${id}`);
+      }
     }
   };
 
@@ -294,7 +307,25 @@ const SearchBar = ({
 
               {!hasGlobalResults && (
                 <div className="suggestions-empty">
-                  Nenhum jogo, coleção ou jogador encontrado para "{query}".
+                  Nenhum resultado encontrado para "{query}".
+                </div>
+              )}
+
+              {query.trim().length >= 2 && (
+                <div 
+                  className="suggestion-rawg-prompt"
+                  onClick={() => {
+                    setShowSuggestions(false);
+                    navigate(`/jogos?busca=${encodeURIComponent(query.trim())}`);
+                  }}
+                >
+                  <div className="rawg-prompt-icon-box">
+                    <FaGamepad />
+                  </div>
+                  <div className="rawg-prompt-text">
+                    <span>Ver todos os resultados para "<strong>{query}</strong>" no catálogo</span>
+                  </div>
+                  <FaChevronRight className="suggestion-arrow" />
                 </div>
               )}
             </>
