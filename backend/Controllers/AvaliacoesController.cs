@@ -101,7 +101,8 @@ namespace GameLog_Backend.Controllers
         {
             try
             {
-                var avaliacoes = await _avaliacaoServices.ListarAvaliacoesPorJogo(jogoId);
+                int? usuarioId = User.Identity?.IsAuthenticated == true ? ObterUsuarioId() : null;
+                var avaliacoes = await _avaliacaoServices.ListarAvaliacoesPorJogo(jogoId, usuarioId);
                 return Ok(avaliacoes);
             }
             catch (Exception ex)
@@ -163,21 +164,22 @@ namespace GameLog_Backend.Controllers
             try
             {
                 var usuarioId = ObterUsuarioId();
-                var sucesso = await _avaliacaoServices.AdicionarCurtida(avaliacaoId, usuarioId);
+                var (curtido, totalCurtidas) = await _avaliacaoServices.AlternarCurtida(avaliacaoId, usuarioId);
 
-                if (!sucesso)
-                    return BadRequest(new { message = "Não foi possível curtir a avaliação" });
-
-                var totalCurtidas = await _avaliacaoServices.ContarCurtidas(avaliacaoId);
                 return Ok(new
                 {
-                    message = "Avaliação curtida com sucesso",
+                    message = curtido ? "Avaliação curtida com sucesso" : "Curtida removida com sucesso",
+                    curtido,
                     totalCurtidas
                 });
             }
             catch (UnauthorizedAccessException)
             {
                 return Unauthorized(new { message = "Não autorizado" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -194,19 +196,21 @@ namespace GameLog_Backend.Controllers
                 var usuarioId = ObterUsuarioId();
                 var sucesso = await _avaliacaoServices.RemoverCurtida(avaliacaoId, usuarioId);
 
-                if (!sucesso)
-                    return BadRequest(new { message = "Não foi possível remover a curtida" });
-
                 var totalCurtidas = await _avaliacaoServices.ContarCurtidas(avaliacaoId);
                 return Ok(new
                 {
                     message = "Curtida removida com sucesso",
+                    curtido = false,
                     totalCurtidas
                 });
             }
             catch (UnauthorizedAccessException)
             {
                 return Unauthorized(new { message = "Não autorizado" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -242,6 +246,101 @@ namespace GameLog_Backend.Controllers
             catch (UnauthorizedAccessException)
             {
                 return Unauthorized(new { message = "Não autorizado" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        // ======================= RESPOSTAS DE AVALIAÇÃO ======================= //
+
+        [HttpGet("{avaliacaoId}/respostas")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ListarRespostas(int avaliacaoId)
+        {
+            try
+            {
+                int? usuarioId = User.Identity?.IsAuthenticated == true ? ObterUsuarioId() : null;
+                var respostas = await _avaliacaoServices.ListarRespostasPorAvaliacao(avaliacaoId, usuarioId);
+                return Ok(respostas);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Erro ao listar respostas da avaliação: {ex.Message}" });
+            }
+        }
+
+        [HttpPost("{avaliacaoId}/respostas")]
+        [Authorize]
+        public async Task<IActionResult> AdicionarResposta(int avaliacaoId, [FromBody] CriarRespostaDTO dto)
+        {
+            try
+            {
+                var usuarioId = ObterUsuarioId();
+                var resposta = await _avaliacaoServices.AdicionarResposta(avaliacaoId, usuarioId, dto);
+                return CreatedAtAction(nameof(ListarRespostas), new { avaliacaoId }, resposta);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Não autorizado" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Erro ao adicionar resposta: {ex.Message}" });
+            }
+        }
+
+        [HttpDelete("respostas/{respostaId}")]
+        [Authorize]
+        public async Task<IActionResult> DeletarResposta(int respostaId)
+        {
+            try
+            {
+                var usuarioId = ObterUsuarioId();
+                var sucesso = await _avaliacaoServices.DeletarResposta(respostaId, usuarioId);
+
+                return sucesso
+                    ? NoContent()
+                    : NotFound(new { message = "Resposta não encontrada ou você não tem permissão para excluí-la" });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Não autorizado" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Erro ao excluir resposta: {ex.Message}" });
+            }
+        }
+
+        [HttpPost("respostas/{respostaId}/curtir")]
+        [Authorize]
+        public async Task<IActionResult> CurtirResposta(int respostaId)
+        {
+            try
+            {
+                var usuarioId = ObterUsuarioId();
+                var (curtido, totalCurtidas) = await _avaliacaoServices.AlternarCurtidaResposta(respostaId, usuarioId);
+
+                return Ok(new
+                {
+                    message = curtido ? "Resposta curtida com sucesso" : "Curtida removida com sucesso",
+                    curtido,
+                    totalCurtidas
+                });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Não autorizado" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {

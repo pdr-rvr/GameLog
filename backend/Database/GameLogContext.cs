@@ -1,4 +1,4 @@
-﻿using GameLog_Backend.Configurations;
+using GameLog_Backend.Configurations;
 using GameLog_Backend.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +15,7 @@ namespace GameLog_Backend.Database
         public DbSet<Avaliacao> Avaliacoes { get; set; }
         public DbSet<RespostaDeAvaliacao> RespostasDeAvaliacao { get; set; }
         public DbSet<CurtidaDeAvaliacao> CurtidasDeAvaliacoes { get; set; }
+        public DbSet<CurtidaDeResposta> CurtidasDeRespostas { get; set; }
         public DbSet<SegueUsuario> SegueUsuarios { get; set;}
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -32,6 +33,7 @@ namespace GameLog_Backend.Database
             modelBuilder.ApplyConfiguration(new AvaliacaoConfigurations());
             modelBuilder.ApplyConfiguration(new RespostaDeAvaliacaoConfigurations());
             modelBuilder.ApplyConfiguration(new CurtidaDeAvaliacaoConfigurations());
+            modelBuilder.ApplyConfiguration(new CurtidaDeRespostaConfigurations());
             modelBuilder.ApplyConfiguration(new SegueUsuarioConfigurations());
         }
     }

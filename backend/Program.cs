@@ -130,11 +130,65 @@ using (var scope = app.Services.CreateScope())
                     BEGIN
                         ALTER TABLE [dbo].[Usuarios] ADD [Bio] NVARCHAR(300) NULL;
                     END
+
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns 
+                        WHERE object_id = OBJECT_ID(N'[dbo].[CurtidasDeAvaliacoes]') 
+                        AND name = 'UsuarioId'
+                    )
+                    BEGIN
+                        ALTER TABLE [dbo].[CurtidasDeAvaliacoes] ADD [UsuarioId] INT NULL;
+                    END
+
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns 
+                        WHERE object_id = OBJECT_ID(N'[dbo].[RespostasDeAvaliacao]') 
+                        AND name = 'UsuarioId'
+                    )
+                    BEGIN
+                        ALTER TABLE [dbo].[RespostasDeAvaliacao] ADD [UsuarioId] INT NULL;
+                    END
+
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns 
+                        WHERE object_id = OBJECT_ID(N'[dbo].[RespostasDeAvaliacao]') 
+                        AND name = 'DataCriacao'
+                    )
+                    BEGIN
+                        ALTER TABLE [dbo].[RespostasDeAvaliacao] ADD [DataCriacao] DATETIME2 NOT NULL DEFAULT GETUTCDATE();
+                    END
+
+                    IF EXISTS (
+                        SELECT * FROM sys.columns 
+                        WHERE object_id = OBJECT_ID(N'[dbo].[RespostasDeAvaliacao]') 
+                        AND name = 'Comentario'
+                    )
+                    BEGIN
+                        ALTER TABLE [dbo].[RespostasDeAvaliacao] ALTER COLUMN [Comentario] NVARCHAR(500) NOT NULL;
+                    END
+
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.tables 
+                        WHERE name = 'CurtidasDeRespostas'
+                    )
+                    BEGIN
+                        CREATE TABLE [dbo].[CurtidasDeRespostas] (
+                            [CurtidaDeRespostaId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            [Curtida] BIT NOT NULL,
+                            [RespostaDeAvaliacaoId] INT NOT NULL,
+                            [UsuarioId] INT NOT NULL,
+                            [EstaAtivo] BIT NOT NULL,
+                            CONSTRAINT [FK_CurtidasDeRespostas_Respostas] FOREIGN KEY ([RespostaDeAvaliacaoId]) REFERENCES [dbo].[RespostasDeAvaliacao]([RespostaDeAvaliacaoId]) ON DELETE CASCADE,
+                            CONSTRAINT [FK_CurtidasDeRespostas_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios]([UsuarioId])
+                        );
+                        CREATE INDEX [IX_CurtidasDeRespostas_RespostaDeAvaliacaoId] ON [dbo].[CurtidasDeRespostas]([RespostaDeAvaliacaoId]);
+                        CREATE INDEX [IX_CurtidasDeRespostas_UsuarioId] ON [dbo].[CurtidasDeRespostas]([UsuarioId]);
+                    END
                 ");
             }
             catch (Exception exCol)
             {
-                Console.WriteLine($"[GameLog] Verificação de coluna Bio: {exCol.Message}");
+                Console.WriteLine($"[GameLog] Verificação de colunas complementares: {exCol.Message}");
             }
 
             Console.WriteLine("[GameLog] Executando Seeders...");
