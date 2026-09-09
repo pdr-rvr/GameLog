@@ -36,6 +36,8 @@ const AvaliacaoCarrossel = ({ title, avaliacoes, onEditReview, onDeleteReview })
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const isAnimatingRef = useRef(false);
+
   useEffect(() => {
     if (isCircular) {
       setIsTransitioning(false);
@@ -46,6 +48,7 @@ const AvaliacaoCarrossel = ({ title, avaliacoes, onEditReview, onDeleteReview })
   }, [totalOriginal, isCircular]);
 
   const handleTransitionEnd = () => {
+    isAnimatingRef.current = false;
     if (!isCircular) return;
 
     if (currentIndex >= totalOriginal + CLONES) {
@@ -71,12 +74,18 @@ const AvaliacaoCarrossel = ({ title, avaliacoes, onEditReview, onDeleteReview })
   const stride = cardWidth + gap;
 
   const slide = (direction) => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+
     if (!isCircular) {
       if (direction === 'next') {
         setCurrentIndex(prev => Math.min(prev + 1, totalOriginal - 1));
       } else {
         setCurrentIndex(prev => Math.max(prev - 1, 0));
       }
+      setTimeout(() => {
+        isAnimatingRef.current = false;
+      }, 420);
       return;
     }
 
@@ -86,6 +95,10 @@ const AvaliacaoCarrossel = ({ title, avaliacoes, onEditReview, onDeleteReview })
     } else {
       setCurrentIndex(prev => prev - 1);
     }
+
+    setTimeout(() => {
+      isAnimatingRef.current = false;
+    }, 420);
   };
 
   const handleTouchStart = (e) => {

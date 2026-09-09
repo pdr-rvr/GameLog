@@ -169,10 +169,7 @@ function PaginaJogos() {
             <div className="pagina-jogos-content">
                 {/* Header Banner */}
                 <header className="pagina-jogos-header">
-                    <div className="catalogo-badge">
-                        <FaLayerGroup /> Catálogo GameLog
-                    </div>
-                    <h1 className="pagina-jogos-titulo">Explorar Jogos</h1>
+                    <h1 className="pagina-jogos-titulo">Explorar Catálogo</h1>
                     <p className="pagina-jogos-subtitulo">
                         Descubra títulos aclamados, lançamentos e clássicos com avaliações da nossa comunidade.
                     </p>

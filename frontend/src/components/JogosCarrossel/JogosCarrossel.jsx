@@ -36,6 +36,8 @@ const JogosCarrossel = ({ title, jogos }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const isAnimatingRef = useRef(false);
+
   useEffect(() => {
     if (isCircular) {
       setIsTransitioning(false);
@@ -44,6 +46,7 @@ const JogosCarrossel = ({ title, jogos }) => {
   }, [totalOriginal, isCircular]);
 
   const handleTransitionEnd = () => {
+    isAnimatingRef.current = false;
     if (!isCircular) return;
 
     if (currentIndex >= totalOriginal + CLONES) {
@@ -68,6 +71,9 @@ const JogosCarrossel = ({ title, jogos }) => {
   const stride = cardWidth + GAP_PX;
 
   const slide = (direction) => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+
     const step = isMobile ? 1 : 2;
     setIsTransitioning(true);
     if (direction === 'next') {
@@ -75,6 +81,10 @@ const JogosCarrossel = ({ title, jogos }) => {
     } else {
       setCurrentIndex(prev => prev - step);
     }
+
+    setTimeout(() => {
+      isAnimatingRef.current = false;
+    }, 420);
   };
 
   // Touch swipe
