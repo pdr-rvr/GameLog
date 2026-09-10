@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
+using GameLog_Backend.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -193,8 +194,10 @@ namespace GameLog_Backend.Services
                     return new RawgSearchResultDTO();
                 }
 
-                // Filtrar DLCs e itens sem imagem
-                var jogosValidos = response.Results.Where(r => EhJogoValido(r.Name)).ToList();
+                // Filtrar DLCs, itens inválidos e títulos irrelevantes à busca
+                var jogosValidos = response.Results
+                    .Where(r => EhJogoValido(r.Name) && RelevanciaBuscaHelper.CorrespondeBusca(r.Name, null, termo))
+                    .ToList();
 
                 // Carregar títulos locais para marcar os que já estão importados
                 var titulosBusca = jogosValidos.Select(r => r.Name.Trim().ToLower()).ToList();
@@ -251,6 +254,308 @@ namespace GameLog_Backend.Services
             }
         }
 
+        public static string MapearGeneroParaPortugues(string rawgGenre)
+        {
+            if (string.IsNullOrWhiteSpace(rawgGenre)) return "Ação";
+            var slug = rawgGenre.Trim().ToLowerInvariant();
+
+            if (slug.Contains("action") || slug.Contains("acao") || slug.Contains("aao")) return "Ação";
+            if (slug.Contains("adventure") || slug.Contains("aventura")) return "Aventura";
+            if (slug.Contains("role-playing") || slug.Contains("rpg")) return "RPG";
+            if (slug.Contains("shooter") || slug.Contains("tiro") || slug.Contains("fps")) return "Tiro";
+            if (slug.Contains("strategy") || slug.Contains("estrategia") || slug.Contains("estratgia")) return "Estratégia";
+            if (slug.Contains("racing") || slug.Contains("corrida")) return "Corrida";
+            if (slug.Contains("sports") || slug.Contains("esportes")) return "Esportes";
+            if (slug.Contains("fighting") || slug.Contains("luta")) return "Luta";
+            if (slug.Contains("puzzle") || slug.Contains("quebra-cabeca") || slug.Contains("quebra-cabea")) return "Quebra-Cabeça";
+            if (slug.Contains("simulation") || slug.Contains("simulacao") || slug.Contains("simulaao")) return "Simulação";
+            if (slug.Contains("horror") || slug.Contains("survival") || slug.Contains("terror")) return "Terror e Sobrevivência";
+            if (slug.Contains("platform") || slug.Contains("plataforma")) return "Plataforma";
+            if (slug.Contains("open world") || slug.Contains("mundo aberto")) return "Mundo Aberto";
+            if (slug.Contains("hack and slash") || slug.Contains("hack-and-slash")) return "Hack and Slash";
+            if (slug.Contains("metroidvania")) return "Metroidvania";
+            if (slug.Contains("roguelike") || slug.Contains("rogue-like")) return "Roguelike";
+            if (slug.Contains("stealth")) return "Stealth";
+            if (slug.Contains("indie")) return "Indie";
+            if (slug.Contains("casual")) return "Casual";
+            if (slug.Contains("arcade")) return "Arcade";
+            if (slug.Contains("massively multiplayer") || slug.Contains("mmo")) return "MMO";
+
+            return rawgGenre.Trim();
+        }
+
+        public static int MapearEsrbParaClassificacao(string? esrbSlug)
+        {
+            if (string.IsNullOrWhiteSpace(esrbSlug)) return 0;
+            var slug = esrbSlug.Trim().ToLowerInvariant();
+            if (slug.Contains("mature") || slug.Contains("adult")) return 18;
+            if (slug.Contains("teen")) return 14;
+            if (slug.Contains("10") || slug.Contains("everyone-10-plus")) return 10;
+            if (slug.Contains("everyone") || slug.Contains("early-childhood")) return 0;
+            return 0;
+        }
+
+        public static string? ResolverEmpresaPorFranquia(string titulo)
+        {
+            if (string.IsNullOrWhiteSpace(titulo)) return null;
+            var t = titulo.ToLowerInvariant();
+
+            if (t.Contains("zelda") || t.Contains("mario") || t.Contains("pokemon") || t.Contains("pokémon") ||
+                t.Contains("metroid") || t.Contains("donkey kong") || t.Contains("kirby") || t.Contains("fire emblem") ||
+                t.Contains("super smash") || t.Contains("splatoon") || t.Contains("xenoblade") || t.Contains("animal crossing") ||
+                t.Contains("f-zero") || t.Contains("star fox") || t.Contains("luigi") || t.Contains("pikmin") || t.Contains("smash bros"))
+                return "Nintendo";
+
+            if (t.Contains("god of war") || t.Contains("uncharted") || t.Contains("the last of us") ||
+                t.Contains("gran turismo") || t.Contains("horizon zero") || t.Contains("horizon forbidden") ||
+                t.Contains("ghost of tsushima") || t.Contains("bloodborne") || t.Contains("killzone") ||
+                t.Contains("infamous") || t.Contains("ratchet & clank") || t.Contains("spider-man"))
+                return "Sony Interactive Entertainment";
+
+            if (t.Contains("halo") || t.Contains("gears of war") || t.Contains("forza") || t.Contains("fable") ||
+                t.Contains("age of empires") || t.Contains("sea of thieves") || t.Contains("banjo-kazooie"))
+                return "Xbox Game Studios";
+
+            if (t.Contains("grand theft auto") || t.Contains("gta") || t.Contains("red dead") ||
+                t.Contains("max payne") || t.Contains("bully") || t.Contains("midnight club"))
+                return "Rockstar Games";
+
+            if (t.Contains("witcher") || t.Contains("cyberpunk 2077"))
+                return "CD Projekt Red";
+
+            if (t.Contains("resident evil") || t.Contains("monster hunter") || t.Contains("devil may cry") ||
+                t.Contains("street fighter") || t.Contains("mega man") || t.Contains("dragons dogma") || t.Contains("dragon's dogma") ||
+                t.Contains("ace attorney") || t.Contains("dead rising"))
+                return "Capcom";
+
+            if (t.Contains("final fantasy") || t.Contains("dragon quest") || t.Contains("kingdom hearts") ||
+                t.Contains("chrono") || t.Contains("nier") || t.Contains("tomb raider") || t.Contains("deus ex"))
+                return "Square Enix";
+
+            if (t.Contains("dark souls") || t.Contains("elden ring") || t.Contains("sekiro") || t.Contains("armored core"))
+                return "FromSoftware";
+
+            if (t.Contains("assassin's creed") || t.Contains("far cry") || t.Contains("rainbow six") ||
+                t.Contains("splinter cell") || t.Contains("ghost recon") || t.Contains("watch dogs") ||
+                t.Contains("rayman") || t.Contains("prince of persia") || t.Contains("the division"))
+                return "Ubisoft";
+
+            if (t.Contains("fifa") || t.Contains("ea sports") || t.Contains("battlefield") ||
+                t.Contains("mass effect") || t.Contains("dragon age") || t.Contains("need for speed") ||
+                t.Contains("dead space") || t.Contains("the sims") || t.Contains("apex legends") || t.Contains("titanfall"))
+                return "Electronic Arts";
+
+            if (t.Contains("half-life") || t.Contains("portal") || t.Contains("left 4 dead") ||
+                t.Contains("counter-strike") || t.Contains("team fortress") || t.Contains("dota"))
+                return "Valve";
+
+            if (t.Contains("elder scrolls") || t.Contains("skyrim") || t.Contains("fallout") ||
+                t.Contains("doom") || t.Contains("dishonored") || t.Contains("wolfenstein") || t.Contains("quake") || t.Contains("prey"))
+                return "Bethesda Softworks";
+
+            if (t.Contains("metal gear") || t.Contains("silent hill") || t.Contains("castlevania") || t.Contains("pes ") || t.Contains("efootball"))
+                return "Konami";
+
+            if (t.Contains("sonic") || t.Contains("yakuza") || t.Contains("like a dragon") ||
+                t.Contains("persona") || t.Contains("shin megami") || t.Contains("total war"))
+                return "SEGA";
+
+            if (t.Contains("tekken") || t.Contains("tales of") || t.Contains("naruto") || t.Contains("dragon ball") || t.Contains("pac-man"))
+                return "Bandai Namco Entertainment";
+
+            if (t.Contains("warcraft") || t.Contains("diablo") || t.Contains("starcraft") || t.Contains("overwatch"))
+                return "Blizzard Entertainment";
+
+            return null;
+        }
+
+        public async Task<List<JogoDTO>> BuscarJogosExternosFormatados(
+            string? busca,
+            int? ano,
+            string? genero,
+            string? empresa,
+            int maxItens = 40)
+        {
+            if (string.IsNullOrWhiteSpace(busca) || busca.Trim().Length < 2)
+            {
+                return new List<JogoDTO>();
+            }
+
+            var queryParts = new List<string>
+            {
+                $"search={Uri.EscapeDataString(busca.Trim())}&search_precise=true"
+            };
+
+            if (ano.HasValue)
+            {
+                queryParts.Add($"dates={ano.Value:D4}-01-01,{ano.Value:D4}-12-31");
+            }
+
+            var queryString = string.Join("&", queryParts);
+            var cacheKey = $"rawg_hybrid_{queryString.ToLower()}_{genero?.ToLower()}_{empresa?.ToLower()}_{maxItens}";
+
+            if (_cache.TryGetValue(cacheKey, out List<JogoDTO>? cached) && cached != null)
+            {
+                return cached;
+            }
+
+            var url = $"{_baseUrl}/games?key={_apiKey}&{queryString}&page=1&page_size={Math.Min(maxItens, 40)}";
+            try
+            {
+                var response = await _httpClient.GetFromJsonAsync<RawgResponseDTO<RawgGameItemDTO>>(url);
+                if (response?.Results == null || !response.Results.Any())
+                {
+                    return new List<JogoDTO>();
+                }
+
+                var validos = response.Results
+                    .Where(r => EhJogoValido(r.Name) 
+                             && !string.IsNullOrWhiteSpace(r.BackgroundImage) 
+                             && r.BackgroundImage.StartsWith("http")
+                             && ((r.Added ?? 0) >= 10 || (r.RatingsCount ?? 0) >= 3 || r.Metacritic.HasValue)
+                             && RelevanciaBuscaHelper.CorrespondeBusca(r.Name, null, busca))
+                    .ToList();
+
+                // Filtrar por gênero se solicitado
+                if (!string.IsNullOrWhiteSpace(genero))
+                {
+                    var genTerm = genero.Trim().ToLower();
+                    validos = validos.Where(r => r.Genres != null && r.Genres.Any(g => MapearGeneroParaPortugues(g.Name).ToLower().Contains(genTerm))).ToList();
+                }
+
+                // Filtrar por ano se solicitado
+                if (ano.HasValue)
+                {
+                    validos = validos.Where(r => {
+                        if (!string.IsNullOrWhiteSpace(r.Released) && DateTime.TryParse(r.Released, out var dt))
+                        {
+                            return dt.Year == ano.Value;
+                        }
+                        return false;
+                    }).ToList();
+                }
+
+                // Identificar títulos já presentes no banco de dados local
+                var titulos = validos.Select(v => v.Name.Trim().ToLower()).ToList();
+                var jogosLocais = await _context.Jogos
+                    .AsNoTracking()
+                    .Include(j => j.Empresa)
+                    .Include(j => j.Generos)
+                    .Where(j => j.EstaAtivo && titulos.Contains(j.Titulo.ToLower()))
+                    .ToListAsync();
+
+                var titulosLocaisDict = jogosLocais
+                    .GroupBy(j => j.Titulo.Trim().ToLower())
+                    .ToDictionary(g => g.Key, g => g.First());
+
+                var resultado = new List<JogoDTO>();
+
+                // Para jogos novos da RAWG não presentes no banco local, enriquecer estúdio e detalhes
+                var externosNovos = validos.Where(r => !titulosLocaisDict.ContainsKey(r.Name.Trim().ToLower())).Take(15).ToList();
+
+                // Buscar detalhes em paralelo para obter publisher/developer real e filtrar DLCs
+                var detailTasks = externosNovos.Select(async ext =>
+                {
+                    var detail = await ObterDetalhesJogoExterno(ext.Id);
+                    return (Ext: ext, Detail: detail);
+                });
+
+                var detailsResolved = await Task.WhenAll(detailTasks);
+                var detailsDict = new Dictionary<int, RawgGameDetailDTO>();
+                foreach (var (ext, detail) in detailsResolved)
+                {
+                    if (detail != null)
+                    {
+                        detailsDict[ext.Id] = detail;
+                    }
+                }
+
+                foreach (var r in validos)
+                {
+                    var titLower = r.Name.Trim().ToLower();
+                    if (titulosLocaisDict.TryGetValue(titLower, out var localJogo))
+                    {
+                        resultado.Add(new JogoDTO
+                        {
+                            JogoId = localJogo.Id,
+                            RawgId = r.Id,
+                            Titulo = localJogo.Titulo,
+                            Descricao = localJogo.Descricao,
+                            Imagem = localJogo.Imagem,
+                            DataLancamento = localJogo.DataLancamento,
+                            ClassificacaoIndicativa = localJogo.ClassificacaoIndicativa,
+                            EmpresaId = localJogo.Empresa?.Id ?? 0,
+                            NomeEmpresa = localJogo.Empresa?.NomeEmpresa ?? string.Empty,
+                            EstaAtivo = true,
+                            Generos = localJogo.Generos?.Select(g => g.TituloGenero).ToList() ?? new List<string>(),
+                            EhExterno = false
+                        });
+                    }
+                    else
+                    {
+                        detailsDict.TryGetValue(r.Id, out var detail);
+
+                        // Se for uma DLC / expansão (parents_count > 0), descartar dos resultados
+                        if (detail != null && detail.ParentsCount > 0)
+                        {
+                            continue;
+                        }
+
+                        DateOnly dataLanc = new DateOnly(2020, 1, 1);
+                        var releasedStr = detail?.Released ?? r.Released;
+                        if (!string.IsNullOrWhiteSpace(releasedStr) && DateOnly.TryParse(releasedStr, out var parsedData))
+                        {
+                            dataLanc = parsedData;
+                        }
+
+                        var devRaw = detail?.Developers?.FirstOrDefault()?.Name ?? r.Developers?.FirstOrDefault()?.Name;
+                        var pubRaw = detail?.Publishers?.FirstOrDefault()?.Name ?? r.Publishers?.FirstOrDefault()?.Name ?? ResolverEmpresaPorFranquia(r.Name);
+
+                        var nomeDev = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(devRaw ?? pubRaw);
+                        var nomePub = !string.IsNullOrWhiteSpace(pubRaw) ? NormalizadorEmpresaHelper.NormalizarNomeEmpresa(pubRaw) : null;
+
+                        var generosSource = (detail?.Genres != null && detail.Genres.Any()) ? detail.Genres : r.Genres;
+                        var generosNormalizados = generosSource?
+                            .Select(g => MapearGeneroParaPortugues(g.Name))
+                            .Distinct()
+                            .ToList() ?? new List<string>();
+
+                        var classificacao = MapearEsrbParaClassificacao(
+                            detail?.EsrbRating?.Slug ?? detail?.EsrbRating?.Name ?? r.EsrbRating?.Slug ?? r.EsrbRating?.Name
+                        );
+
+                        resultado.Add(new JogoDTO
+                        {
+                            JogoId = 0,
+                            RawgId = r.Id,
+                            Titulo = r.Name.Trim(),
+                            Descricao = detail?.DescriptionRaw ?? string.Empty,
+                            Imagem = detail?.BackgroundImage ?? r.BackgroundImage ?? "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80",
+                            DataLancamento = dataLanc,
+                            ClassificacaoIndicativa = classificacao,
+                            EmpresaId = 0,
+                            NomeEmpresa = nomeDev,
+                            PublicadoraId = null,
+                            NomePublicadora = (nomePub != null && !string.Equals(nomePub, nomeDev, StringComparison.OrdinalIgnoreCase)) ? nomePub : null,
+                            EstaAtivo = true,
+                            Generos = generosNormalizados,
+                            MediaAvaliacoes = null,
+                            TotalAvaliacoes = 0,
+                            EhExterno = true
+                        });
+                    }
+                }
+
+                _cache.Set(cacheKey, resultado, TimeSpan.FromMinutes(10));
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Falha ao buscar jogos híbridos na RAWG para query '{Query}'", queryString);
+                return new List<JogoDTO>();
+            }
+        }
+
         public async Task<RawgGameDetailDTO?> ObterDetalhesJogoExterno(int rawgId)
         {
             var cacheKey = $"rawg_detail_{rawgId}";
@@ -303,39 +608,61 @@ namespace GameLog_Backend.Services
                 return MapearParaDTO(jogoExistente);
             }
 
-            // 1. Obter ou Criar Empresa Oficial
-            var nomeEmpresa = detail.Publishers.FirstOrDefault()?.Name 
-                ?? detail.Developers.FirstOrDefault()?.Name;
+            // 1. Obter ou Criar Desenvolvedora e Publicadora Canônicas
+            var devRaw = detail.Developers.FirstOrDefault()?.Name ?? detail.Publishers.FirstOrDefault()?.Name;
+            var pubRaw = detail.Publishers.FirstOrDefault()?.Name ?? ResolverEmpresaPorFranquia(detail.Name);
 
-            if (string.IsNullOrWhiteSpace(nomeEmpresa))
+            var nomeDev = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(devRaw ?? pubRaw);
+            var nomePub = !string.IsNullOrWhiteSpace(pubRaw) ? NormalizadorEmpresaHelper.NormalizarNomeEmpresa(pubRaw) : null;
+
+            if (string.IsNullOrWhiteSpace(nomeDev))
             {
                 _logger.LogWarning("Jogo '{Titulo}' ignorado pois não possui empresa/estúdio válido na RAWG", tituloLimpo);
                 return null;
             }
 
-            nomeEmpresa = nomeEmpresa.Trim();
-            if (nomeEmpresa.Length > 150)
-            {
-                nomeEmpresa = nomeEmpresa.Substring(0, 150).Trim();
-            }
+            if (nomeDev.Length > 150) nomeDev = nomeDev.Substring(0, 150).Trim();
 
-            var empresa = await _context.Empresa
-                .FirstOrDefaultAsync(e => e.NomeEmpresa.ToLower() == nomeEmpresa.ToLower());
+            var devEmpresa = await _context.Empresa
+                .FirstOrDefaultAsync(e => e.NomeEmpresa.ToLower() == nomeDev.ToLower());
 
-            if (empresa == null)
+            if (devEmpresa == null)
             {
-                empresa = new Empresa
+                devEmpresa = new Empresa
                 {
-                    NomeEmpresa = nomeEmpresa,
+                    NomeEmpresa = nomeDev,
                     EstaAtivo = true
                 };
-                _context.Empresa.Add(empresa);
+                _context.Empresa.Add(devEmpresa);
                 await _context.SaveChangesAsync();
             }
 
-            // 2. Obter ou Criar Gêneros
+            Empresa? pubEmpresa = null;
+            if (!string.IsNullOrWhiteSpace(nomePub) && !string.Equals(nomePub, nomeDev, StringComparison.OrdinalIgnoreCase))
+            {
+                if (nomePub.Length > 150) nomePub = nomePub.Substring(0, 150).Trim();
+                pubEmpresa = await _context.Empresa
+                    .FirstOrDefaultAsync(e => e.NomeEmpresa.ToLower() == nomePub.ToLower());
+
+                if (pubEmpresa == null)
+                {
+                    pubEmpresa = new Empresa
+                    {
+                        NomeEmpresa = nomePub,
+                        EstaAtivo = true
+                    };
+                    _context.Empresa.Add(pubEmpresa);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            // 2. Obter ou Criar Gêneros Canônicos em Português
             var generosEntities = new List<Genero>();
-            var generosNomes = detail.Genres.Select(g => g.Name.Trim()).Where(g => !string.IsNullOrEmpty(g)).ToList();
+            var generosNomes = detail.Genres
+                .Select(g => MapearGeneroParaPortugues(g.Name))
+                .Where(g => !string.IsNullOrWhiteSpace(g))
+                .Distinct()
+                .ToList();
 
             if (!generosNomes.Any())
             {
@@ -372,12 +699,7 @@ namespace GameLog_Backend.Services
             }
 
             // 4. Processar Classificação Indicativa
-            int classificacao = 0;
-            var esrb = detail.EsrbRating?.Name?.ToLower() ?? "";
-            if (esrb.Contains("mature") || esrb.Contains("adults")) classificacao = 18;
-            else if (esrb.Contains("teen")) classificacao = 14;
-            else if (esrb.Contains("10+")) classificacao = 10;
-            else if (esrb.Contains("everyone")) classificacao = 0;
+            int classificacao = MapearEsrbParaClassificacao(detail.EsrbRating?.Slug ?? detail.EsrbRating?.Name);
 
             // 5. Descrição limpa
             var descricao = detail.DescriptionRaw;
@@ -387,7 +709,7 @@ namespace GameLog_Backend.Services
             }
             if (string.IsNullOrWhiteSpace(descricao))
             {
-                descricao = $"{tituloLimpo} é um aclamado jogo lançado em {dataLancamento.Year} pela {nomeEmpresa}.";
+                descricao = $"{tituloLimpo} é um aclamado jogo lançado em {dataLancamento.Year} pela {nomeDev}.";
             }
 
             // 6. Criar Jogo com Capa Oficial
@@ -404,7 +726,8 @@ namespace GameLog_Backend.Services
                 Imagem = imagemOficial,
                 DataLancamento = dataLancamento,
                 ClassificacaoIndicativa = classificacao,
-                Empresa = empresa,
+                Empresa = devEmpresa,
+                Publicadora = pubEmpresa,
                 Generos = generosEntities,
                 EstaAtivo = true
             };
@@ -429,6 +752,8 @@ namespace GameLog_Backend.Services
                 ClassificacaoIndicativa = j.ClassificacaoIndicativa,
                 EmpresaId = j.Empresa?.Id ?? 0,
                 NomeEmpresa = j.Empresa?.NomeEmpresa ?? string.Empty,
+                PublicadoraId = j.Publicadora?.Id,
+                NomePublicadora = j.Publicadora?.NomeEmpresa,
                 EstaAtivo = j.EstaAtivo,
                 Generos = j.Generos?.Select(g => g.TituloGenero).ToList() ?? new List<string>(),
                 MediaAvaliacoes = null,

@@ -1,15 +1,29 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { FaStar, FaCalendarAlt, FaBuilding } from "react-icons/fa";
+import ClassificacaoBadge from "../ClassificacaoBadge/ClassificacaoBadge";
 import "./JogoCard.css";
 
-const JogoCard = ({ jogo }) => {
+const JogoCard = ({ jogo, onClick }) => {
   if (!jogo) return null;
 
   const jogoId = jogo.jogoId || jogo.id;
   const titulo = jogo.titulo || jogo.nome || "Jogo sem título";
   const imagem = jogo.imagem || jogo.foto || "/game-images/default_game_cover.png";
-  const empresa = jogo.nomeEmpresa || jogo.empresa || "";
+  
+  // Desenvolvedora e Publicadora
+  const desenvolvedora = jogo.nomeDesenvolvedora || jogo.nomeEmpresa || jogo.empresa || "";
+  const publicadora = jogo.nomePublicadora || "";
+  const temPublicadoraDiferente = Boolean(
+    publicadora && 
+    desenvolvedora && 
+    publicadora.trim().toLowerCase() !== desenvolvedora.trim().toLowerCase()
+  );
+
+  const empresaTitle = temPublicadoraDiferente 
+    ? `Desenvolvido por: ${desenvolvedora} • Publicado por: ${publicadora}`
+    : `Desenvolvimento e Publicação: ${desenvolvedora || publicadora}`;
+
   const genero = jogo.genero || jogo.generoFavorito || (Array.isArray(jogo.generos) && jogo.generos[0]) || "";
   
   let anoLancamento = null;
@@ -25,8 +39,19 @@ const JogoCard = ({ jogo }) => {
     ? mediaNum.toFixed(1)
     : null;
 
+  const targetUrl = (jogoId && Number(jogoId) > 0)
+    ? `/jogos/${jogoId}`
+    : (jogo.rawgId ? `/jogos/rawg-${jogo.rawgId}` : `/jogos/${jogoId || 0}`);
+
+  const handleLinkClick = (e) => {
+    if (onClick) {
+      e.preventDefault();
+      onClick(jogo);
+    }
+  };
+
   return (
-    <Link to={`/jogos/${jogoId}`} className="jogo-card-link">
+    <Link to={targetUrl} onClick={handleLinkClick} className="jogo-card-link">
       <article className="jogo-card">
         {/* Container da Capa */}
         <div className="jogo-card-image-container">
@@ -66,19 +91,30 @@ const JogoCard = ({ jogo }) => {
           </h3>
 
           <div className="jogo-card-meta">
-            {empresa && (
-              <span className="jogo-card-company" title={empresa}>
-                <FaBuilding className="meta-icon" />
-                <span className="meta-text">{empresa}</span>
-              </span>
-            )}
+            <div className="jogo-card-companies-box" title={empresaTitle}>
+              {desenvolvedora && (
+                <span className="jogo-card-company">
+                  <FaBuilding className="meta-icon" />
+                  <span className="meta-text">{desenvolvedora}</span>
+                </span>
+              )}
+              {temPublicadoraDiferente && (
+                <span className="jogo-card-publisher-badge">
+                  <span className="pub-tag-label">Pub:</span>
+                  <span className="pub-tag-name">{publicadora}</span>
+                </span>
+              )}
+            </div>
 
-            {anoLancamento && (
-              <span className="jogo-card-year">
-                <FaCalendarAlt className="meta-icon" />
-                <span>{anoLancamento}</span>
-              </span>
-            )}
+            <div className="jogo-card-meta-right">
+              {anoLancamento && (
+                <span className="jogo-card-year">
+                  <FaCalendarAlt className="meta-icon" />
+                  <span>{anoLancamento}</span>
+                </span>
+              )}
+              <ClassificacaoBadge classificacao={jogo.classificacaoIndicativa} size="sm" />
+            </div>
           </div>
         </div>
 

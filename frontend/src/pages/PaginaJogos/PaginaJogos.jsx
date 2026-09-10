@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { Subject } from "rxjs";
+import { debounceTime, distinctUntilChanged, switchMap } from "rxjs/operators";
 import Navbar from "../../components/Navbar/Navbar";
 import JogoCard from "../../components/JogoCard/JogoCard";
+import StudioSearchInput from "../../components/StudioSearchInput/StudioSearchInput";
 import { buscarJogosPaginados, obterMetadadosFiltros } from "./actions/PaginaJogosActions";
 import rawgService from "../../services/rawgService";
 import { useToast } from "../../context/ToastContext";
@@ -9,12 +12,11 @@ import {
   FaGamepad, 
   FaSearch, 
   FaCalendarAlt, 
-  FaBuilding, 
   FaSortAmountDown, 
   FaTimes, 
-  FaChevronLeft,
-  FaChevronRight,
-  FaSpinner
+  FaChevronLeft, 
+  FaChevronRight, 
+  FaSpinner 
 } from "react-icons/fa";
 import "./PaginaJogos.css";
 
@@ -48,30 +50,9 @@ function PaginaJogos() {
     const [empresasDisponiveis, setEmpresasDisponiveis] = useState([]);
 
     const [importandoJogoId, setImportandoJogoId] = useState(null);
-    const debounceTimerRef = useRef(null);
-    const anoDebounceRef = useRef(null);
 
-    useEffect(() => {
-        return () => {
-            if (debounceTimerRef.current) {
-                clearTimeout(debounceTimerRef.current);
-            }
-            if (anoDebounceRef.current) {
-                clearTimeout(anoDebounceRef.current);
-            }
-        };
-    }, []);
-
-    // Load filter options once
-    useEffect(() => {
-        obterMetadadosFiltros()
-            .then(meta => {
-                setGenerosDisponiveis(meta.generos || []);
-                setAnosDisponiveis(meta.anos || []);
-                setEmpresasDisponiveis(meta.empresas || []);
-            })
-            .catch(err => console.error("Erro ao carregar metadados dos filtros:", err));
-    }, []);
+    // RxJS Subject for reactive query stream & cancellation
+    const filterSubject$ = useRef(null);
 
     // Sync state with URL params
     const atualizarUrl = useCallback((novaPagina, busca, genero, ano, empresa, ordem) => {
@@ -85,12 +66,54 @@ function PaginaJogos() {
         setSearchParams(params);
     }, [setSearchParams]);
 
-    // Fetch Paginated Games with transparent fallback to on-demand search
-    const carregarJogos = useCallback(async () => {
-        setLoading(true);
-        setError("");
-        try {
-            const res = await buscarJogosPaginados({
+    // Load filter options once
+    useEffect(() => {
+        obterMetadadosFiltros()
+            .then(meta => {
+                setGenerosDisponiveis(meta.generos || []);
+                setAnosDisponiveis(meta.anos || []);
+                setEmpresasDisponiveis(meta.empresas || []);
+            })
+            .catch(err => console.error("Erro ao carregar metadados dos filtros:", err));
+    }, []);
+
+    // Setup RxJS Reactive Pipeline for continuous debounced request streaming
+    useEffect(() => {
+        filterSubject$.current = new Subject();
+
+        const subscription = filterSubject$.current.pipe(
+            debounceTime(250),
+            distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
+            switchMap(async (params) => {
+                setLoading(true);
+                setError("");
+                try {
+                    const res = await buscarJogosPaginados(params);
+                    return { res, error: null };
+                } catch (err) {
+                    return { res: null, error: err.message || "Não foi possível carregar os jogos." };
+                }
+            })
+        ).subscribe(({ res, error: err }) => {
+            if (err) {
+                setError(err);
+            } else if (res) {
+                setJogos(res.itens || []);
+                setTotalPaginas(res.totalPaginas || 1);
+                setTotalItens(res.totalItens || 0);
+            }
+            setLoading(false);
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
+
+    // Push latest filter state to RxJS stream
+    useEffect(() => {
+        if (filterSubject$.current) {
+            filterSubject$.current.next({
                 pagina: paginaAtual,
                 itensPorPagina: ITENS_POR_PAGINA,
                 busca: buscaAtiva,
@@ -99,69 +122,18 @@ function PaginaJogos() {
                 empresa: empresaSelecionada,
                 ordenacao
             });
-
-            let itensCarregados = res.itens || [];
-            let totalItensRetornados = res.totalItens || 0;
-            let paginasRetornadas = res.totalPaginas || 1;
-
-            // Se busca textual não encontrou localmente, buscar sob demanda transparente
-            if (itensCarregados.length === 0 && buscaAtiva.trim().length >= 2 && !generoSelecionado && !anoSelecionado && !empresaSelecionada) {
-                try {
-                    const rawgRes = await rawgService.buscarJogosRawg(buscaAtiva.trim(), 1, ITENS_POR_PAGINA);
-                    if (rawgRes?.jogos && rawgRes.jogos.length > 0) {
-                        itensCarregados = rawgRes.jogos.map(rj => ({
-                            id: rj.localJogoId || 0,
-                            jogoId: rj.localJogoId || 0,
-                            rawgId: rj.rawgId,
-                            titulo: rj.titulo,
-                            imagem: rj.imagem || "/game-images/default_game_cover.png",
-                            nomeEmpresa: rj.nomeEmpresa || "Estúdio",
-                            dataLancamento: rj.dataLancamento,
-                            generos: rj.generos || [],
-                            mediaAvaliacoes: rj.notaRawg,
-                            totalAvaliacoes: 0,
-                            ehExterno: !rj.jaImportado
-                        }));
-                        totalItensRetornados = rawgRes.totalResultados || itensCarregados.length;
-                        paginasRetornadas = Math.ceil(totalItensRetornados / ITENS_POR_PAGINA) || 1;
-                    }
-                } catch (e) {
-                    console.error("Erro na busca transparente:", e);
-                }
-            }
-
-            setJogos(itensCarregados);
-            setTotalPaginas(paginasRetornadas);
-            setTotalItens(totalItensRetornados);
-        } catch (err) {
-            console.error("Erro ao carregar catálogo:", err);
-            setError(err.message || "Não foi possível carregar os jogos.");
-        } finally {
-            setLoading(false);
         }
     }, [paginaAtual, buscaAtiva, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao]);
-
-    useEffect(() => {
-        carregarJogos();
-    }, [carregarJogos]);
 
     const handleSearchChange = (e) => {
         const val = e.target.value;
         setTermoPesquisa(val);
-        if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current);
-        }
-        debounceTimerRef.current = setTimeout(() => {
-            setPaginaAtual(1);
-            setBuscaAtiva(val);
-            atualizarUrl(1, val, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao);
-        }, 300);
+        setBuscaAtiva(val);
+        setPaginaAtual(1);
+        atualizarUrl(1, val, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao);
     };
 
     const handleLimparBusca = () => {
-        if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current);
-        }
         setTermoPesquisa("");
         setBuscaAtiva("");
         setPaginaAtual(1);
@@ -177,24 +149,14 @@ function PaginaJogos() {
     const handleAnoChange = (e) => {
         const val = e.target.value.replace(/\D/g, "").slice(0, 4);
         setAnoInput(val);
-
-        if (anoDebounceRef.current) {
-            clearTimeout(anoDebounceRef.current);
+        if (val === "" || val.length === 4) {
+            setAnoSelecionado(val);
+            setPaginaAtual(1);
+            atualizarUrl(1, buscaAtiva, generoSelecionado, val, empresaSelecionada, ordenacao);
         }
-
-        anoDebounceRef.current = setTimeout(() => {
-            if (val === "" || val.length === 4) {
-                setAnoSelecionado(val);
-                setPaginaAtual(1);
-                atualizarUrl(1, buscaAtiva, generoSelecionado, val, empresaSelecionada, ordenacao);
-            }
-        }, 350);
     };
 
     const handleLimparAno = () => {
-        if (anoDebounceRef.current) {
-            clearTimeout(anoDebounceRef.current);
-        }
         setAnoInput("");
         setAnoSelecionado("");
         setPaginaAtual(1);
@@ -214,8 +176,6 @@ function PaginaJogos() {
     };
 
     const limparFiltros = () => {
-        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-        if (anoDebounceRef.current) clearTimeout(anoDebounceRef.current);
         setTermoPesquisa("");
         setBuscaAtiva("");
         setGeneroSelecionado("");
@@ -335,7 +295,7 @@ function PaginaJogos() {
                         <FaSearch className="filtro-busca-icon" />
                         <input
                             type="text"
-                            placeholder="Buscar por título, estúdio ou descrição..."
+                            placeholder="Buscar por título, franquia ou tema..."
                             value={termoPesquisa}
                             onChange={handleSearchChange}
                             className="filtro-input-busca"
@@ -351,7 +311,7 @@ function PaginaJogos() {
                         )}
                     </div>
 
-                    {/* Seletores */}
+                    {/* Grid de Seletores e Filtros */}
                     <div className="filtros-seletores-grid">
                         <div className="filtro-select-group">
                             <label><FaGamepad /> Gênero</label>
@@ -393,18 +353,13 @@ function PaginaJogos() {
                             </div>
                         </div>
 
-                        <div className="filtro-select-group">
-                            <label><FaBuilding /> Estúdio</label>
-                            <select
-                                value={empresaSelecionada}
-                                onChange={(e) => handleEmpresaChange(e.target.value)}
-                                className="filtro-select-modern"
-                            >
-                                <option value="">Todos os Estúdios</option>
-                                {empresasDisponiveis.map(empresa => (
-                                    <option key={empresa} value={empresa}>{empresa}</option>
-                                ))}
-                            </select>
+                        {/* Busca Escrita Inteligente de Estúdio com Autocomplete */}
+                        <div className="filtro-studio-wrapper">
+                            <StudioSearchInput
+                                empresas={empresasDisponiveis}
+                                empresaSelecionada={empresaSelecionada}
+                                onSelectEmpresa={handleEmpresaChange}
+                            />
                         </div>
 
                         <div className="filtro-select-group">
@@ -433,14 +388,14 @@ function PaginaJogos() {
                     )}
                 </div>
 
-                {/* Status Bar com Badge 1.000+ */}
+                {/* Status Bar com Contagem */}
                 {!loading && !error && (
                     <div className="catalogo-status-bar">
                         <span className="resultados-contagem">
                             {temFiltrosAtivos ? (
                                 <>Mostrando <strong>{jogos.length}</strong> de <strong>{totalItens.toLocaleString('pt-BR')}</strong> {totalItens === 1 ? "jogo encontrado" : "jogos encontrados"}</>
                             ) : (
-                                <>Catálogo com <strong>1.000+ Jogos</strong> disponíveis para você avaliar e colecionar</>
+                                <>Catálogo com <strong>{totalItens.toLocaleString('pt-BR')} Jogos</strong> disponíveis para você avaliar e colecionar</>
                             )}
                             {totalPaginas > 1 && ` • Página ${paginaAtual} de ${totalPaginas}`}
                         </span>
@@ -482,10 +437,9 @@ function PaginaJogos() {
                                 <div 
                                     key={jogo.jogoId || jogo.id || jogo.rawgId} 
                                     className="jogo-card-wrapper"
-                                    onClick={() => handleGameClick(jogo)}
                                 >
-                                    <JogoCard jogo={jogo} />
-                                    {importandoJogoId === jogo.rawgId && (
+                                    <JogoCard jogo={jogo} onClick={handleGameClick} />
+                                    {Boolean(importandoJogoId && jogo.rawgId && importandoJogoId === jogo.rawgId) && (
                                         <div className="importing-overlay">
                                             <FaSpinner className="spin" />
                                             <span>Abrindo jogo...</span>

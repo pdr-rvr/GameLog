@@ -1,6 +1,22 @@
 import api from "../../../services/api";
 
 export const buscarJogoPorId = async (jogoId) => {
+    // 1. Se for um identificador explícito de jogo externo da RAWG (ex: "rawg-1234")
+    if (typeof jogoId === "string" && jogoId.startsWith("rawg-")) {
+        const rawgId = parseInt(jogoId.replace("rawg-", ""), 10);
+        if (!isNaN(rawgId) && rawgId > 0) {
+            const importRes = await api.post(`/Jogos/rawg/importar/${rawgId}`);
+            const jogo = importRes.data;
+            const idReal = Number(jogo.jogoId ?? jogo.id);
+            return {
+                ...jogo,
+                id: idReal,
+                jogoId: idReal,
+                imagem: jogo.imagem || "/game-images/default_game_cover.png"
+            };
+        }
+    }
+
     try {
         const response = await api.get(`/Jogos/${jogoId}`);
         const jogo = response.data;
@@ -15,6 +31,26 @@ export const buscarJogoPorId = async (jogoId) => {
             imagem: jogo.imagem || "/game-images/default_game_cover.png"
         };
     } catch (error) {
+        // 2. Se falhou e jogoId for numérico, tentar importar da RAWG como fallback
+        const numId = parseInt(jogoId, 10);
+        if (!isNaN(numId) && numId > 0) {
+            try {
+                const importRes = await api.post(`/Jogos/rawg/importar/${numId}`);
+                if (importRes.data) {
+                    const jogo = importRes.data;
+                    const idReal = Number(jogo.jogoId ?? jogo.id);
+                    return {
+                        ...jogo,
+                        id: idReal,
+                        jogoId: idReal,
+                        imagem: jogo.imagem || "/game-images/default_game_cover.png"
+                    };
+                }
+            } catch (importErr) {
+                console.warn(`Tentativa de importação RAWG para ID ${numId} falhou:`, importErr);
+            }
+        }
+
         console.error(`Erro ao buscar jogo com ID ${jogoId}:`, error);
         throw new Error(error.userMessage || error.response?.data?.detail || error.response?.data?.message || "Não foi possível carregar os detalhes do jogo.");
     }

@@ -4,6 +4,7 @@ import Navbar from "../../components/Navbar/Navbar";
 import AvaliacaoCarrossel from "../../components/AvaliacaoCarrossel/AvaliacaoCarrossel";
 import FormAvaliacao from "../../components/FormAvaliacao/FormAvaliacao";
 import SeletorStatusBiblioteca from "../../components/SeletorStatusBiblioteca/SeletorStatusBiblioteca";
+import ClassificacaoBadge from "../../components/ClassificacaoBadge/ClassificacaoBadge";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import api from "../../services/api";
@@ -150,17 +151,59 @@ function TelaJogo() {
                         
                         <div className="jogo-detalhes-info">
                             <p><strong>Lançamento:</strong> {formatarData(jogo.dataLancamento)}</p>
-                            <p><strong>Classificação Indicativa:</strong> {jogo.classificacaoIndicativa !== null ? `${jogo.classificacaoIndicativa} anos` : "Livre"}</p>
-                            <p>
-                                <strong>Empresa:</strong>{" "}
-                                {jogo.empresaId ? (
-                                    <Link to={`/empresas/${jogo.empresaId}`} className="jogo-empresa-link">
-                                        {jogo.nomeEmpresa}
-                                    </Link>
-                                ) : (
-                                    jogo.nomeEmpresa || "N/A"
-                                )}
-                            </p>
+                            <div className="classificacao-info-row">
+                                <strong>Classificação Indicativa:</strong>
+                                <ClassificacaoBadge classificacao={jogo.classificacaoIndicativa} size="md" showLabel={true} />
+                            </div>
+                            {(() => {
+                                const devNome = jogo.nomeDesenvolvedora || jogo.nomeEmpresa;
+                                const pubNome = jogo.nomePublicadora;
+                                const temPubDiferente = Boolean(
+                                    pubNome && 
+                                    devNome && 
+                                    pubNome.trim().toLowerCase() !== devNome.trim().toLowerCase()
+                                );
+
+                                if (temPubDiferente) {
+                                    return (
+                                        <>
+                                            <p>
+                                                <strong>Desenvolvedora:</strong>{" "}
+                                                {jogo.empresaId ? (
+                                                    <Link to={`/empresas/${jogo.empresaId}`} className="jogo-empresa-link">
+                                                        {devNome}
+                                                    </Link>
+                                                ) : (
+                                                    devNome || "N/A"
+                                                )}
+                                            </p>
+                                            <p>
+                                                <strong>Publicadora:</strong>{" "}
+                                                {jogo.publicadoraId ? (
+                                                    <Link to={`/empresas/${jogo.publicadoraId}`} className="jogo-empresa-link">
+                                                        {pubNome}
+                                                    </Link>
+                                                ) : (
+                                                    pubNome
+                                                )}
+                                            </p>
+                                        </>
+                                    );
+                                }
+
+                                return (
+                                    <p>
+                                        <strong>Desenvolvimento e Publicação:</strong>{" "}
+                                        {jogo.empresaId ? (
+                                            <Link to={`/empresas/${jogo.empresaId}`} className="jogo-empresa-link">
+                                                {devNome || pubNome || "N/A"}
+                                            </Link>
+                                        ) : (
+                                            devNome || pubNome || "N/A"
+                                        )}
+                                    </p>
+                                );
+                            })()}
                             {jogo.generos && jogo.generos.length > 0 && (
                                 <p><strong>Gêneros:</strong> {jogo.generos.join(", ")}</p>
                             )}

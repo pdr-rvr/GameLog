@@ -204,30 +204,33 @@ const SearchBar = ({
                     const id = jogo.jogoId || jogo.id;
                     const title = jogo.titulo || jogo.nome || 'Jogo';
                     const year = jogo.anoLancamento || (jogo.dataLancamento ? String(jogo.dataLancamento).substring(0, 4) : '');
-                    const image = jogo.imagem || jogo.foto;
+                        const dev = jogo.nomeDesenvolvedora || jogo.nomeEmpresa || '';
+                        const pub = jogo.nomePublicadora || '';
+                        const temPubDif = pub && dev && pub.trim().toLowerCase() !== dev.trim().toLowerCase();
+                        const companyText = temPubDif ? `${dev} (Pub: ${pub})` : dev;
 
-                    return (
-                      <div 
-                        key={`game-${id}`} 
-                        className="suggestion-item" 
-                        onClick={() => handleSelectGame(jogo)}
-                      >
-                        {image ? (
-                          <img src={image} alt={title} className="suggestion-thumb" />
-                        ) : (
-                          <div className="suggestion-thumb-fallback">
-                            <FaGamepad />
+                        return (
+                          <div 
+                            key={`game-${id}`} 
+                            className="suggestion-item" 
+                            onClick={() => handleSelectGame(jogo)}
+                          >
+                            {image ? (
+                              <img src={image} alt={title} className="suggestion-thumb" />
+                            ) : (
+                              <div className="suggestion-thumb-fallback">
+                                <FaGamepad />
+                              </div>
+                            )}
+                            <div className="suggestion-meta">
+                              <span className="suggestion-title">{title}</span>
+                              <span className="suggestion-sub">
+                                {year} {companyText ? `• ${companyText}` : ''}
+                              </span>
+                            </div>
+                            <FaChevronRight className="suggestion-arrow" />
                           </div>
-                        )}
-                        <div className="suggestion-meta">
-                          <span className="suggestion-title">{title}</span>
-                          <span className="suggestion-sub">
-                            {year} {jogo.nomeEmpresa ? `• ${jogo.nomeEmpresa}` : ''}
-                          </span>
-                        </div>
-                        <FaChevronRight className="suggestion-arrow" />
-                      </div>
-                    );
+                        );
                   })}
                 </div>
               )}

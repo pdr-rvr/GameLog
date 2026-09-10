@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
+using GameLog_Backend.Helpers;
 using GameLog_Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -39,17 +40,24 @@ namespace GameLog_Backend.Controllers
             var termo = q.Trim().ToLower();
             limite = Math.Clamp(limite, 1, 20);
 
-            // 1. Busca em Jogos Locais
-            var jogos = await _context.Jogos
+            // 1. Busca em Jogos Locais com filtragem estrita de relevância
+            var jogosLocaisCandidatos = await _context.Jogos
                 .AsNoTracking()
                 .Include(j => j.Generos)
                 .Include(j => j.Empresa)
+                .Include(j => j.Publicadora)
                 .Where(j => j.EstaAtivo && (
                     j.Titulo.ToLower().Contains(termo) ||
-                    (j.Descricao != null && j.Descricao.ToLower().Contains(termo)) ||
                     (j.Empresa != null && j.Empresa.NomeEmpresa.ToLower().Contains(termo)) ||
+                    (j.Publicadora != null && j.Publicadora.NomeEmpresa.ToLower().Contains(termo)) ||
                     j.Generos.Any(g => g.TituloGenero.ToLower().Contains(termo))
                 ))
+                .Take(limite * 3)
+                .ToListAsync();
+
+            var jogos = jogosLocaisCandidatos
+                .Where(j => RelevanciaBuscaHelper.CorrespondeBusca(j.Titulo, j.Empresa?.NomeEmpresa, j.Publicadora?.NomeEmpresa, termo))
+                .OrderByDescending(j => RelevanciaBuscaHelper.CalcularScoreRelevancia(j.Titulo, termo))
                 .Take(limite)
                 .Select(j => new BuscaItemJogoDTO
                 {
@@ -65,7 +73,7 @@ namespace GameLog_Backend.Controllers
                     EhExterno = false,
                     RawgId = null
                 })
-                .ToListAsync();
+                .ToList();
 
             // Se jogos locais forem poucos ou para complementar, consultar RAWG de forma transparente
             if (jogos.Count < limite)
@@ -90,7 +98,7 @@ namespace GameLog_Backend.Controllers
                                 AnoLancamento = rg.AnoLancamento,
                                 NomeEmpresa = rg.NomeEmpresa,
                                 Generos = rg.Generos,
-                                MediaAvaliacoes = rg.NotaRawg,
+                                MediaAvaliacoes = null, // Sem avaliações locais no sistema ainda
                                 RawgId = rg.RawgId,
                                 EhExterno = !rg.JaImportado
                             });

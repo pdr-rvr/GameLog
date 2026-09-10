@@ -42,6 +42,10 @@ namespace GameLog_Backend.Configurations
                 .WithMany()
                 .IsRequired();
 
+            builder.HasOne(e => e.Publicadora)
+                .WithMany()
+                .IsRequired(false);
+
             builder.Property(p => p.EstaAtivo)
                 .IsRequired();
         }

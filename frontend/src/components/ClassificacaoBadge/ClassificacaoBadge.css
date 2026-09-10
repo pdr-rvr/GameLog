@@ -1,0 +1,80 @@
+.classind-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.classind-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 800;
+  border-radius: 4px;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+/* Tamanhos */
+.classind-badge.size-sm {
+  width: 20px;
+  height: 20px;
+  font-size: 0.7rem;
+  border-radius: 3px;
+}
+
+.classind-badge.size-md {
+  width: 28px;
+  height: 28px;
+  font-size: 0.9rem;
+  border-radius: 4px;
+}
+
+.classind-badge.size-lg {
+  width: 38px;
+  height: 38px;
+  font-size: 1.15rem;
+  border-radius: 6px;
+}
+
+/* Cores Oficiais da Classificação Indicativa Brasileira */
+.classind-badge.classind-l {
+  background: #00a650;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.classind-badge.classind-10 {
+  background: #0093dd;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.classind-badge.classind-12 {
+  background: #f8c300;
+  color: #111111;
+  text-shadow: none;
+}
+
+.classind-badge.classind-14 {
+  background: #f37021;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.classind-badge.classind-16 {
+  background: #ec1c24;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.classind-badge.classind-18 {
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.classind-label-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}

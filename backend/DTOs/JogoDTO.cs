@@ -12,10 +12,15 @@ namespace GameLog_Backend.DTOs
         public int ClassificacaoIndicativa { get; set; }
         public int EmpresaId { get; set; }
         public string NomeEmpresa { get; set; }
+        public int? PublicadoraId { get; set; }
+        public string? NomePublicadora { get; set; }
+        public string? NomeDesenvolvedora => NomeEmpresa;
         public bool EstaAtivo { get; set; }
         public double? MediaAvaliacoes { get; set; }
         public List<string> Generos { get; set; } = new List<string>(); 
         public int TotalAvaliacoes { get; set; }
+        public int? RawgId { get; set; }
+        public bool EhExterno { get; set; }
     }
 
     public class MetadadosFiltrosDTO
