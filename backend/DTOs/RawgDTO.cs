@@ -83,6 +83,12 @@ namespace GameLog_Backend.DTOs
 
         [JsonPropertyName("esrb_rating")]
         public RawgEsrbRatingDTO? EsrbRating { get; set; }
+
+        [JsonPropertyName("parents_count")]
+        public int ParentsCount { get; set; }
+
+        [JsonPropertyName("additions_count")]
+        public int AdditionsCount { get; set; }
     }
 
     public class RawgGameDetailDTO : RawgGameItemDTO

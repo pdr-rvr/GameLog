@@ -54,6 +54,7 @@ namespace GameLog_Backend.DTOs
         public string Descricao { get; set; }
         public string Imagem { get; set; }
         public DateOnly DataLancamento { get; set; }
+        public int ClassificacaoIndicativa { get; set; }
         public string GeneroFavorito { get; set; }
         public string? NomeEmpresa { get; set; }
         public double? MediaAvaliacoes { get; set; }

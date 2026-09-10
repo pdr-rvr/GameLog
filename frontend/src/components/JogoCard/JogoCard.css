@@ -161,13 +161,21 @@
 /* Metadata Row */
 .jogo-card-meta {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: auto;
-  padding-top: 2px;
+  padding-top: 4px;
+}
+
+.jogo-card-companies-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
 }
 
 .jogo-card-company {
@@ -179,11 +187,47 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.74rem;
 }
 
 .jogo-card-company .meta-text {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.jogo-card-publisher-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pub-tag-label {
+  color: #a78bfa;
+  font-weight: 700;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.pub-tag-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jogo-card-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .jogo-card-year {

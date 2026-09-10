@@ -73,6 +73,12 @@
     color: #f8fafc;
 }
 
+.classificacao-info-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .media-avaliacoes-tag {
     display: inline-flex;
     align-items: center;

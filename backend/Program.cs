@@ -274,6 +274,16 @@ using (var scope = app.Services.CreateScope())
                         CREATE UNIQUE INDEX [IX_ItensDeListas_Lista_Jogo] ON [dbo].[ItensDeListas]([ListaDeJogosId], [JogoId]);
                     END
 
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns 
+                        WHERE object_id = OBJECT_ID(N'[dbo].[Jogos]') 
+                        AND name = 'PublicadoraId'
+                    )
+                    BEGIN
+                        ALTER TABLE [dbo].[Jogos] ADD [PublicadoraId] INT NULL;
+                        ALTER TABLE [dbo].[Jogos] ADD CONSTRAINT [FK_Jogos_Publicadora] FOREIGN KEY ([PublicadoraId]) REFERENCES [dbo].[Empresa]([EmpresaId]);
+                    END
+
                     -- Ajuste de capacidade de colunas para catálogos ricos e RAWG
                     ALTER TABLE [dbo].[Jogos] ALTER COLUMN [Titulo] NVARCHAR(250) NOT NULL;
                     ALTER TABLE [dbo].[Jogos] ALTER COLUMN [Descricao] NVARCHAR(MAX) NULL;

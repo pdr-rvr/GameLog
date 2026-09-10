@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
+using GameLog_Backend.Helpers;
 using GameLog_Backend.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -32,12 +33,208 @@ namespace GameLog_Backend.Seeders
             _logger = logger;
         }
 
+        public async Task NormalizarGenerosExistentesAsync()
+        {
+            try
+            {
+                _logger.LogInformation("[Normalizador] Iniciando consolidação e normalização de gêneros...");
+                var canonicalMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    { "Action", "Ação" },
+                    { "Acao", "Ação" },
+                    { "Aao", "Ação" },
+                    { "Adventure", "Aventura" },
+                    { "Role-Playing Games", "RPG" },
+                    { "Role Playing", "RPG" },
+                    { "Shooter", "Tiro" },
+                    { "Strategy", "Estratégia" },
+                    { "Estrategia", "Estratégia" },
+                    { "Estratgia", "Estratégia" },
+                    { "Racing", "Corrida" },
+                    { "Sports", "Esportes" },
+                    { "Fighting", "Luta" },
+                    { "Puzzle", "Quebra-Cabeça" },
+                    { "Quebra-Cabeca", "Quebra-Cabeça" },
+                    { "Quebra-Cabea", "Quebra-Cabeça" },
+                    { "Simulation", "Simulação" },
+                    { "Simulacao", "Simulação" },
+                    { "Simulaao", "Simulação" },
+                    { "Horror", "Terror & Sobrevivência" },
+                    { "Survival", "Terror & Sobrevivência" },
+                    { "Terror e Sobrevivência", "Terror & Sobrevivência" },
+                    { "Terror & Sobrevivncia", "Terror & Sobrevivência" },
+                    { "Platformer", "Plataforma" },
+                    { "Platform", "Plataforma" },
+                    { "Massively Multiplayer", "MMO" }
+                };
+
+                var todosGeneros = await _context.Generos.Include(g => g.Jogos).ToListAsync();
+                var generosPorNome = new Dictionary<string, Genero>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var g in todosGeneros)
+                {
+                    if (!canonicalMap.ContainsKey(g.TituloGenero))
+                    {
+                        generosPorNome[g.TituloGenero] = g;
+                    }
+                }
+
+                foreach (var g in todosGeneros)
+                {
+                    if (canonicalMap.TryGetValue(g.TituloGenero, out var targetName))
+                    {
+                        if (!generosPorNome.TryGetValue(targetName, out var targetGen))
+                        {
+                            targetGen = await _context.Generos.FirstOrDefaultAsync(x => x.TituloGenero == targetName);
+                            if (targetGen == null)
+                            {
+                                targetGen = new Genero { TituloGenero = targetName, EstaAtivo = true };
+                                _context.Generos.Add(targetGen);
+                                await _context.SaveChangesAsync();
+                            }
+                            generosPorNome[targetName] = targetGen;
+                        }
+
+                        // Transferir referências de jogos
+                        foreach (var jogo in g.Jogos.ToList())
+                        {
+                            if (!jogo.Generos.Any(x => x.Id == targetGen.Id))
+                            {
+                                jogo.Generos.Add(targetGen);
+                            }
+                            jogo.Generos.Remove(g);
+                        }
+
+                        g.EstaAtivo = false;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Limpar gêneros inativos órfãos
+                var inativos = await _context.Generos.Where(g => !g.EstaAtivo && !g.Jogos.Any()).ToListAsync();
+                if (inativos.Any())
+                {
+                    _context.Generos.RemoveRange(inativos);
+                    await _context.SaveChangesAsync();
+                }
+
+                _logger.LogInformation("[Normalizador] Normalização concluída. Gêneros consolidados no padrão oficial.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[Normalizador] Falha durante normalização de gêneros legados.");
+            }
+        }
+
+        public async Task ConsolidarENormalizarEmpresasExistentesAsync()
+        {
+            try
+            {
+                _logger.LogInformation("[Normalizador] Iniciando consolidação e normalização de empresas e estúdios...");
+
+                var todasEmpresas = await _context.Empresa.ToListAsync();
+                var todosJogos = await _context.Jogos
+                    .Include(j => j.Empresa)
+                    .Include(j => j.Publicadora)
+                    .ToListAsync();
+
+                var empresasPorNome = new Dictionary<string, Empresa>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var emp in todasEmpresas)
+                {
+                    var nomeCan = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(emp.NomeEmpresa);
+                    if (string.Equals(emp.NomeEmpresa, nomeCan, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!empresasPorNome.ContainsKey(nomeCan))
+                        {
+                            empresasPorNome[nomeCan] = emp;
+                        }
+                    }
+                }
+
+                foreach (var emp in todasEmpresas)
+                {
+                    var nomeCan = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(emp.NomeEmpresa);
+                    if (!empresasPorNome.TryGetValue(nomeCan, out var empCan))
+                    {
+                        empCan = todasEmpresas.FirstOrDefault(e => string.Equals(e.NomeEmpresa, nomeCan, StringComparison.OrdinalIgnoreCase));
+                        if (empCan == null)
+                        {
+                            empCan = new Empresa { NomeEmpresa = nomeCan, EstaAtivo = true };
+                            _context.Empresa.Add(empCan);
+                            await _context.SaveChangesAsync();
+                        }
+                        empresasPorNome[nomeCan] = empCan;
+                    }
+                }
+
+                foreach (var jogo in todosJogos)
+                {
+                    var devAtual = jogo.Empresa?.NomeEmpresa;
+                    var pubAtual = jogo.Publicadora?.NomeEmpresa;
+
+                    var (devResolvido, pubResolvido) = NormalizadorEmpresaHelper.ResolverParDesenvolvedoraPublicadora(jogo.Titulo, devAtual, pubAtual);
+
+                    var devCan = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(devResolvido);
+                    if (!empresasPorNome.TryGetValue(devCan, out var targetDev))
+                    {
+                        targetDev = new Empresa { NomeEmpresa = devCan, EstaAtivo = true };
+                        _context.Empresa.Add(targetDev);
+                        await _context.SaveChangesAsync();
+                        empresasPorNome[devCan] = targetDev;
+                    }
+                    jogo.Empresa = targetDev;
+
+                    if (!string.IsNullOrWhiteSpace(pubResolvido))
+                    {
+                        var pubCan = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(pubResolvido);
+                        if (!empresasPorNome.TryGetValue(pubCan, out var targetPub))
+                        {
+                            targetPub = new Empresa { NomeEmpresa = pubCan, EstaAtivo = true };
+                            _context.Empresa.Add(targetPub);
+                            await _context.SaveChangesAsync();
+                            empresasPorNome[pubCan] = targetPub;
+                        }
+                        jogo.Publicadora = targetPub;
+                    }
+                    else
+                    {
+                        jogo.Publicadora = null;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                var empresasEmUsoIds = new HashSet<int>(
+                    todosJogos.Where(j => j.Empresa != null).Select(j => j.Empresa.Id)
+                    .Concat(todosJogos.Where(j => j.Publicadora != null).Select(j => j.Publicadora!.Id))
+                );
+
+                var orfas = todasEmpresas.Where(e => !empresasEmUsoIds.Contains(e.Id)).ToList();
+                if (orfas.Any())
+                {
+                    _context.Empresa.RemoveRange(orfas);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("[Normalizador] Removidas {Total} empresas redundantes/órfãs do banco.", orfas.Count);
+                }
+
+                _logger.LogInformation("[Normalizador] Consolidação de empresas e estúdios concluída com sucesso.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[Normalizador] Falha durante consolidação de empresas.");
+            }
+        }
+
         public async Task CleanAndSeedRealGamesAsync()
         {
             var totalJogosExistentes = await _context.Jogos.CountAsync();
             if (totalJogosExistentes >= 2400)
             {
                 _logger.LogInformation("[Seeder] Catálogo já se encontra totalmente povoado com {Total} jogos oficiais. Pulando re-seed...", totalJogosExistentes);
+                await NormalizarGenerosExistentesAsync();
+                await ConsolidarENormalizarEmpresasExistentesAsync();
                 return;
             }
 
