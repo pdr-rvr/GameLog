@@ -1,18 +1,19 @@
-using GameLog_Backend.Entities;
+using System;
+using System.Collections.Generic;
 
 namespace GameLog_Backend.DTOs
 {
     public class JogoDTO
     {
-        public int JogoId {  get; set; }
-        public string Titulo { get; set; }
-        public string Descricao { get; set; }
-        public string Imagem { get; set; }
+        public Guid JogoId { get; set; }
+        public string Titulo { get; set; } = string.Empty;
+        public string Descricao { get; set; } = string.Empty;
+        public string Imagem { get; set; } = string.Empty;
         public DateOnly DataLancamento { get; set; }
         public int ClassificacaoIndicativa { get; set; }
-        public int EmpresaId { get; set; }
-        public string NomeEmpresa { get; set; }
-        public int? PublicadoraId { get; set; }
+        public Guid EmpresaId { get; set; }
+        public string NomeEmpresa { get; set; } = string.Empty;
+        public Guid? PublicadoraId { get; set; }
         public string? NomePublicadora { get; set; }
         public string? NomeDesenvolvedora => NomeEmpresa;
         public bool EstaAtivo { get; set; }

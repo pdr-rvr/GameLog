@@ -2,13 +2,13 @@ using System;
 
 namespace GameLog_Backend.Entities
 {
-    public class ItemDeLista : Entity<int>
+    public class ItemDeLista : Entity<Guid>
     {
-        public int ListaDeJogosId { get; set; }
-        public virtual ListaDeJogos ListaDeJogos { get; set; }
+        public Guid ListaDeJogosId { get; set; }
+        public virtual ListaDeJogos ListaDeJogos { get; set; } = null!;
 
-        public int JogoId { get; set; }
-        public virtual Jogo Jogo { get; set; }
+        public Guid JogoId { get; set; }
+        public virtual Jogo Jogo { get; set; } = null!;
 
         public int Ordem { get; set; }
         public DateTime DataAdicionado { get; set; } = DateTime.UtcNow;

@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 
 namespace GameLog_Backend.DTOs
 {
     public class BuscaItemJogoDTO
     {
-        public int JogoId { get; set; }
+        public Guid JogoId { get; set; }
         public string Titulo { get; set; } = string.Empty;
         public string? Imagem { get; set; }
         public int? AnoLancamento { get; set; }
@@ -17,7 +18,7 @@ namespace GameLog_Backend.DTOs
 
     public class BuscaItemUsuarioDTO
     {
-        public int UsuarioId { get; set; }
+        public Guid UsuarioId { get; set; }
         public string NomeUsuario { get; set; } = string.Empty;
         public string? FotoDePerfil { get; set; }
         public string? Bio { get; set; }
@@ -25,10 +26,10 @@ namespace GameLog_Backend.DTOs
 
     public class BuscaItemListaDTO
     {
-        public int ListaId { get; set; }
+        public Guid ListaId { get; set; }
         public string Titulo { get; set; } = string.Empty;
         public string? Descricao { get; set; }
-        public int UsuarioId { get; set; }
+        public Guid UsuarioId { get; set; }
         public string NomeCriador { get; set; } = string.Empty;
         public int TotalJogos { get; set; }
         public List<string> CapasPreview { get; set; } = new();

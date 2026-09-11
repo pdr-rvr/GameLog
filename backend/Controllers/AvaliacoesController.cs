@@ -38,7 +38,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterAvaliacaoPorId(int id)
+        public async Task<IActionResult> ObterAvaliacaoPorId(Guid id)
         {
             var usuarioId = User.GetUserIdOrNull();
             var avaliacao = await _avaliacaoServices.ObterAvaliacaoPorId(id, usuarioId);
@@ -51,7 +51,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("usuario/{usuarioId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> ListarAvaliacoesPorUsuario(int usuarioId)
+        public async Task<IActionResult> ListarAvaliacoesPorUsuario(Guid usuarioId)
         {
             var usuarioSolicitanteId = User.GetUserIdOrNull();
             var avaliacoes = await _avaliacaoServices.ListarAvaliacoesPorUsuario(usuarioId, usuarioSolicitanteId);
@@ -60,7 +60,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("jogo/{jogoId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> ListarAvaliacoesPorJogo(int jogoId)
+        public async Task<IActionResult> ListarAvaliacoesPorJogo(Guid jogoId)
         {
             var usuarioId = User.GetUserIdOrNull();
             var avaliacoes = await _avaliacaoServices.ListarAvaliacoesPorJogo(jogoId, usuarioId);
@@ -69,7 +69,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpPut("{id}")]
         [Authorize]
-        public async Task<IActionResult> EditarAvaliacao(int id, [FromBody] EditarAvaliacaoDTO avaliacaoDTO)
+        public async Task<IActionResult> EditarAvaliacao(Guid id, [FromBody] EditarAvaliacaoDTO avaliacaoDTO)
         {
             var usuarioId = User.GetUserId();
             var avaliacaoAtualizada = await _avaliacaoServices.EditarAvaliacao(id, avaliacaoDTO, usuarioId);
@@ -84,7 +84,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpDelete("{id}")]
         [Authorize]
-        public async Task<IActionResult> DeletarAvaliacao(int id)
+        public async Task<IActionResult> DeletarAvaliacao(Guid id)
         {
             var usuarioId = User.GetUserId();
             var sucesso = await _avaliacaoServices.DeletarAvaliacao(id, usuarioId);
@@ -99,7 +99,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpPost("{avaliacaoId}/curtir")]
         [Authorize]
-        public async Task<IActionResult> CurtirAvaliacao(int avaliacaoId)
+        public async Task<IActionResult> CurtirAvaliacao(Guid avaliacaoId)
         {
             var usuarioId = User.GetUserId();
             var (curtido, totalCurtidas) = await _avaliacaoServices.AlternarCurtida(avaliacaoId, usuarioId);
@@ -114,7 +114,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpDelete("{avaliacaoId}/curtir")]
         [Authorize]
-        public async Task<IActionResult> RemoverCurtida(int avaliacaoId)
+        public async Task<IActionResult> RemoverCurtida(Guid avaliacaoId)
         {
             var usuarioId = User.GetUserId();
             await _avaliacaoServices.RemoverCurtida(avaliacaoId, usuarioId);
@@ -130,7 +130,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{avaliacaoId}/curtidas")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterCurtidas(int avaliacaoId)
+        public async Task<IActionResult> ObterCurtidas(Guid avaliacaoId)
         {
             var totalCurtidas = await _avaliacaoServices.ContarCurtidas(avaliacaoId);
             return Ok(new { totalCurtidas });
@@ -138,7 +138,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{avaliacaoId}/curtida-status")]
         [Authorize]
-        public async Task<IActionResult> VerificarCurtidaUsuario(int avaliacaoId)
+        public async Task<IActionResult> VerificarCurtidaUsuario(Guid avaliacaoId)
         {
             var usuarioId = User.GetUserId();
             var curtida = await _avaliacaoServices.UsuarioCurtiu(avaliacaoId, usuarioId);
@@ -149,7 +149,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{avaliacaoId}/respostas")]
         [AllowAnonymous]
-        public async Task<IActionResult> ListarRespostas(int avaliacaoId)
+        public async Task<IActionResult> ListarRespostas(Guid avaliacaoId)
         {
             var usuarioId = User.GetUserIdOrNull();
             var respostas = await _avaliacaoServices.ListarRespostasPorAvaliacao(avaliacaoId, usuarioId);
@@ -158,7 +158,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpPost("{avaliacaoId}/respostas")]
         [Authorize]
-        public async Task<IActionResult> AdicionarResposta(int avaliacaoId, [FromBody] CriarRespostaDTO dto)
+        public async Task<IActionResult> AdicionarResposta(Guid avaliacaoId, [FromBody] CriarRespostaDTO dto)
         {
             var usuarioId = User.GetUserId();
             var resposta = await _avaliacaoServices.AdicionarResposta(avaliacaoId, usuarioId, dto);
@@ -167,7 +167,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpDelete("respostas/{respostaId}")]
         [Authorize]
-        public async Task<IActionResult> DeletarResposta(int respostaId)
+        public async Task<IActionResult> DeletarResposta(Guid respostaId)
         {
             var usuarioId = User.GetUserId();
             var sucesso = await _avaliacaoServices.DeletarResposta(respostaId, usuarioId);
@@ -182,7 +182,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpPost("respostas/{respostaId}/curtir")]
         [Authorize]
-        public async Task<IActionResult> CurtirResposta(int respostaId)
+        public async Task<IActionResult> CurtirResposta(Guid respostaId)
         {
             var usuarioId = User.GetUserId();
             var (curtido, totalCurtidas) = await _avaliacaoServices.AlternarCurtidaResposta(respostaId, usuarioId);

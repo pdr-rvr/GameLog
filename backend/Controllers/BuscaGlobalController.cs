@@ -92,7 +92,7 @@ namespace GameLog_Backend.Controllers
 
                             jogos.Add(new BuscaItemJogoDTO
                             {
-                                JogoId = rg.LocalJogoId ?? 0,
+                                JogoId = rg.LocalJogoId ?? Guid.Empty,
                                 Titulo = rg.Titulo,
                                 Imagem = rg.Imagem,
                                 AnoLancamento = rg.AnoLancamento,

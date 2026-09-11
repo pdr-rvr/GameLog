@@ -11,13 +11,13 @@ namespace GameLog_Backend.Entities
         Abandonado = 5
     }
 
-    public class BibliotecaJogo : Entity<int>
+    public class BibliotecaJogo : Entity<Guid>
     {
-        public int UsuarioId { get; set; }
-        public virtual Usuario Usuario { get; set; }
+        public Guid UsuarioId { get; set; }
+        public virtual Usuario Usuario { get; set; } = null!;
 
-        public int JogoId { get; set; }
-        public virtual Jogo Jogo { get; set; }
+        public Guid JogoId { get; set; }
+        public virtual Jogo Jogo { get; set; } = null!;
 
         public StatusJogo Status { get; set; }
 

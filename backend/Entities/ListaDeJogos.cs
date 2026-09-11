@@ -3,10 +3,10 @@ using System.Collections.Generic;
 
 namespace GameLog_Backend.Entities
 {
-    public class ListaDeJogos : Entity<int>
+    public class ListaDeJogos : Entity<Guid>
     {
-        public int UsuarioId { get; set; }
-        public virtual Usuario Usuario { get; set; }
+        public Guid UsuarioId { get; set; }
+        public virtual Usuario Usuario { get; set; } = null!;
 
         public string Titulo { get; set; } = string.Empty;
         public string? Descricao { get; set; }

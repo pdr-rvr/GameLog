@@ -5,7 +5,7 @@ namespace GameLog_Backend.DTOs
 {
     public class UsuarioConexaoDTO
     {
-        public int UsuarioId { get; set; }
+        public Guid UsuarioId { get; set; }
         public string NomeUsuario { get; set; } = string.Empty;
         public string? FotoPerfil { get; set; }
         public string? Bio { get; set; }
@@ -32,18 +32,18 @@ namespace GameLog_Backend.DTOs
         public DateTime DataAtividade { get; set; }
         
         // Dados do Autor
-        public int AutorId { get; set; }
+        public Guid AutorId { get; set; }
         public string AutorNome { get; set; } = string.Empty;
         public string? AutorFoto { get; set; }
 
         // Dados do Jogo (se aplicavel)
-        public int? JogoId { get; set; }
+        public Guid? JogoId { get; set; }
         public string? JogoTitulo { get; set; }
         public string? JogoImagem { get; set; }
         public string? NomeEmpresa { get; set; }
 
         // Dados da Avaliacao (se aplicavel)
-        public int? AvaliacaoId { get; set; }
+        public Guid? AvaliacaoId { get; set; }
         public int? Nota { get; set; }
         public string? TextoAvaliacao { get; set; }
         public int TotalCurtidas { get; set; }
@@ -51,7 +51,7 @@ namespace GameLog_Backend.DTOs
         public int TotalRespostas { get; set; }
 
         // Dados da Lista/Colecao (se aplicavel)
-        public int? ListaId { get; set; }
+        public Guid? ListaId { get; set; }
         public string? ListaTitulo { get; set; }
         public string? ListaDescricao { get; set; }
         public int? TotalJogosLista { get; set; }

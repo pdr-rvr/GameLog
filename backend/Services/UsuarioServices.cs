@@ -137,7 +137,7 @@ namespace GameLog_Backend.Services
                 .ToListAsync();
         }
 
-        public async Task<UsuarioDTO?> ObterUsuarioPorId(int id)
+        public async Task<UsuarioDTO?> ObterUsuarioPorId(Guid id)
         {
             var usuario = await _context.Usuarios
                 .AsNoTracking()
@@ -215,7 +215,7 @@ namespace GameLog_Backend.Services
                 .AnyAsync(u => u.NomeUsuario.ToLower() == nomeLimpo && u.EstaAtivo);
         }
 
-        public async Task<UsuarioDTO?> EditarUsuario(int id, string senhaAtual, EditarUsuarioDTO usuarioDTO)
+        public async Task<UsuarioDTO?> EditarUsuario(Guid id, string senhaAtual, EditarUsuarioDTO usuarioDTO)
         {
             var usuarioExistente = await _context.Usuarios.FindAsync(id);
             if (usuarioExistente == null || !usuarioExistente.EstaAtivo || !VerificarSenha(senhaAtual, usuarioExistente.Senha))
@@ -249,7 +249,6 @@ namespace GameLog_Backend.Services
 
             _mapper.Map(usuarioDTO, usuarioExistente);
 
-            // Atualização segura de senha: apenas se NovaSenha foi expressamente fornecida
             if (!string.IsNullOrWhiteSpace(usuarioDTO.NovaSenha))
             {
                 usuarioExistente.Senha = HashSenha(usuarioDTO.NovaSenha);
@@ -259,7 +258,7 @@ namespace GameLog_Backend.Services
             return _mapper.Map<UsuarioDTO>(usuarioExistente);
         }
 
-        public async Task<bool> DeletarUsuario(int id, string senhaAtual)
+        public async Task<bool> DeletarUsuario(Guid id, string senhaAtual)
         {
             var usuario = await _context.Usuarios.FindAsync(id);
             if (usuario == null || !usuario.EstaAtivo || !VerificarSenha(senhaAtual, usuario.Senha))
@@ -273,7 +272,7 @@ namespace GameLog_Backend.Services
             return true;
         }
 
-        public async Task<List<GeneroFavoritoDTO>> IdentificaTopNGenerosFavoritos(int id, int topN = 5)
+        public async Task<List<GeneroFavoritoDTO>> IdentificaTopNGenerosFavoritos(Guid id, int topN = 5)
         {
             var favoritos = await _context.JogosFavoritosUsuarios
                 .AsNoTracking()
@@ -333,9 +332,8 @@ namespace GameLog_Backend.Services
             return topGeneros;
         }
 
-        public async Task<IEnumerable<JogoRecomendacaoDTO>> RecomendarJogos(int usuarioId)
+        public async Task<IEnumerable<JogoRecomendacaoDTO>> RecomendarJogos(Guid usuarioId)
         {
-            // 1. Coletar IDs de jogos para exclusão anti-redundância
             var jogosAvaliadosIds = await _context.Avaliacoes
                 .AsNoTracking()
                 .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
@@ -359,14 +357,12 @@ namespace GameLog_Backend.Services
                 .Select(b => b.Jogo.Id)
                 .ToListAsync();
 
-            var jogosExcluidos = new HashSet<int>(jogosAvaliadosIds.Concat(jogosFavoritosIds).Concat(bibliotecaIds));
+            var jogosExcluidos = new HashSet<Guid>(jogosAvaliadosIds.Concat(jogosFavoritosIds).Concat(bibliotecaIds));
 
-            // 2. Extrair Perfil Ponderado de Afinidades do Usuário (Gêneros e Estúdios)
             var afinidadeGeneros = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
-            var afinidadeEstudios = new Dictionary<int, double>();
-            var nomesEstudiosFavoritos = new Dictionary<int, string>();
+            var afinidadeEstudios = new Dictionary<Guid, double>();
+            var nomesEstudiosFavoritos = new Dictionary<Guid, string>();
 
-            // Sinais do Pódio de Favoritos (Peso 3.0x)
             foreach (var fav in jogosFavoritos.Where(f => f.Jogo != null))
             {
                 if (fav.Jogo.Generos != null)
@@ -383,7 +379,6 @@ namespace GameLog_Backend.Services
                 }
             }
 
-            // Sinais das Avaliações (Peso 2.5x para 4-5 estrelas)
             var avaliacoesCompletas = await _context.Avaliacoes
                 .AsNoTracking()
                 .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
@@ -412,7 +407,6 @@ namespace GameLog_Backend.Services
                 }
             }
 
-            // Sinais da Biblioteca (Peso 1.5x)
             var bibliotecaCompleta = await _context.ItensBiblioteca
                 .AsNoTracking()
                 .Where(b => b.Usuario.Id == usuarioId && b.EstaAtivo)
@@ -438,14 +432,13 @@ namespace GameLog_Backend.Services
                 }
             }
 
-            // Sinais Sociais: Jogos bem avaliados por quem o usuário segue
             var seguidosIds = await _context.SegueUsuarios
                 .AsNoTracking()
                 .Where(s => s.UsuarioSeguidor.Id == usuarioId && s.EstaAtivo)
                 .Select(s => s.UsuarioSeguido.Id)
                 .ToListAsync();
 
-            var socialBoostJogos = new Dictionary<int, double>();
+            var socialBoostJogos = new Dictionary<Guid, double>();
             if (seguidosIds.Any())
             {
                 var avaliacoesSeguidos = await _context.Avaliacoes
@@ -467,7 +460,6 @@ namespace GameLog_Backend.Services
                 .Take(6)
                 .ToList();
 
-            // 3. Tratar Cenário de Cold Start (Usuário Novo sem interações suficientes)
             if (!generosPositivos.Any() && !afinidadeEstudios.Any())
             {
                 var jogosBase = await _context.Jogos
@@ -522,7 +514,6 @@ namespace GameLog_Backend.Services
                 });
             }
 
-            // 4. Buscar Jogos Candidatos para Recomendação Ponderada
             var afinidadeEstudiosIds = afinidadeEstudios.Keys.ToList();
 
             var candidatos = await _context.Jogos
@@ -546,7 +537,6 @@ namespace GameLog_Backend.Services
                 })
                 .ToDictionaryAsync(x => x.JogoId, x => x.Media);
 
-            // 5. Motor de Pontuação Multi-Fator
             var pontuados = new List<JogoRecomendacaoDTO>();
 
             foreach (var j in candidatos)
@@ -555,7 +545,6 @@ namespace GameLog_Backend.Services
                 string motivo = string.Empty;
                 string generoDestaque = generosPositivos.FirstOrDefault() ?? "Recomendado";
 
-                // A) Score de Gênero (Múltiplos Matches & Peso dos Gêneros Favoritos)
                 double scoreGeneroJogo = 0.0;
                 int generosCombinados = 0;
                 string? melhorGeneroMatch = null;
@@ -573,54 +562,47 @@ namespace GameLog_Backend.Services
                     }
                 }
 
-                if (generosCombinados > 0)
+                if (generosCombinados > 1)
                 {
-                    double multiplicadorOverlap = 1.0 + (generosCombinados - 1) * 0.35;
-                    scoreFinal += (scoreGeneroJogo * multiplicadorOverlap) * 0.45;
-                    if (melhorGeneroMatch != null)
-                    {
-                        generoDestaque = melhorGeneroMatch;
-                        motivo = $"Porque você curte {melhorGeneroMatch}";
-                    }
+                    scoreGeneroJogo *= 1.25;
                 }
 
-                // B) Score de Estúdio / Desenvolvedor
+                scoreFinal += scoreGeneroJogo;
+                if (melhorGeneroMatch != null)
+                {
+                    generoDestaque = melhorGeneroMatch;
+                    motivo = $"Baseado no seu gosto por {melhorGeneroMatch}";
+                }
+
                 if (j.Empresa != null && afinidadeEstudios.TryGetValue(j.Empresa.Id, out double pesoEstudio))
                 {
-                    scoreFinal += pesoEstudio * 0.30;
-                    if (nomesEstudiosFavoritos.TryGetValue(j.Empresa.Id, out var nomeEmp))
+                    scoreFinal += pesoEstudio * 1.4;
+                    motivo = $"Do estúdio {j.Empresa.NomeEmpresa}";
+                }
+
+                statsCandidatos.TryGetValue(j.Id, out double mediaComunidade);
+                if (mediaComunidade > 0)
+                {
+                    scoreFinal += (mediaComunidade * 3.0);
+                }
+
+                if (socialBoostJogos.TryGetValue(j.Id, out double socialBonus))
+                {
+                    scoreFinal += socialBonus;
+                    if (string.IsNullOrEmpty(motivo))
                     {
-                        motivo = $"Do mesmo estúdio de seus favoritos ({nomeEmp})";
+                        motivo = "Popular entre quem você segue";
                     }
                 }
 
-                // C) Sinal Social
-                if (socialBoostJogos.TryGetValue(j.Id, out double boostSocial))
+                int anosDesdeLancamento = Math.Max(0, DateTime.UtcNow.Year - j.DataLancamento.Year);
+                if (anosDesdeLancamento <= 2)
                 {
-                    scoreFinal += boostSocial * 0.20;
-                    motivo = "Bem avaliado por pessoas que você segue";
+                    scoreFinal += 6.0;
                 }
-
-                // D) Média Comunitária (apenas pontua e exibe se houver avaliações reais)
-                double? mediaReal = statsCandidatos.TryGetValue(j.Id, out var m) ? m : null;
-                if (mediaReal.HasValue)
-                {
-                    scoreFinal += mediaReal.Value * 2.0;
-                }
-                else
-                {
-                    scoreFinal += 4.0;
-                }
-
-                // E) Bônus de Recência para Lançamentos
-                if (j.DataLancamento.Year >= 2022)
+                else if (anosDesdeLancamento <= 5)
                 {
                     scoreFinal += 3.0;
-                }
-
-                if (string.IsNullOrWhiteSpace(motivo))
-                {
-                    motivo = $"Baseado no seu perfil de {generoDestaque}";
                 }
 
                 pontuados.Add(new JogoRecomendacaoDTO
@@ -633,17 +615,19 @@ namespace GameLog_Backend.Services
                     ClassificacaoIndicativa = j.ClassificacaoIndicativa,
                     GeneroFavorito = generoDestaque,
                     NomeEmpresa = j.Empresa?.NomeEmpresa,
-                    MediaAvaliacoes = mediaReal.HasValue ? Math.Round(mediaReal.Value, 1) : null,
-                    MotivoRecomendacao = motivo,
+                    MediaAvaliacoes = mediaComunidade > 0 ? Math.Round(mediaComunidade, 1) : null,
+                    MotivoRecomendacao = string.IsNullOrEmpty(motivo) ? "Recomendado para o seu perfil" : motivo,
                     Score = scoreFinal
                 });
             }
 
-            // 6. Diversificação Inteligente dos Resultados (Máximo 2 jogos por estúdio no top 12)
-            var selecionados = new List<JogoRecomendacaoDTO>();
-            var contagemPorEstudio = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var ordenadosPorScore = pontuados
+                .OrderByDescending(p => p.Score)
+                .ThenByDescending(p => p.MediaAvaliacoes ?? 0)
+                .ToList();
 
-            var ordenadosPorScore = pontuados.OrderByDescending(p => p.Score).ToList();
+            var selecionados = new List<JogoRecomendacaoDTO>();
+            var contagemPorEstudio = new Dictionary<string, int>();
 
             foreach (var item in ordenadosPorScore)
             {
@@ -670,7 +654,7 @@ namespace GameLog_Backend.Services
 
         // ======================= SISTEMA SOCIAL (SEGUIR & FEED) ======================= //
 
-        public async Task<(bool Seguido, int TotalSeguidores)> AlternarSeguirUsuario(int seguidorId, int seguidoId)
+        public async Task<(bool Seguido, int TotalSeguidores)> AlternarSeguirUsuario(Guid seguidorId, Guid seguidoId)
         {
             if (seguidorId == seguidoId)
             {
@@ -719,7 +703,7 @@ namespace GameLog_Backend.Services
             return (novoEstado, totalSeguidores);
         }
 
-        public async Task<bool> VerificarSeSegue(int seguidorId, int seguidoId)
+        public async Task<bool> VerificarSeSegue(Guid seguidorId, Guid seguidoId)
         {
             if (seguidorId == seguidoId) return false;
 
@@ -727,7 +711,7 @@ namespace GameLog_Backend.Services
                 .AnyAsync(s => s.UsuarioSeguidor.Id == seguidorId && s.UsuarioSeguido.Id == seguidoId && s.EstaAtivo);
         }
 
-        public async Task<EstatisticasSociaisDTO> ObterEstatisticasSociais(int usuarioId, int? solicitanteId = null)
+        public async Task<EstatisticasSociaisDTO> ObterEstatisticasSociais(Guid usuarioId, Guid? solicitanteId = null)
         {
             var totalSeguidores = await _context.SegueUsuarios
                 .CountAsync(s => s.UsuarioSeguido.Id == usuarioId && s.EstaAtivo);
@@ -745,7 +729,7 @@ namespace GameLog_Backend.Services
             };
         }
 
-        public async Task<List<UsuarioConexaoDTO>> ObterSeguidores(int usuarioId, int? solicitanteId = null)
+        public async Task<List<UsuarioConexaoDTO>> ObterSeguidores(Guid usuarioId, Guid? solicitanteId = null)
         {
             var conexoes = await _context.SegueUsuarios
                 .AsNoTracking()
@@ -755,7 +739,7 @@ namespace GameLog_Backend.Services
 
             var seguidorIds = conexoes.Select(c => c.UsuarioSeguidor.Id).Distinct().ToList();
 
-            var seguidosPeloSolicitante = new HashSet<int>();
+            var seguidosPeloSolicitante = new HashSet<Guid>();
             if (solicitanteId.HasValue)
             {
                 seguidosPeloSolicitante = (await _context.SegueUsuarios
@@ -776,7 +760,7 @@ namespace GameLog_Backend.Services
             }).ToList();
         }
 
-        public async Task<List<UsuarioConexaoDTO>> ObterSeguindo(int usuarioId, int? solicitanteId = null)
+        public async Task<List<UsuarioConexaoDTO>> ObterSeguindo(Guid usuarioId, Guid? solicitanteId = null)
         {
             var conexoes = await _context.SegueUsuarios
                 .AsNoTracking()
@@ -786,7 +770,7 @@ namespace GameLog_Backend.Services
 
             var seguidoIds = conexoes.Select(c => c.UsuarioSeguido.Id).Distinct().ToList();
 
-            var seguidosPeloSolicitante = new HashSet<int>();
+            var seguidosPeloSolicitante = new HashSet<Guid>();
             if (solicitanteId.HasValue)
             {
                 seguidosPeloSolicitante = (await _context.SegueUsuarios
@@ -807,7 +791,7 @@ namespace GameLog_Backend.Services
             }).ToList();
         }
 
-        public async Task<List<ItemFeedSocialDTO>> ObterFeedSocial(int usuarioId, int pagina = 1, int itensPorPagina = 20)
+        public async Task<List<ItemFeedSocialDTO>> ObterFeedSocial(Guid usuarioId, int pagina = 1, int itensPorPagina = 20)
         {
             pagina = Math.Max(1, pagina);
             itensPorPagina = Math.Clamp(itensPorPagina, 1, 50);
@@ -918,7 +902,6 @@ namespace GameLog_Backend.Services
                     .ToList()
             }).ToList();
 
-            // Combinar e ordenar todas as atividades por data decrescente
             return avaliacoes
                 .Concat(zeradosItems)
                 .Concat(listasItems)
