@@ -146,6 +146,9 @@ builder.Services.AddScoped<EmpresaServices>();
 builder.Services.AddScoped<BibliotecaServices>();
 builder.Services.AddScoped<ListaServices>();
 
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<GameLogContext>("database");
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -240,6 +243,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.MapGet("/", () => "API GameLog está online!").AllowAnonymous();
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();
 
