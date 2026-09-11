@@ -38,4 +38,12 @@ export const SocialService = {
     });
     return response.data;
   },
+
+  // Obter Timeline Simplificada de Atividades
+  async obterAtividadesTimeline(pagina = 1, itensPorPagina = 30) {
+    const response = await api.get("/usuarios/atividades", {
+      params: { pagina, itensPorPagina },
+    });
+    return response.data;
+  },
 };

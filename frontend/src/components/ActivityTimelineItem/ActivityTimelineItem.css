@@ -1,0 +1,238 @@
+.activity-timeline-row {
+  display: flex;
+  gap: 1.25rem;
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+
+.activity-timeline-row:last-child {
+  padding-bottom: 0;
+}
+
+.activity-timeline-row:last-child .timeline-line {
+  display: none;
+}
+
+.timeline-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.timeline-icon-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  z-index: 2;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+}
+
+.timeline-icon-badge.zerou {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.timeline-icon-badge.jogando {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.timeline-icon-badge.avaliou {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.timeline-icon-badge.lista {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.timeline-icon-badge.padrao {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.timeline-line {
+  width: 2px;
+  flex: 1;
+  background: rgba(255, 255, 255, 0.07);
+  margin-top: 0.4rem;
+}
+
+.timeline-card-content {
+  flex: 1;
+  background: #161b22;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.timeline-card-content:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #1a202c;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.timeline-user-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.timeline-user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.timeline-avatar-fallback {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.timeline-user-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.timeline-user-link:hover .timeline-user-name {
+  color: #60a5fa;
+}
+
+.timeline-action-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.timeline-time {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-left: auto;
+}
+
+.timeline-target-game {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.timeline-game-thumb-link {
+  flex-shrink: 0;
+}
+
+.timeline-game-thumb {
+  width: 44px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.timeline-target-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow: hidden;
+}
+
+.timeline-game-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-game-title:hover {
+  color: #3b82f6;
+}
+
+.timeline-mini-review {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-style: italic;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-target-list {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.timeline-list-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.timeline-list-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  text-decoration: none;
+}
+
+.timeline-list-title:hover {
+  color: #a855f7;
+}
+
+.timeline-list-count {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.btn-view-timeline-list {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  padding: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.btn-view-timeline-list:hover {
+  color: #a855f7;
+  transform: translateX(3px);
+}

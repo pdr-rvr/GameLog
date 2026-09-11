@@ -1,6 +1,11 @@
 import api from "./api";
 
 export const AvaliacaoService = {
+  async listarAvaliacoes(params = {}) {
+    const response = await api.get("/Avaliacoes", { params });
+    return response.data;
+  },
+
   async obterAvaliacaoPorId(id) {
     const response = await api.get(`/Avaliacoes/${id}`);
     return response.data;

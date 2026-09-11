@@ -1,0 +1,252 @@
+.social-sidebar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.social-sidebar-block {
+  background: #161b22;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sidebar-block-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 0.75rem;
+}
+
+.block-icon {
+  font-size: 1rem;
+}
+
+.block-icon.playing {
+  color: #3b82f6;
+}
+
+.block-icon.suggestions {
+  color: #a855f7;
+}
+
+.block-icon.trophy {
+  color: #f59e0b;
+}
+
+.sidebar-block-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+/* Playing Now List */
+.playing-now-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.playing-now-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.playing-user-avatar-link {
+  flex-shrink: 0;
+}
+
+.playing-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #3b82f6;
+}
+
+.playing-avatar-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.playing-now-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  overflow: hidden;
+}
+
+.playing-user-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  text-decoration: none;
+}
+
+.playing-user-name:hover {
+  color: #60a5fa;
+}
+
+.playing-game-name {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playing-game-name:hover {
+  color: #cbd5e1;
+}
+
+/* Suggested Gamers */
+.suggested-gamers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.suggested-gamer-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.suggested-avatar-link {
+  flex-shrink: 0;
+}
+
+.suggested-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.suggested-avatar-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #a855f7;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.suggested-gamer-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  overflow: hidden;
+}
+
+.suggested-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  text-decoration: none;
+}
+
+.suggested-name:hover {
+  color: #c084fc;
+}
+
+.suggested-bio {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-suggested-follow {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-suggested-follow:hover {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: #a855f7;
+  color: #c084fc;
+}
+
+.btn-suggested-follow.following {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+  color: #10b981;
+}
+
+/* Podium Mini Mosaic */
+.podium-mini-mosaic {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+
+.podium-mini-slot {
+  position: relative;
+  aspect-ratio: 2/3;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.podium-mini-slot:hover {
+  transform: translateY(-2px);
+  border-color: #f59e0b;
+}
+
+.podium-slot-pos {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #f59e0b;
+  font-size: 0.65rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.podium-mini-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
