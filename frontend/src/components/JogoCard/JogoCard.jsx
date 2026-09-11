@@ -35,11 +35,20 @@ const JogoCard = ({ jogo, onClick }) => {
   }
 
   const mediaNum = Number(jogo.mediaAvaliacoes);
-  const media = jogo.mediaAvaliacoes !== null && jogo.mediaAvaliacoes !== undefined && !isNaN(mediaNum) && mediaNum > 0
+  const totalAvaliacoes = Number(jogo.totalAvaliacoes) || 0;
+  const isGuid = typeof jogoId === "string" && jogoId.length === 36 && jogoId !== "00000000-0000-0000-0000-000000000000";
+  const ehExterno = Boolean(jogo.ehExterno || (jogo.rawgId && !isGuid));
+
+  const media = !ehExterno &&
+    jogo.mediaAvaliacoes !== null && 
+    jogo.mediaAvaliacoes !== undefined && 
+    !isNaN(mediaNum) && 
+    mediaNum > 0 && 
+    totalAvaliacoes > 0
     ? mediaNum.toFixed(1)
     : null;
 
-  const targetUrl = (jogoId && Number(jogoId) > 0)
+  const targetUrl = (isGuid && !ehExterno)
     ? `/jogos/${jogoId}`
     : (jogo.rawgId ? `/jogos/rawg-${jogo.rawgId}` : `/jogos/${jogoId || 0}`);
 

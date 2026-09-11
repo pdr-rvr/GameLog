@@ -36,6 +36,7 @@ export const buscarJogosPaginados = async ({
     genero = "",
     ano = "",
     empresa = "",
+    nota = "",
     ordenacao = "melhores"
 }) => {
     try {
@@ -46,6 +47,7 @@ export const buscarJogosPaginados = async ({
         if (genero) params.append("genero", genero);
         if (ano) params.append("ano", ano);
         if (empresa) params.append("empresa", empresa);
+        if (nota) params.append("notaMinima", nota);
         if (ordenacao) params.append("ordenacao", ordenacao);
 
         const response = await api.get(`/Jogos?${params.toString()}`);

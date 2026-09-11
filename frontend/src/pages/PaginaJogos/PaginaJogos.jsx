@@ -4,7 +4,6 @@ import { Subject } from "rxjs";
 import { debounceTime, distinctUntilChanged, switchMap } from "rxjs/operators";
 import Navbar from "../../components/Navbar/Navbar";
 import JogoCard from "../../components/JogoCard/JogoCard";
-import StudioSearchInput from "../../components/StudioSearchInput/StudioSearchInput";
 import { buscarJogosPaginados, obterMetadadosFiltros } from "./actions/PaginaJogosActions";
 import rawgService from "../../services/rawgService";
 import { useToast } from "../../context/ToastContext";
@@ -12,6 +11,7 @@ import {
   FaGamepad, 
   FaSearch, 
   FaCalendarAlt, 
+  FaStar,
   FaSortAmountDown, 
   FaTimes, 
   FaChevronLeft, 
@@ -31,23 +31,23 @@ function PaginaJogos() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    const initialQuery = searchParams.get("busca") || searchParams.get("q") || "";
     const pageFromUrl = parseInt(searchParams.get("page") || "1", 10);
     const [paginaAtual, setPaginaAtual] = useState(pageFromUrl > 0 ? pageFromUrl : 1);
     const [totalPaginas, setTotalPaginas] = useState(1);
     const [totalItens, setTotalItens] = useState(0);
 
-    const [termoPesquisa, setTermoPesquisa] = useState(searchParams.get("q") || "");
-    const [buscaAtiva, setBuscaAtiva] = useState(searchParams.get("q") || "");
+    const [termoPesquisa, setTermoPesquisa] = useState(initialQuery);
+    const [buscaAtiva, setBuscaAtiva] = useState(initialQuery);
     const [generoSelecionado, setGeneroSelecionado] = useState(searchParams.get("genero") || "");
     const [anoSelecionado, setAnoSelecionado] = useState(searchParams.get("ano") || "");
     const [anoInput, setAnoInput] = useState(searchParams.get("ano") || "");
-    const [empresaSelecionada, setEmpresaSelecionada] = useState(searchParams.get("empresa") || "");
+    const [notaSelecionada, setNotaSelecionada] = useState(searchParams.get("nota") || "");
     const [ordenacao, setOrdenacao] = useState(searchParams.get("ordem") || "melhores");
 
     // Dynamic filter options
     const [generosDisponiveis, setGenerosDisponiveis] = useState([]);
     const [anosDisponiveis, setAnosDisponiveis] = useState([]);
-    const [empresasDisponiveis, setEmpresasDisponiveis] = useState([]);
 
     const [importandoJogoId, setImportandoJogoId] = useState(null);
 
@@ -55,13 +55,13 @@ function PaginaJogos() {
     const filterSubject$ = useRef(null);
 
     // Sync state with URL params
-    const atualizarUrl = useCallback((novaPagina, busca, genero, ano, empresa, ordem) => {
+    const atualizarUrl = useCallback((novaPagina, busca, genero, ano, nota, ordem) => {
         const params = {};
         if (novaPagina > 1) params.page = novaPagina;
-        if (busca && busca.trim()) params.q = busca.trim();
+        if (busca && busca.trim()) params.busca = busca.trim();
         if (genero) params.genero = genero;
         if (ano) params.ano = ano;
-        if (empresa) params.empresa = empresa;
+        if (nota) params.nota = nota;
         if (ordem && ordem !== "melhores") params.ordem = ordem;
         setSearchParams(params);
     }, [setSearchParams]);
@@ -72,10 +72,19 @@ function PaginaJogos() {
             .then(meta => {
                 setGenerosDisponiveis(meta.generos || []);
                 setAnosDisponiveis(meta.anos || []);
-                setEmpresasDisponiveis(meta.empresas || []);
             })
             .catch(err => console.error("Erro ao carregar metadados dos filtros:", err));
     }, []);
+
+    // Sincronizar se a URL mudar externamente (ex: busca na navbar)
+    useEffect(() => {
+        const qUrl = searchParams.get("busca") || searchParams.get("q") || "";
+        if (qUrl !== buscaAtiva) {
+            setTermoPesquisa(qUrl);
+            setBuscaAtiva(qUrl);
+            setPaginaAtual(1);
+        }
+    }, [searchParams]);
 
     // Setup RxJS Reactive Pipeline for continuous debounced request streaming
     useEffect(() => {
@@ -119,31 +128,31 @@ function PaginaJogos() {
                 busca: buscaAtiva,
                 genero: generoSelecionado,
                 ano: anoSelecionado ? parseInt(anoSelecionado, 10) : null,
-                empresa: empresaSelecionada,
+                nota: notaSelecionada ? parseFloat(notaSelecionada) : null,
                 ordenacao
             });
         }
-    }, [paginaAtual, buscaAtiva, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao]);
+    }, [paginaAtual, buscaAtiva, generoSelecionado, anoSelecionado, notaSelecionada, ordenacao]);
 
     const handleSearchChange = (e) => {
         const val = e.target.value;
         setTermoPesquisa(val);
         setBuscaAtiva(val);
         setPaginaAtual(1);
-        atualizarUrl(1, val, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao);
+        atualizarUrl(1, val, generoSelecionado, anoSelecionado, notaSelecionada, ordenacao);
     };
 
     const handleLimparBusca = () => {
         setTermoPesquisa("");
         setBuscaAtiva("");
         setPaginaAtual(1);
-        atualizarUrl(1, "", generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao);
+        atualizarUrl(1, "", generoSelecionado, anoSelecionado, notaSelecionada, ordenacao);
     };
 
     const handleGeneroChange = (val) => {
         setGeneroSelecionado(val);
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, val, anoSelecionado, empresaSelecionada, ordenacao);
+        atualizarUrl(1, buscaAtiva, val, anoSelecionado, notaSelecionada, ordenacao);
     };
 
     const handleAnoChange = (e) => {
@@ -152,7 +161,7 @@ function PaginaJogos() {
         if (val === "" || val.length === 4) {
             setAnoSelecionado(val);
             setPaginaAtual(1);
-            atualizarUrl(1, buscaAtiva, generoSelecionado, val, empresaSelecionada, ordenacao);
+            atualizarUrl(1, buscaAtiva, generoSelecionado, val, notaSelecionada, ordenacao);
         }
     };
 
@@ -160,11 +169,11 @@ function PaginaJogos() {
         setAnoInput("");
         setAnoSelecionado("");
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, generoSelecionado, "", empresaSelecionada, ordenacao);
+        atualizarUrl(1, buscaAtiva, generoSelecionado, "", notaSelecionada, ordenacao);
     };
 
-    const handleEmpresaChange = (val) => {
-        setEmpresaSelecionada(val);
+    const handleNotaChange = (val) => {
+        setNotaSelecionada(val);
         setPaginaAtual(1);
         atualizarUrl(1, buscaAtiva, generoSelecionado, anoSelecionado, val, ordenacao);
     };
@@ -172,7 +181,7 @@ function PaginaJogos() {
     const handleOrdenacaoChange = (val) => {
         setOrdenacao(val);
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, generoSelecionado, anoSelecionado, empresaSelecionada, val);
+        atualizarUrl(1, buscaAtiva, generoSelecionado, anoSelecionado, notaSelecionada, val);
     };
 
     const limparFiltros = () => {
@@ -181,7 +190,7 @@ function PaginaJogos() {
         setGeneroSelecionado("");
         setAnoInput("");
         setAnoSelecionado("");
-        setEmpresaSelecionada("");
+        setNotaSelecionada("");
         setOrdenacao("melhores");
         setPaginaAtual(1);
         atualizarUrl(1, "", "", "", "", "melhores");
@@ -190,7 +199,7 @@ function PaginaJogos() {
     const handleMudarPagina = (novaPagina) => {
         if (novaPagina < 1 || novaPagina > totalPaginas || novaPagina === paginaAtual) return;
         setPaginaAtual(novaPagina);
-        atualizarUrl(novaPagina, buscaAtiva, generoSelecionado, anoSelecionado, empresaSelecionada, ordenacao);
+        atualizarUrl(novaPagina, buscaAtiva, generoSelecionado, anoSelecionado, notaSelecionada, ordenacao);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
@@ -203,12 +212,14 @@ function PaginaJogos() {
                 navigate(`/jogos/${targetId}`);
             } catch (err) {
                 console.error("Erro ao importar jogo:", err);
-                navigate(`/jogos/${jogo.jogoId || jogo.id}`);
+                const fallbackId = jogo.jogoId || jogo.id;
+                if (fallbackId) navigate(`/jogos/${fallbackId}`);
             } finally {
                 setImportandoJogoId(null);
             }
         } else {
-            navigate(`/jogos/${jogo.jogoId || jogo.id}`);
+            const targetId = jogo.jogoId || jogo.id;
+            if (targetId) navigate(`/jogos/${targetId}`);
         }
     };
 
@@ -216,7 +227,7 @@ function PaginaJogos() {
         buscaAtiva || 
         generoSelecionado || 
         anoSelecionado || 
-        empresaSelecionada || 
+        notaSelecionada || 
         (ordenacao && ordenacao !== "melhores")
     );
 
@@ -353,13 +364,21 @@ function PaginaJogos() {
                             </div>
                         </div>
 
-                        {/* Busca Escrita Inteligente de Estúdio com Autocomplete */}
-                        <div className="filtro-studio-wrapper">
-                            <StudioSearchInput
-                                empresas={empresasDisponiveis}
-                                empresaSelecionada={empresaSelecionada}
-                                onSelectEmpresa={handleEmpresaChange}
-                            />
+                        {/* Filtro de Nota (1 a 5 estrelas) */}
+                        <div className="filtro-select-group">
+                            <label><FaStar /> Nota</label>
+                            <select
+                                value={notaSelecionada}
+                                onChange={(e) => handleNotaChange(e.target.value)}
+                                className="filtro-select-modern"
+                            >
+                                <option value="">Todas as Notas</option>
+                                <option value="5">★ 5 Estrelas</option>
+                                <option value="4">★ 4+ Estrelas</option>
+                                <option value="3">★ 3+ Estrelas</option>
+                                <option value="2">★ 2+ Estrelas</option>
+                                <option value="1">★ 1+ Estrela</option>
+                            </select>
                         </div>
 
                         <div className="filtro-select-group">
