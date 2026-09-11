@@ -135,7 +135,7 @@ const ModalConexoes = ({
           ) : (
             <div className="conexoes-user-list">
               {lista.map((u) => {
-                const isSelf = user && Number(user.id) === Number(u.usuarioId);
+                const isSelf = user && String(user.id).toLowerCase() === String(u.usuarioId).toLowerCase();
                 const isFollowed = u.seguidoPorMim;
                 const isProcessing = processandoId === u.usuarioId;
 

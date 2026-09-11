@@ -18,23 +18,20 @@ export const STATUS_LABELS = {
 
 export const BibliotecaService = {
   async salvarItem(jogoId, status) {
-    const id = Number(jogoId);
     const response = await api.post("/Biblioteca", {
-      jogoId: id,
+      jogoId: jogoId,
       status: Number(status)
     });
     return response.data;
   },
 
   async obterStatusJogo(jogoId) {
-    const id = Number(jogoId);
-    const response = await api.get(`/Biblioteca/jogo/${id}`);
+    const response = await api.get(`/Biblioteca/jogo/${jogoId}`);
     return response.data;
   },
 
   async removerItem(jogoId) {
-    const id = Number(jogoId);
-    const response = await api.delete(`/Biblioteca/jogo/${id}`);
+    const response = await api.delete(`/Biblioteca/jogo/${jogoId}`);
     return response.data;
   },
 

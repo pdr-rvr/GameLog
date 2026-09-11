@@ -87,8 +87,8 @@ const PerfilUsuario = () => {
   const [jogoParaRemoverBiblioteca, setJogoParaRemoverBiblioteca] = useState(null);
 
   // Target User ID to load
-  const targetId = userId ? parseInt(userId, 10) : user?.id;
-  const isOwner = user && targetId && Number(user.id) === Number(targetId);
+  const targetId = userId || user?.id;
+  const isOwner = user && targetId && String(user.id).toLowerCase() === String(targetId).toLowerCase();
 
   const carregarDadosPerfil = useCallback(async () => {
     if (!targetId) {

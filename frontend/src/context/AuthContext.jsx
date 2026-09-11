@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
                                   userFromStorage?.id;
 
                     const userObject = {
-                        id: rawId ? parseInt(rawId, 10) : null,
+                        id: rawId ? String(rawId) : null,
                         nomeUsuario: userFromStorage?.nomeUsuario || decodedToken.nomeUsuario || "Usuário",
                         email: userFromStorage?.email || decodedToken.email || "",
                         fotoDePerfil: userFromStorage?.fotoDePerfil || "",

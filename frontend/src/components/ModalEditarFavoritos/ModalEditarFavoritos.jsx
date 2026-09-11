@@ -39,8 +39,8 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
       if (Array.isArray(favoritosAtuais)) {
         favoritosAtuais.forEach((f) => {
           if (f.posicao >= 1 && f.posicao <= 5) {
-            const jId = Number(f.jogoId || f.id);
-            if (!isNaN(jId) && jId > 0) {
+            const jId = f.jogoId || f.id;
+            if (jId) {
               mapa[f.posicao] = {
                 id: jId,
                 jogoId: jId,
@@ -99,7 +99,7 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
 
   const handleSelecionarJogo = (jogo) => {
     if (!posicaoAtiva) return;
-    const jId = Number(jogo.id || jogo.jogoId);
+    const jId = jogo.id || jogo.jogoId;
     setSelecoes((prev) => ({
       ...prev,
       [posicaoAtiva]: {
@@ -130,8 +130,8 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
       const listaParaSalvar = [];
       Object.entries(selecoes).forEach(([pos, jogo]) => {
         if (jogo) {
-          const jId = Number(jogo.id || jogo.jogoId);
-          if (!isNaN(jId) && jId > 0) {
+          const jId = jogo.id || jogo.jogoId;
+          if (jId) {
             listaParaSalvar.push({
               posicao: Number(pos),
               jogoId: jId,
@@ -159,11 +159,10 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
   // Filtrar IDs que já estão selecionados em outras posições para evitar duplicatas
   const idsJaSelecionados = Object.entries(selecoes)
     .filter(([pos, j]) => Number(pos) !== Number(posicaoAtiva) && j !== null && j !== undefined)
-    .map(([_, j]) => Number(j.id || j.jogoId))
-    .filter((id) => !isNaN(id) && id > 0);
+    .map(([_, j]) => String(j.id || j.jogoId).toLowerCase());
 
   const jogosFiltrados = jogosEncontrados.filter((j) => {
-    const jId = Number(j.id || j.jogoId);
+    const jId = String(j.id || j.jogoId).toLowerCase();
     return !idsJaSelecionados.includes(jId);
   });
 
@@ -306,7 +305,7 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
                   </div>
                 ) : (
                   jogosFiltrados.map((jogo) => {
-                    const jId = Number(jogo.id || jogo.jogoId);
+                    const jId = jogo.id || jogo.jogoId;
                     return (
                       <div
                         key={jId}
