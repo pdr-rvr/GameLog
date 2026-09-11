@@ -53,7 +53,7 @@ const PaginaDetalhesLista = () => {
     carregarLista();
   }, [carregarLista]);
 
-  const isOwner = user && lista && Number(user.id) === Number(lista.usuarioId);
+  const isOwner = user && lista && String(user.id).toLowerCase() === String(lista.usuarioId).toLowerCase();
 
   const handleConfirmarExclusao = async () => {
     setExcluindo(true);

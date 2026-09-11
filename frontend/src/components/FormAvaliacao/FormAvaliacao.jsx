@@ -34,7 +34,7 @@ const FormAvaliacao = ({
         const currentJogoId = initialData?.jogoId || initialData?.id || (jogos?.length === 1 ? (jogos[0].jogoId || jogos[0].id) : '');
         const currentNota = initialData?.nota || 0;
         const currentTexto = initialData?.textoAvaliacao || '';
-        const gameObj = (jogos || []).find(j => Number(j.jogoId || j.id) === Number(currentJogoId)) || (jogos?.length === 1 ? jogos[0] : null);
+        const gameObj = (jogos || []).find(j => String(j.jogoId || j.id).toLowerCase() === String(currentJogoId).toLowerCase()) || (jogos?.length === 1 ? jogos[0] : null);
 
         setAvaliacao({
           jogoId: currentJogoId,
@@ -122,7 +122,7 @@ const FormAvaliacao = ({
     if (!avaliacao.textoAvaliacao.trim()) return;
 
     onSubmit({
-      jogoId: parseInt(avaliacao.jogoId, 10),
+      jogoId: avaliacao.jogoId,
       nota: Number(avaliacao.nota),
       textoAvaliacao: avaliacao.textoAvaliacao.trim()
     });

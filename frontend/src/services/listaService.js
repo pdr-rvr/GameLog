@@ -29,7 +29,7 @@ export const ListaService = {
 
   async adicionarJogo(listaId, jogoId) {
     const response = await api.post(`/Listas/${listaId}/jogos`, {
-      jogoId: Number(jogoId)
+      jogoId: jogoId
     });
     return response.data;
   },

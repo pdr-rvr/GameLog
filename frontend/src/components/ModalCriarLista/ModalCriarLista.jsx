@@ -30,7 +30,7 @@ const ModalCriarLista = ({
         setEstaPublica(listaParaEditar.estaPublica !== false);
         setJogosSelecionados(
           (listaParaEditar.itens || []).map((i) => ({
-            id: Number(i.jogoId || i.id),
+            id: i.jogoId || i.id,
             titulo: i.tituloJogo || i.titulo,
             imagem: i.imagemJogo || i.imagem || "/game-images/default_game_cover.png",
             nomeEmpresa: i.nomeEmpresa || ""
@@ -50,8 +50,8 @@ const ModalCriarLista = ({
           .then((dados) => {
             const normalizados = (dados || []).map((j) => ({
               ...j,
-              id: Number(j.id || j.jogoId),
-              jogoId: Number(j.id || j.jogoId)
+              id: j.id || j.jogoId,
+              jogoId: j.id || j.jogoId
             }));
             setCatalogo(normalizados);
           })
@@ -64,9 +64,9 @@ const ModalCriarLista = ({
   }, [isOpen, listaParaEditar]);
 
   const jogosDisponiveis = useMemo(() => {
-    const idsJaSelecionados = new Set(jogosSelecionados.map((j) => j.id));
+    const idsJaSelecionados = new Set(jogosSelecionados.map((j) => String(j.id).toLowerCase()));
     return catalogo.filter((j) => {
-      if (idsJaSelecionados.has(j.id)) return false;
+      if (idsJaSelecionados.has(String(j.id).toLowerCase())) return false;
       if (!termoBusca.trim()) return true;
       const t = termoBusca.toLowerCase();
       return (
@@ -80,7 +80,7 @@ const ModalCriarLista = ({
     setJogosSelecionados((prev) => [
       ...prev,
       {
-        id: Number(jogo.id || jogo.jogoId),
+        id: jogo.id || jogo.jogoId,
         titulo: jogo.titulo,
         imagem: jogo.imagem || "/game-images/default_game_cover.png",
         nomeEmpresa: jogo.nomeEmpresa || ""

@@ -7,7 +7,7 @@ export const buscarJogoPorId = async (jogoId) => {
         if (!isNaN(rawgId) && rawgId > 0) {
             const importRes = await api.post(`/Jogos/rawg/importar/${rawgId}`);
             const jogo = importRes.data;
-            const idReal = Number(jogo.jogoId ?? jogo.id);
+            const idReal = jogo.jogoId ?? jogo.id;
             return {
                 ...jogo,
                 id: idReal,
@@ -23,7 +23,7 @@ export const buscarJogoPorId = async (jogoId) => {
         if (!jogo) {
             throw new Error("Jogo não encontrado.");
         }
-        const idReal = Number(jogo.jogoId ?? jogo.id ?? jogoId);
+        const idReal = jogo.jogoId ?? jogo.id ?? jogoId;
         return {
             ...jogo,
             id: idReal,
@@ -31,23 +31,25 @@ export const buscarJogoPorId = async (jogoId) => {
             imagem: jogo.imagem || "/game-images/default_game_cover.png"
         };
     } catch (error) {
-        // 2. Se falhou e jogoId for numérico, tentar importar da RAWG como fallback
-        const numId = parseInt(jogoId, 10);
-        if (!isNaN(numId) && numId > 0) {
-            try {
-                const importRes = await api.post(`/Jogos/rawg/importar/${numId}`);
-                if (importRes.data) {
-                    const jogo = importRes.data;
-                    const idReal = Number(jogo.jogoId ?? jogo.id);
-                    return {
-                        ...jogo,
-                        id: idReal,
-                        jogoId: idReal,
-                        imagem: jogo.imagem || "/game-images/default_game_cover.png"
-                    };
+        // 2. Se falhou e jogoId for puramente numérico, tentar importar da RAWG como fallback
+        if (typeof jogoId === "number" || (/^\d+$/.test(String(jogoId)))) {
+            const numId = parseInt(jogoId, 10);
+            if (!isNaN(numId) && numId > 0) {
+                try {
+                    const importRes = await api.post(`/Jogos/rawg/importar/${numId}`);
+                    if (importRes.data) {
+                        const jogo = importRes.data;
+                        const idReal = jogo.jogoId ?? jogo.id;
+                        return {
+                            ...jogo,
+                            id: idReal,
+                            jogoId: idReal,
+                            imagem: jogo.imagem || "/game-images/default_game_cover.png"
+                        };
+                    }
+                } catch (importErr) {
+                    console.warn(`Tentativa de importação RAWG para ID ${numId} falhou:`, importErr);
                 }
-            } catch (importErr) {
-                console.warn(`Tentativa de importação RAWG para ID ${numId} falhou:`, importErr);
             }
         }
 

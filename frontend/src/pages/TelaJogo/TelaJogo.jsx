@@ -53,7 +53,7 @@ function TelaJogo() {
 
     // Verificar se o usuário logado já avaliou este jogo
     const minhaAvaliacao = user && avaliacoes.length > 0
-        ? avaliacoes.find(a => Number(a.usuarioId || a.idUsuario) === Number(user.id))
+        ? avaliacoes.find(a => String(a.usuarioId || a.idUsuario).toLowerCase() === String(user.id).toLowerCase())
         : null;
 
     const handleSalvarAvaliacao = async (dados) => {
@@ -67,7 +67,7 @@ function TelaJogo() {
                 });
                 toast.success("Avaliação atualizada com sucesso!");
             } else {
-                const idJogo = Number(jogo.jogoId ?? jogo.id ?? jogoId);
+                const idJogo = jogo.jogoId ?? jogo.id ?? jogoId;
                 await api.post("/Avaliacoes", {
                     jogoId: idJogo,
                     nota: dados.nota,
@@ -129,7 +129,7 @@ function TelaJogo() {
         return dataStr;
     };
 
-    const idJogoReal = Number(jogo.jogoId ?? jogo.id ?? jogoId);
+    const idJogoReal = jogo.jogoId ?? jogo.id ?? jogoId;
 
     return (
         <div className="tela-jogo-container">

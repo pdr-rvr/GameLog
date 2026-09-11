@@ -247,17 +247,20 @@ namespace GameLog_Backend.Services
             {
                 Posicao = f.Posicao,
                 JogoId = f.JogoId,
-                TituloJogo = f.Jogo.Titulo,
-                ImagemJogo = f.Jogo.Imagem,
-                NomeEmpresa = f.Jogo.Empresa?.NomeEmpresa,
-                EmpresaId = f.Jogo.Empresa?.Id,
-                DataLancamento = f.Jogo.DataLancamento.ToString("yyyy-MM-dd"),
+                TituloJogo = f.Jogo != null ? f.Jogo.Titulo : string.Empty,
+                ImagemJogo = f.Jogo != null ? f.Jogo.Imagem : string.Empty,
+                NomeEmpresa = f.Jogo?.Empresa?.NomeEmpresa,
+                EmpresaId = f.Jogo?.Empresa?.Id,
+                DataLancamento = f.Jogo != null ? f.Jogo.DataLancamento.ToString("yyyy-MM-dd") : null,
                 MediaAvaliacoes = mediasGerais.TryGetValue(f.JogoId, out var media) ? Math.Round(media, 1) : (double?)null
             }).ToList();
         }
 
         public async Task<List<JogoFavoritoDTO>> SalvarJogosFavoritos(Guid usuarioId, SalvarJogosFavoritosDTO dto)
         {
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId && u.EstaAtivo);
+            if (usuario == null) return new List<JogoFavoritoDTO>();
+
             // Remover favoritos existentes do usuário
             var favoritosAtuais = await _context.JogosFavoritosUsuarios
                 .Where(f => f.UsuarioId == usuarioId)
@@ -276,13 +279,15 @@ namespace GameLog_Backend.Services
                     if (item.Posicao < 1 || item.Posicao > 5) continue;
                     if (posicoesVistas.Contains(item.Posicao) || vistos.Contains(item.JogoId)) continue;
 
-                    var jogoExiste = await _context.Jogos.AnyAsync(j => j.Id == item.JogoId && j.EstaAtivo);
-                    if (!jogoExiste) continue;
+                    var jogo = await _context.Jogos.FirstOrDefaultAsync(j => j.Id == item.JogoId && j.EstaAtivo);
+                    if (jogo == null) continue;
 
                     _context.JogosFavoritosUsuarios.Add(new JogoFavoritoUsuario
                     {
                         UsuarioId = usuarioId,
+                        Usuario = usuario,
                         JogoId = item.JogoId,
+                        Jogo = jogo,
                         Posicao = item.Posicao,
                         EstaAtivo = true
                     });
