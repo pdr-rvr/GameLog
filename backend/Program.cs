@@ -154,10 +154,12 @@ var app = builder.Build();
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseCors("AllowReactApp");
 
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
-    var services = scope.ServiceProvider;
-    var logger = services.GetRequiredService<ILogger<Program>>();
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        var logger = services.GetRequiredService<ILogger<Program>>();
 
     var maxRetries = 15;
     var delaySeconds = 3;
@@ -222,9 +224,10 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    if (!connected)
-    {
-        logger.LogError("[GameLog] Não foi possível conectar ao banco de dados após múltiplas tentativas.");
+        if (!connected)
+        {
+            logger.LogError("[GameLog] Não foi possível conectar ao banco de dados após múltiplas tentativas.");
+        }
     }
 }
 
@@ -239,3 +242,6 @@ app.MapControllers();
 app.MapGet("/", () => "API GameLog está online!").AllowAnonymous();
 
 app.Run();
+
+public partial class Program { }
+
