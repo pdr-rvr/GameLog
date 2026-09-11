@@ -56,3 +56,25 @@ export const buscarRecomendacoes = async (userId) => {
         return []; 
     }
 };
+
+export const buscarDestaques = async (limite = 5) => {
+    try {
+        const response = await api.get("/Jogos/destaques", { params: { limite } });
+        const dados = Array.isArray(response.data) ? response.data : (response.data?.$values || []);
+        return dados;
+    } catch (error) {
+        console.error("Erro ao buscar destaques do hero banner:", error);
+        return [];
+    }
+};
+
+export const buscarTopAvaliados = async () => {
+    try {
+        const response = await api.get("/Jogos/top-avaliados");
+        const dados = Array.isArray(response.data) ? response.data : (response.data?.$values || []);
+        return dados;
+    } catch (error) {
+        console.error("Erro ao buscar jogos top avaliados:", error);
+        return [];
+    }
+};
