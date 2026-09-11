@@ -9,7 +9,7 @@ namespace GameLog_Backend.Extensions
         /// Obtém o ID do usuário autenticado a partir dos claims JWT.
         /// Lança UnauthorizedAccessException se o usuário não estiver autenticado ou a claim for inválida.
         /// </summary>
-        public static int GetUserId(this ClaimsPrincipal user)
+        public static Guid GetUserId(this ClaimsPrincipal user)
         {
             var id = user.GetUserIdOrNull();
             if (!id.HasValue)
@@ -22,7 +22,7 @@ namespace GameLog_Backend.Extensions
         /// <summary>
         /// Obtém o ID do usuário autenticado a partir dos claims JWT, ou null se não autenticado.
         /// </summary>
-        public static int? GetUserIdOrNull(this ClaimsPrincipal user)
+        public static Guid? GetUserIdOrNull(this ClaimsPrincipal user)
         {
             if (user?.Identity == null || !user.Identity.IsAuthenticated)
             {
@@ -34,7 +34,7 @@ namespace GameLog_Backend.Extensions
                      ?? user.FindFirst("id")?.Value
                      ?? user.FindFirst("sub")?.Value;
 
-            if (int.TryParse(claim, out var id))
+            if (Guid.TryParse(claim, out var id))
             {
                 return id;
             }

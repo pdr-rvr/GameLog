@@ -31,7 +31,7 @@ namespace GameLog_Backend.Services
             };
         }
 
-        public async Task<ItemBibliotecaDTO> SalvarItemBiblioteca(int usuarioId, SalvarItemBibliotecaDTO dto)
+        public async Task<ItemBibliotecaDTO> SalvarItemBiblioteca(Guid usuarioId, SalvarItemBibliotecaDTO dto)
         {
             var jogo = await _context.Jogos.FindAsync(dto.JogoId);
             if (jogo == null || !jogo.EstaAtivo)
@@ -104,7 +104,7 @@ namespace GameLog_Backend.Services
             };
         }
 
-        public async Task<ItemBibliotecaDTO?> ObterStatusJogo(int usuarioId, int jogoId)
+        public async Task<ItemBibliotecaDTO?> ObterStatusJogo(Guid usuarioId, Guid jogoId)
         {
             var item = await _context.ItensBiblioteca
                 .Include(b => b.Jogo)
@@ -142,7 +142,7 @@ namespace GameLog_Backend.Services
             };
         }
 
-        public async Task<bool> RemoverDaBiblioteca(int usuarioId, int jogoId)
+        public async Task<bool> RemoverDaBiblioteca(Guid usuarioId, Guid jogoId)
         {
             var item = await _context.ItensBiblioteca
                 .FirstOrDefaultAsync(b => b.UsuarioId == usuarioId && b.JogoId == jogoId);
@@ -154,7 +154,7 @@ namespace GameLog_Backend.Services
             return true;
         }
 
-        public async Task<List<ItemBibliotecaDTO>> ListarBibliotecaUsuario(int usuarioId, StatusJogo? statusFiltro = null, string? busca = null)
+        public async Task<List<ItemBibliotecaDTO>> ListarBibliotecaUsuario(Guid usuarioId, StatusJogo? statusFiltro = null, string? busca = null)
         {
             var query = _context.ItensBiblioteca
                 .Include(b => b.Jogo)
@@ -209,7 +209,7 @@ namespace GameLog_Backend.Services
             }).ToList();
         }
 
-        public async Task<EstatisticasBibliotecaDTO> ObterEstatisticasBiblioteca(int usuarioId)
+        public async Task<EstatisticasBibliotecaDTO> ObterEstatisticasBiblioteca(Guid usuarioId)
         {
             var itens = await _context.ItensBiblioteca
                 .Where(b => b.UsuarioId == usuarioId && b.EstaAtivo)
@@ -227,7 +227,7 @@ namespace GameLog_Backend.Services
             };
         }
 
-        public async Task<List<JogoFavoritoDTO>> ObterJogosFavoritos(int usuarioId)
+        public async Task<List<JogoFavoritoDTO>> ObterJogosFavoritos(Guid usuarioId)
         {
             var favoritos = await _context.JogosFavoritosUsuarios
                 .Include(f => f.Jogo)
@@ -256,7 +256,7 @@ namespace GameLog_Backend.Services
             }).ToList();
         }
 
-        public async Task<List<JogoFavoritoDTO>> SalvarJogosFavoritos(int usuarioId, SalvarJogosFavoritosDTO dto)
+        public async Task<List<JogoFavoritoDTO>> SalvarJogosFavoritos(Guid usuarioId, SalvarJogosFavoritosDTO dto)
         {
             // Remover favoritos existentes do usuário
             var favoritosAtuais = await _context.JogosFavoritosUsuarios
@@ -268,7 +268,7 @@ namespace GameLog_Backend.Services
             // Inserir novos favoritos validados (máximo 5 posições de 1 a 5)
             if (dto.Favoritos != null && dto.Favoritos.Count > 0)
             {
-                var vistos = new HashSet<int>();
+                var vistos = new HashSet<Guid>();
                 var posicoesVistas = new HashSet<int>();
 
                 foreach (var item in dto.Favoritos)

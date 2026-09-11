@@ -6,12 +6,12 @@ namespace GameLog_Backend.DTOs
 {
     public class ItemListaDTO
     {
-        public int ItemId { get; set; }
-        public int JogoId { get; set; }
+        public Guid ItemId { get; set; }
+        public Guid JogoId { get; set; }
         public string TituloJogo { get; set; } = string.Empty;
         public string? ImagemJogo { get; set; }
         public string? NomeEmpresa { get; set; }
-        public int? EmpresaId { get; set; }
+        public Guid? EmpresaId { get; set; }
         public string? DataLancamento { get; set; }
         public double? MediaAvaliacoes { get; set; }
         public int Ordem { get; set; }
@@ -20,8 +20,8 @@ namespace GameLog_Backend.DTOs
 
     public class ListaDeJogosDTO
     {
-        public int ListaId { get; set; }
-        public int UsuarioId { get; set; }
+        public Guid ListaId { get; set; }
+        public Guid UsuarioId { get; set; }
         public string NomeUsuario { get; set; } = string.Empty;
         public string? FotoPerfilUsuario { get; set; }
         public string Titulo { get; set; } = string.Empty;
@@ -45,7 +45,7 @@ namespace GameLog_Backend.DTOs
         public string? Descricao { get; set; }
 
         public bool EstaPublica { get; set; } = true;
-        public List<int>? JogosIds { get; set; } = new List<int>();
+        public List<Guid>? JogosIds { get; set; } = new List<Guid>();
     }
 
     public class EditarListaDTO
@@ -59,13 +59,12 @@ namespace GameLog_Backend.DTOs
         public string? Descricao { get; set; }
 
         public bool EstaPublica { get; set; } = true;
-        public List<int>? JogosIds { get; set; }
+        public List<Guid>? JogosIds { get; set; }
     }
 
     public class AdicionarJogoListaDTO
     {
         [Required(ErrorMessage = "O jogo é obrigatório.")]
-        [Range(1, int.MaxValue, ErrorMessage = "Identificador de jogo inválido.")]
-        public int JogoId { get; set; }
+        public Guid JogoId { get; set; }
     }
 }

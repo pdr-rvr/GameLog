@@ -29,7 +29,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterListaPorId(int id)
+        public async Task<IActionResult> ObterListaPorId(Guid id)
         {
             var usuarioId = User.GetUserIdOrNull();
             var lista = await _listaServices.ObterListaPorId(id, usuarioId);
@@ -42,7 +42,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("usuario/{usuarioId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> ListarListasDoUsuario(int usuarioId)
+        public async Task<IActionResult> ListarListasDoUsuario(Guid usuarioId)
         {
             var solicitanteId = User.GetUserIdOrNull();
             var listas = await _listaServices.ListarListasDoUsuario(usuarioId, solicitanteId);
@@ -51,7 +51,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpPut("{id}")]
         [Authorize]
-        public async Task<IActionResult> EditarLista(int id, [FromBody] EditarListaDTO dto)
+        public async Task<IActionResult> EditarLista(Guid id, [FromBody] EditarListaDTO dto)
         {
             var usuarioId = User.GetUserId();
             var lista = await _listaServices.EditarLista(id, usuarioId, dto);
@@ -64,7 +64,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpDelete("{id}")]
         [Authorize]
-        public async Task<IActionResult> DeletarLista(int id)
+        public async Task<IActionResult> DeletarLista(Guid id)
         {
             var usuarioId = User.GetUserId();
             var sucesso = await _listaServices.DeletarLista(id, usuarioId);
@@ -77,7 +77,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpPost("{id}/jogos")]
         [Authorize]
-        public async Task<IActionResult> AdicionarJogo(int id, [FromBody] AdicionarJogoListaDTO dto)
+        public async Task<IActionResult> AdicionarJogo(Guid id, [FromBody] AdicionarJogoListaDTO dto)
         {
             var usuarioId = User.GetUserId();
             var sucesso = await _listaServices.AdicionarJogoNaLista(id, usuarioId, dto.JogoId);
@@ -90,7 +90,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpDelete("{id}/jogos/{jogoId}")]
         [Authorize]
-        public async Task<IActionResult> RemoverJogo(int id, int jogoId)
+        public async Task<IActionResult> RemoverJogo(Guid id, Guid jogoId)
         {
             var usuarioId = User.GetUserId();
             var sucesso = await _listaServices.RemoverJogoDaLista(id, usuarioId, jogoId);

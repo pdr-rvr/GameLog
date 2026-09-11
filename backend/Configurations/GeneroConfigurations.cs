@@ -12,7 +12,6 @@ namespace GameLog_Backend.Configurations
 
             builder.Property(e => e.Id)
                 .HasColumnName($"{nameof(Genero)}Id")
-                .ValueGeneratedOnAdd()
                 .IsRequired();
 
             builder.Property(p => p.TituloGenero)

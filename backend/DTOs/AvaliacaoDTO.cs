@@ -5,16 +5,16 @@ namespace GameLog_Backend.DTOs
 {
     public class AvaliacaoDTO
     {
-        public int AvaliacaoId { get; set; }
+        public Guid AvaliacaoId { get; set; }
         public int Nota { get; set; }
-        public int JogoId { get; set; }
+        public Guid JogoId { get; set; }
         public string TextoAvaliacao { get; set; } = string.Empty;
         public string NomeJogo { get; set; } = string.Empty;
         public string? ImagemJogo { get; set; }
         public string? NomeEmpresa { get; set; }
-        public int? EmpresaId { get; set; }
+        public Guid? EmpresaId { get; set; }
         public DateOnly? DataLancamentoJogo { get; set; }
-        public int UsuarioId { get; set; }
+        public Guid UsuarioId { get; set; }
         public string NomeUsuario { get; set; } = string.Empty;
         public string? FotoPerfilUsuario { get; set; }
         public DateTime DataPublicacao { get; set; }
@@ -30,8 +30,7 @@ namespace GameLog_Backend.DTOs
         public int Nota { get; set; }
 
         [Required(ErrorMessage = "O jogo é obrigatório.")]
-        [Range(1, int.MaxValue, ErrorMessage = "Identificador de jogo inválido.")]
-        public int JogoId { get; set; }
+        public Guid JogoId { get; set; }
 
         [MaxLength(500, ErrorMessage = "A análise pode ter no máximo 500 caracteres.")]
         public string TextoAvaliacao { get; set; } = string.Empty;
@@ -48,9 +47,9 @@ namespace GameLog_Backend.DTOs
 
     public class RespostaDeAvaliacaoDTO
     {
-        public int RespostaId { get; set; }
-        public int AvaliacaoId { get; set; }
-        public int UsuarioId { get; set; }
+        public Guid RespostaId { get; set; }
+        public Guid AvaliacaoId { get; set; }
+        public Guid UsuarioId { get; set; }
         public string NomeUsuario { get; set; } = string.Empty;
         public string? FotoPerfilUsuario { get; set; }
         public string Comentario { get; set; } = string.Empty;

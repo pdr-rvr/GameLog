@@ -7,13 +7,13 @@ namespace GameLog_Backend.DTOs
 {
     public class ItemBibliotecaDTO
     {
-        public int Id { get; set; }
-        public int UsuarioId { get; set; }
-        public int JogoId { get; set; }
+        public Guid Id { get; set; }
+        public Guid UsuarioId { get; set; }
+        public Guid JogoId { get; set; }
         public string TituloJogo { get; set; } = string.Empty;
         public string ImagemJogo { get; set; } = string.Empty;
         public string? NomeEmpresa { get; set; }
-        public int? EmpresaId { get; set; }
+        public Guid? EmpresaId { get; set; }
         public string? DataLancamento { get; set; }
         public int Status { get; set; }
         public string StatusNome { get; set; } = string.Empty;
@@ -26,8 +26,7 @@ namespace GameLog_Backend.DTOs
     public class SalvarItemBibliotecaDTO
     {
         [Required(ErrorMessage = "O jogo é obrigatório.")]
-        [Range(1, int.MaxValue, ErrorMessage = "Identificador de jogo inválido.")]
-        public int JogoId { get; set; }
+        public Guid JogoId { get; set; }
 
         [Required(ErrorMessage = "O status do jogo é obrigatório.")]
         [EnumDataType(typeof(StatusJogo), ErrorMessage = "Status do jogo inválido.")]
@@ -47,11 +46,11 @@ namespace GameLog_Backend.DTOs
     public class JogoFavoritoDTO
     {
         public int Posicao { get; set; }
-        public int JogoId { get; set; }
+        public Guid JogoId { get; set; }
         public string TituloJogo { get; set; } = string.Empty;
         public string ImagemJogo { get; set; } = string.Empty;
         public string? NomeEmpresa { get; set; }
-        public int? EmpresaId { get; set; }
+        public Guid? EmpresaId { get; set; }
         public string? DataLancamento { get; set; }
         public double? MediaAvaliacoes { get; set; }
     }
@@ -62,9 +61,8 @@ namespace GameLog_Backend.DTOs
         [Range(1, 5, ErrorMessage = "A posição do favorito deve estar entre 1 e 5.")]
         public int Posicao { get; set; }
 
-        [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "Identificador de jogo inválido.")]
-        public int JogoId { get; set; }
+        [Required(ErrorMessage = "Identificador de jogo inválido.")]
+        public Guid JogoId { get; set; }
     }
 
     public class SalvarJogosFavoritosDTO

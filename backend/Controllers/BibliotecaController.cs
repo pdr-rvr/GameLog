@@ -36,7 +36,7 @@ namespace GameLog_Backend.Controllers
         /// </summary>
         [HttpGet("jogo/{jogoId}")]
         [Authorize]
-        public async Task<IActionResult> ObterStatusJogo(int jogoId)
+        public async Task<IActionResult> ObterStatusJogo(Guid jogoId)
         {
             var usuarioId = User.GetUserId();
             var item = await _bibliotecaServices.ObterStatusJogo(usuarioId, jogoId);
@@ -53,7 +53,7 @@ namespace GameLog_Backend.Controllers
         /// </summary>
         [HttpDelete("jogo/{jogoId}")]
         [Authorize]
-        public async Task<IActionResult> RemoverItem(int jogoId)
+        public async Task<IActionResult> RemoverItem(Guid jogoId)
         {
             var usuarioId = User.GetUserId();
             var sucesso = await _bibliotecaServices.RemoverDaBiblioteca(usuarioId, jogoId);
@@ -70,7 +70,7 @@ namespace GameLog_Backend.Controllers
         /// </summary>
         [HttpGet("usuario/{usuarioId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> ListarBibliotecaUsuario(int usuarioId, [FromQuery] StatusJogo? status, [FromQuery] string? busca)
+        public async Task<IActionResult> ListarBibliotecaUsuario(Guid usuarioId, [FromQuery] StatusJogo? status, [FromQuery] string? busca)
         {
             var itens = await _bibliotecaServices.ListarBibliotecaUsuario(usuarioId, status, busca);
             return Ok(itens);
@@ -81,7 +81,7 @@ namespace GameLog_Backend.Controllers
         /// </summary>
         [HttpGet("usuario/{usuarioId}/estatisticas")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterEstatisticas(int usuarioId)
+        public async Task<IActionResult> ObterEstatisticas(Guid usuarioId)
         {
             var stats = await _bibliotecaServices.ObterEstatisticasBiblioteca(usuarioId);
             return Ok(stats);
@@ -92,7 +92,7 @@ namespace GameLog_Backend.Controllers
         /// </summary>
         [HttpGet("usuario/{usuarioId}/favoritos")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterFavoritos(int usuarioId)
+        public async Task<IActionResult> ObterFavoritos(Guid usuarioId)
         {
             var favoritos = await _bibliotecaServices.ObterJogosFavoritos(usuarioId);
             return Ok(favoritos);

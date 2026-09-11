@@ -206,7 +206,7 @@ namespace GameLog_Backend.Seeders
 
                 await _context.SaveChangesAsync();
 
-                var empresasEmUsoIds = new HashSet<int>(
+                var empresasEmUsoIds = new HashSet<Guid>(
                     todosJogos.Where(j => j.Empresa != null).Select(j => j.Empresa.Id)
                     .Concat(todosJogos.Where(j => j.Publicadora != null).Select(j => j.Publicadora!.Id))
                 );
@@ -313,7 +313,7 @@ namespace GameLog_Backend.Seeders
             await _context.SaveChangesAsync();
 
             var empresasDb = await _context.Empresa.AsNoTracking().ToListAsync();
-            var empresaDict = new ConcurrentDictionary<string, int>(
+            var empresaDict = new ConcurrentDictionary<string, Guid>(
                 empresasDb.ToDictionary(e => e.NomeEmpresa, e => e.Id, StringComparer.OrdinalIgnoreCase),
                 StringComparer.OrdinalIgnoreCase
             );
@@ -586,17 +586,22 @@ namespace GameLog_Backend.Seeders
 
             // 6. Montar tabelas em memória para SqlBulkCopy com Garantia Absoluta Anti-Duplicação e Estúdios 100% Autênticos
             var tableJogos = new DataTable("Jogos");
+            tableJogos.Columns.Add("JogoId", typeof(Guid));
             tableJogos.Columns.Add("Titulo", typeof(string));
             tableJogos.Columns.Add("Descricao", typeof(string));
             tableJogos.Columns.Add("Imagem", typeof(string));
             tableJogos.Columns.Add("DataLancamento", typeof(DateTime));
             tableJogos.Columns.Add("ClassificacaoIndicativa", typeof(int));
-            tableJogos.Columns.Add("EmpresaId", typeof(int));
+            tableJogos.Columns.Add("EmpresaId", typeof(Guid));
+            tableJogos.Columns.Add("PublicadoraId", typeof(Guid));
             tableJogos.Columns.Add("EstaAtivo", typeof(bool));
 
-            var relacoesJogoGenero = new List<(int JogoIndex, List<int> GenerosIds)>();
+            var tableJogoGenero = new DataTable("JogoGenero");
+            tableJogoGenero.Columns.Add("GenerosId", typeof(Guid));
+            tableJogoGenero.Columns.Add("JogosId", typeof(Guid));
+
             var titulosInseridosNaTabela = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            int jogoIndex = 1;
+            var relacoesVistas = new HashSet<(Guid, Guid)>();
 
             foreach (var (rawg, studioNome) in jogosComEstudioValido)
             {
@@ -612,6 +617,13 @@ namespace GameLog_Backend.Seeders
                 if (!empresaDict.TryGetValue(studioNome, out var empId))
                 {
                     continue;
+                }
+
+                Guid? pubId = null;
+                var rawgPub = rawg.Publishers?.FirstOrDefault()?.Name;
+                if (!string.IsNullOrWhiteSpace(rawgPub) && empresaDict.TryGetValue(rawgPub, out var foundPubId))
+                {
+                    pubId = foundPubId;
                 }
 
                 var dtLanc = DateTime.UtcNow;
@@ -640,8 +652,16 @@ namespace GameLog_Backend.Seeders
                 // Geração de Descrição Rica e Narrativa (sem apenas repetir a nota)
                 var desc = GerarDescricaoRica(titulo, rawg, studioNome, gensNomes, dtLanc);
 
-                tableJogos.Rows.Add(titulo, desc, rawg.BackgroundImage, dtLanc, classif, empId, true);
-                relacoesJogoGenero.Add((jogoIndex++, gensIds));
+                var jogoId = UuidV7Helper.NewGuid();
+                tableJogos.Rows.Add(jogoId, titulo, desc, rawg.BackgroundImage, dtLanc, classif, empId, pubId.HasValue ? (object)pubId.Value : DBNull.Value, true);
+
+                foreach (var gId in gensIds)
+                {
+                    if (relacoesVistas.Add((gId, jogoId)))
+                    {
+                        tableJogoGenero.Rows.Add(gId, jogoId);
+                    }
+                }
             }
 
             // 7. Bulk Copy no SQL Server
@@ -653,42 +673,16 @@ namespace GameLog_Backend.Seeders
                 {
                     bulkCopy.DestinationTableName = "dbo.Jogos";
                     bulkCopy.BulkCopyTimeout = 300;
+                    bulkCopy.ColumnMappings.Add("JogoId", "JogoId");
                     bulkCopy.ColumnMappings.Add("Titulo", "Titulo");
                     bulkCopy.ColumnMappings.Add("Descricao", "Descricao");
                     bulkCopy.ColumnMappings.Add("Imagem", "Imagem");
                     bulkCopy.ColumnMappings.Add("DataLancamento", "DataLancamento");
                     bulkCopy.ColumnMappings.Add("ClassificacaoIndicativa", "ClassificacaoIndicativa");
                     bulkCopy.ColumnMappings.Add("EmpresaId", "EmpresaId");
+                    bulkCopy.ColumnMappings.Add("PublicadoraId", "PublicadoraId");
                     bulkCopy.ColumnMappings.Add("EstaAtivo", "EstaAtivo");
                     await bulkCopy.WriteToServerAsync(tableJogos);
-                }
-
-                // Mapear IDs gerados no banco
-                var jogosIdsDb = new List<int>();
-                using (var cmd = new SqlCommand("SELECT JogoId FROM dbo.Jogos ORDER BY JogoId", connection))
-                using (var reader = await cmd.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        jogosIdsDb.Add(reader.GetInt32(0));
-                    }
-                }
-
-                var tableJogoGenero = new DataTable("JogoGenero");
-                tableJogoGenero.Columns.Add("GenerosId", typeof(int));
-                tableJogoGenero.Columns.Add("JogosId", typeof(int));
-
-                var relacoesVistas = new HashSet<(int, int)>();
-                for (int i = 0; i < relacoesJogoGenero.Count && i < jogosIdsDb.Count; i++)
-                {
-                    var jId = jogosIdsDb[i];
-                    foreach (var gId in relacoesJogoGenero[i].GenerosIds)
-                    {
-                        if (relacoesVistas.Add((gId, jId)))
-                        {
-                            tableJogoGenero.Rows.Add(gId, jId);
-                        }
-                    }
                 }
 
                 _logger.LogInformation("[Seeder] Executando SqlBulkCopy para {Total} relações JogoGenero...", tableJogoGenero.Rows.Count);
@@ -857,9 +851,9 @@ namespace GameLog_Backend.Seeders
             return clean;
         }
 
-        private static (List<int> Ids, List<string> Nomes) ResolverGeneros(RawgGameItemDTO rawg, Dictionary<string, int> generoDict, int defaultGeneroId)
+        private static (List<Guid> Ids, List<string> Nomes) ResolverGeneros(RawgGameItemDTO rawg, Dictionary<string, Guid> generoDict, Guid defaultGeneroId)
         {
-            var gensIds = new List<int>();
+            var gensIds = new List<Guid>();
             var gensNomes = new List<string>();
 
             if (rawg.Genres != null && rawg.Genres.Any())

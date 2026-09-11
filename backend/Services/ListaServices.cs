@@ -18,7 +18,7 @@ namespace GameLog_Backend.Services
             _context = context;
         }
 
-        public async Task<ListaDeJogosDTO> CriarLista(int usuarioId, CriarListaDTO dto)
+        public async Task<ListaDeJogosDTO> CriarLista(Guid usuarioId, CriarListaDTO dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Titulo))
             {
@@ -73,7 +73,7 @@ namespace GameLog_Backend.Services
             return (await ObterListaPorId(lista.Id, usuarioId))!;
         }
 
-        public async Task<ListaDeJogosDTO?> ObterListaPorId(int listaId, int? usuarioAutenticadoId = null)
+        public async Task<ListaDeJogosDTO?> ObterListaPorId(Guid listaId, Guid? usuarioAutenticadoId = null)
         {
             var lista = await _context.Set<ListaDeJogos>()
                 .Include(l => l.Usuario)
@@ -140,7 +140,7 @@ namespace GameLog_Backend.Services
             };
         }
 
-        public async Task<List<ListaDeJogosDTO>> ListarListasDoUsuario(int usuarioId, int? usuarioAutenticadoId = null)
+        public async Task<List<ListaDeJogosDTO>> ListarListasDoUsuario(Guid usuarioId, Guid? usuarioAutenticadoId = null)
         {
             var isDono = usuarioAutenticadoId.HasValue && usuarioAutenticadoId.Value == usuarioId;
 
@@ -183,7 +183,7 @@ namespace GameLog_Backend.Services
             }).ToList();
         }
 
-        public async Task<ListaDeJogosDTO?> EditarLista(int listaId, int usuarioId, EditarListaDTO dto)
+        public async Task<ListaDeJogosDTO?> EditarLista(Guid listaId, Guid usuarioId, EditarListaDTO dto)
         {
             var lista = await _context.Set<ListaDeJogos>()
                 .Include(l => l.Itens)
@@ -232,7 +232,7 @@ namespace GameLog_Backend.Services
             return await ObterListaPorId(listaId, usuarioId);
         }
 
-        public async Task<bool> DeletarLista(int listaId, int usuarioId)
+        public async Task<bool> DeletarLista(Guid listaId, Guid usuarioId)
         {
             var lista = await _context.Set<ListaDeJogos>()
                 .FirstOrDefaultAsync(l => l.Id == listaId && l.UsuarioId == usuarioId && l.EstaAtivo);
@@ -244,7 +244,7 @@ namespace GameLog_Backend.Services
             return true;
         }
 
-        public async Task<bool> AdicionarJogoNaLista(int listaId, int usuarioId, int jogoId)
+        public async Task<bool> AdicionarJogoNaLista(Guid listaId, Guid usuarioId, Guid jogoId)
         {
             var lista = await _context.Set<ListaDeJogos>()
                 .Include(l => l.Itens)
@@ -274,7 +274,7 @@ namespace GameLog_Backend.Services
             return true;
         }
 
-        public async Task<bool> RemoverJogoDaLista(int listaId, int usuarioId, int jogoId)
+        public async Task<bool> RemoverJogoDaLista(Guid listaId, Guid usuarioId, Guid jogoId)
         {
             var lista = await _context.Set<ListaDeJogos>()
                 .FirstOrDefaultAsync(l => l.Id == listaId && l.UsuarioId == usuarioId && l.EstaAtivo);

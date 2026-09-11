@@ -1,5 +1,9 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using GameLog_Backend.Configurations;
 using GameLog_Backend.Entities;
+using GameLog_Backend.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameLog_Backend.Database
@@ -24,8 +28,33 @@ namespace GameLog_Backend.Database
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.LogTo(Console.WriteLine);
-            //optionsBuilder.UseLazyLoadingProxies();
+            base.OnConfiguring(optionsBuilder);
+        }
+
+        public override int SaveChanges()
+        {
+            AssignUuidV7Ids();
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            AssignUuidV7Ids();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void AssignUuidV7Ids()
+        {
+            foreach (var entry in ChangeTracker.Entries())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    if (entry.Entity is Entity<Guid> entityWithGuid && entityWithGuid.Id == Guid.Empty)
+                    {
+                        entityWithGuid.Id = UuidV7Helper.NewGuid();
+                    }
+                }
+            }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

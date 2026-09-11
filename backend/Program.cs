@@ -131,169 +131,40 @@ using (var scope = app.Services.CreateScope())
         try
         {
             var context = services.GetRequiredService<GameLogContext>();
-            Console.WriteLine($"[GameLog] Tentativa {attempt}/{maxRetries} - Verificando conexão e aplicando Migrations...");
-            context.Database.Migrate();
-            Console.WriteLine("[GameLog] Migrations aplicadas com sucesso.");
-
+            Console.WriteLine($"[GameLog] Tentativa {attempt}/{maxRetries} - Verificando conexão e inicializando banco com UUIDv7...");
+            
             try
             {
-                context.Database.ExecuteSqlRaw(@"
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.columns 
-                        WHERE object_id = OBJECT_ID(N'[dbo].[Usuarios]') 
-                        AND name = 'Bio'
-                    )
-                    BEGIN
-                        ALTER TABLE [dbo].[Usuarios] ADD [Bio] NVARCHAR(300) NULL;
-                    END
+                var isGuidSchema = false;
+                using (var conn = new Microsoft.Data.SqlClient.SqlConnection(completeConnectionString))
+                {
+                    conn.Open();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "IF OBJECT_ID(N'dbo.Usuarios', N'U') IS NOT NULL SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Usuarios' AND COLUMN_NAME = 'UsuarioId' ELSE SELECT 'NONE'";
+                        var dt = cmd.ExecuteScalar()?.ToString();
+                        if (string.Equals(dt, "uniqueidentifier", StringComparison.OrdinalIgnoreCase))
+                        {
+                            isGuidSchema = true;
+                        }
+                    }
+                }
 
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.columns 
-                        WHERE object_id = OBJECT_ID(N'[dbo].[CurtidasDeAvaliacoes]') 
-                        AND name = 'UsuarioId'
-                    )
-                    BEGIN
-                        ALTER TABLE [dbo].[CurtidasDeAvaliacoes] ADD [UsuarioId] INT NULL;
-                    END
-
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.columns 
-                        WHERE object_id = OBJECT_ID(N'[dbo].[RespostasDeAvaliacao]') 
-                        AND name = 'UsuarioId'
-                    )
-                    BEGIN
-                        ALTER TABLE [dbo].[RespostasDeAvaliacao] ADD [UsuarioId] INT NULL;
-                    END
-
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.columns 
-                        WHERE object_id = OBJECT_ID(N'[dbo].[RespostasDeAvaliacao]') 
-                        AND name = 'DataCriacao'
-                    )
-                    BEGIN
-                        ALTER TABLE [dbo].[RespostasDeAvaliacao] ADD [DataCriacao] DATETIME2 NOT NULL DEFAULT GETUTCDATE();
-                    END
-
-                    IF EXISTS (
-                        SELECT * FROM sys.columns 
-                        WHERE object_id = OBJECT_ID(N'[dbo].[RespostasDeAvaliacao]') 
-                        AND name = 'Comentario'
-                    )
-                    BEGIN
-                        ALTER TABLE [dbo].[RespostasDeAvaliacao] ALTER COLUMN [Comentario] NVARCHAR(500) NOT NULL;
-                    END
-
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.tables 
-                        WHERE name = 'CurtidasDeRespostas'
-                    )
-                    BEGIN
-                        CREATE TABLE [dbo].[CurtidasDeRespostas] (
-                            [CurtidaDeRespostaId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                            [Curtida] BIT NOT NULL,
-                            [RespostaDeAvaliacaoId] INT NOT NULL,
-                            [UsuarioId] INT NOT NULL,
-                            [EstaAtivo] BIT NOT NULL,
-                            CONSTRAINT [FK_CurtidasDeRespostas_Respostas] FOREIGN KEY ([RespostaDeAvaliacaoId]) REFERENCES [dbo].[RespostasDeAvaliacao]([RespostaDeAvaliacaoId]) ON DELETE CASCADE,
-                            CONSTRAINT [FK_CurtidasDeRespostas_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios]([UsuarioId])
-                        );
-                        CREATE INDEX [IX_CurtidasDeRespostas_RespostaDeAvaliacaoId] ON [dbo].[CurtidasDeRespostas]([RespostaDeAvaliacaoId]);
-                        CREATE INDEX [IX_CurtidasDeRespostas_UsuarioId] ON [dbo].[CurtidasDeRespostas]([UsuarioId]);
-                    END
-
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.tables 
-                        WHERE name = 'ItensBiblioteca'
-                    )
-                    BEGIN
-                        CREATE TABLE [dbo].[ItensBiblioteca] (
-                            [BibliotecaJogoId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                            [UsuarioId] INT NOT NULL,
-                            [JogoId] INT NOT NULL,
-                            [Status] INT NOT NULL,
-                            [DataAtualizacao] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-                            [DataConclusao] DATETIME2 NULL,
-                            [EstaAtivo] BIT NOT NULL DEFAULT 1,
-                            CONSTRAINT [FK_ItensBiblioteca_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios]([UsuarioId]) ON DELETE CASCADE,
-                            CONSTRAINT [FK_ItensBiblioteca_Jogos] FOREIGN KEY ([JogoId]) REFERENCES [dbo].[Jogos]([JogoId]) ON DELETE CASCADE
-                        );
-                        CREATE UNIQUE INDEX [IX_ItensBiblioteca_Usuario_Jogo] ON [dbo].[ItensBiblioteca]([UsuarioId], [JogoId]);
-                    END
-
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.tables 
-                        WHERE name = 'JogosFavoritosUsuarios'
-                    )
-                    BEGIN
-                        CREATE TABLE [dbo].[JogosFavoritosUsuarios] (
-                            [JogoFavoritoUsuarioId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                            [UsuarioId] INT NOT NULL,
-                            [JogoId] INT NOT NULL,
-                            [Posicao] INT NOT NULL,
-                            [EstaAtivo] BIT NOT NULL DEFAULT 1,
-                            CONSTRAINT [FK_JogosFavoritos_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios]([UsuarioId]) ON DELETE CASCADE,
-                            CONSTRAINT [FK_JogosFavoritos_Jogos] FOREIGN KEY ([JogoId]) REFERENCES [dbo].[Jogos]([JogoId]) ON DELETE CASCADE
-                        );
-                        CREATE UNIQUE INDEX [IX_JogosFavoritos_Usuario_Posicao] ON [dbo].[JogosFavoritosUsuarios]([UsuarioId], [Posicao]);
-                    END
-
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.tables 
-                        WHERE name = 'ListasDeJogos'
-                    )
-                    BEGIN
-                        CREATE TABLE [dbo].[ListasDeJogos] (
-                            [ListaDeJogosId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                            [UsuarioId] INT NOT NULL,
-                            [Titulo] NVARCHAR(100) NOT NULL,
-                            [Descricao] NVARCHAR(500) NULL,
-                            [EstaPublica] BIT NOT NULL DEFAULT 1,
-                            [DataCriacao] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-                            [DataAtualizacao] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-                            [EstaAtivo] BIT NOT NULL DEFAULT 1,
-                            CONSTRAINT [FK_ListasDeJogos_Usuarios] FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios]([UsuarioId]) ON DELETE CASCADE
-                        );
-                        CREATE INDEX [IX_ListasDeJogos_UsuarioId] ON [dbo].[ListasDeJogos]([UsuarioId]);
-                    END
-
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.tables 
-                        WHERE name = 'ItensDeListas'
-                    )
-                    BEGIN
-                        CREATE TABLE [dbo].[ItensDeListas] (
-                            [ItemDeListaId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                            [ListaDeJogosId] INT NOT NULL,
-                            [JogoId] INT NOT NULL,
-                            [Ordem] INT NOT NULL DEFAULT 1,
-                            [DataAdicionado] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-                            [EstaAtivo] BIT NOT NULL DEFAULT 1,
-                            CONSTRAINT [FK_ItensDeListas_Listas] FOREIGN KEY ([ListaDeJogosId]) REFERENCES [dbo].[ListasDeJogos]([ListaDeJogosId]) ON DELETE CASCADE,
-                            CONSTRAINT [FK_ItensDeListas_Jogos] FOREIGN KEY ([JogoId]) REFERENCES [dbo].[Jogos]([JogoId]) ON DELETE CASCADE
-                        );
-                        CREATE UNIQUE INDEX [IX_ItensDeListas_Lista_Jogo] ON [dbo].[ItensDeListas]([ListaDeJogosId], [JogoId]);
-                    END
-
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.columns 
-                        WHERE object_id = OBJECT_ID(N'[dbo].[Jogos]') 
-                        AND name = 'PublicadoraId'
-                    )
-                    BEGIN
-                        ALTER TABLE [dbo].[Jogos] ADD [PublicadoraId] INT NULL;
-                        ALTER TABLE [dbo].[Jogos] ADD CONSTRAINT [FK_Jogos_Publicadora] FOREIGN KEY ([PublicadoraId]) REFERENCES [dbo].[Empresa]([EmpresaId]);
-                    END
-
-                    -- Ajuste de capacidade de colunas para catálogos ricos e RAWG
-                    ALTER TABLE [dbo].[Jogos] ALTER COLUMN [Titulo] NVARCHAR(250) NOT NULL;
-                    ALTER TABLE [dbo].[Jogos] ALTER COLUMN [Descricao] NVARCHAR(MAX) NULL;
-                    ALTER TABLE [dbo].[Empresa] ALTER COLUMN [NomeEmpresa] NVARCHAR(150) NOT NULL;
-                    ALTER TABLE [dbo].[Generos] ALTER COLUMN [TituloGenero] NVARCHAR(50) NOT NULL;
-                ");
+                if (!isGuidSchema)
+                {
+                    Console.WriteLine("[GameLog] Detectado schema legado ou banco não inicializado. Recriando banco de dados com UUIDv7 (UNIQUEIDENTIFIER)...");
+                    context.Database.EnsureDeleted();
+                    context.Database.EnsureCreated();
+                }
+                else
+                {
+                    context.Database.EnsureCreated();
+                }
             }
-            catch (Exception exCol)
+            catch (Exception exInit)
             {
-                Console.WriteLine($"[GameLog] Verificação de colunas complementares: {exCol.Message}");
+                Console.WriteLine($"[GameLog] Inicializando schema via EnsureCreated: {exInit.Message}");
+                context.Database.EnsureCreated();
             }
 
             Console.WriteLine("[GameLog] Executando limpeza e povoamento do catálogo com jogos 100% reais e oficiais da RAWG...");

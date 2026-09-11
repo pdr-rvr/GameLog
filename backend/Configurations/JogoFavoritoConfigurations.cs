@@ -14,7 +14,6 @@ namespace GameLog_Backend.Configurations
 
             builder.Property(f => f.Id)
                 .HasColumnName($"{nameof(JogoFavoritoUsuario)}Id")
-                .ValueGeneratedOnAdd()
                 .IsRequired();
 
             builder.Property(f => f.Posicao)

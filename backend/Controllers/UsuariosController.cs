@@ -29,7 +29,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterUsuarioPorId(int id)
+        public async Task<IActionResult> ObterUsuarioPorId(Guid id)
         {
             var usuario = await _usuarioServices.ObterUsuarioPorId(id);
             if (usuario == null)
@@ -41,7 +41,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}/generos-favoritos")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterGenerosFavoritos(int id, [FromQuery] int topN = 4)
+        public async Task<IActionResult> ObterGenerosFavoritos(Guid id, [FromQuery] int topN = 4)
         {
             var generos = await _usuarioServices.IdentificaTopNGenerosFavoritos(id, topN);
             return Ok(generos);
@@ -75,7 +75,7 @@ namespace GameLog_Backend.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> EditarUsuario(int id, [FromBody] EditarUsuarioDTO editarUsuarioDTO)
+        public async Task<IActionResult> EditarUsuario(Guid id, [FromBody] EditarUsuarioDTO editarUsuarioDTO)
         {
             var usuarioIdAutenticado = User.GetUserId();
             if (usuarioIdAutenticado != id)
@@ -97,7 +97,7 @@ namespace GameLog_Backend.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletarUsuario(int id, [FromBody] DeletarUsuarioDTO deletarUsuarioDTO)
+        public async Task<IActionResult> DeletarUsuario(Guid id, [FromBody] DeletarUsuarioDTO deletarUsuarioDTO)
         {
             var usuarioIdAutenticado = User.GetUserId();
             if (usuarioIdAutenticado != id)
@@ -117,7 +117,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}/recomendacoes")]
         [Authorize]
-        public async Task<IActionResult> ObterRecomendacoes(int id)
+        public async Task<IActionResult> ObterRecomendacoes(Guid id)
         {
             var recomendacoes = await _usuarioServices.RecomendarJogos(id);
             return Ok(recomendacoes);
@@ -127,7 +127,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpPost("{id}/seguir")]
         [Authorize]
-        public async Task<IActionResult> AlternarSeguir(int id)
+        public async Task<IActionResult> AlternarSeguir(Guid id)
         {
             var seguidorId = User.GetUserId();
             var (seguido, totalSeguidores) = await _usuarioServices.AlternarSeguirUsuario(seguidorId, id);
@@ -142,7 +142,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}/status-seguir")]
         [Authorize]
-        public async Task<IActionResult> VerificarStatusSeguir(int id)
+        public async Task<IActionResult> VerificarStatusSeguir(Guid id)
         {
             var seguidorId = User.GetUserId();
             var seguido = await _usuarioServices.VerificarSeSegue(seguidorId, id);
@@ -151,7 +151,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}/estatisticas-sociais")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterEstatisticasSociais(int id)
+        public async Task<IActionResult> ObterEstatisticasSociais(Guid id)
         {
             var solicitanteId = User.GetUserIdOrNull();
             var stats = await _usuarioServices.ObterEstatisticasSociais(id, solicitanteId);
@@ -160,7 +160,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}/seguidores")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterSeguidores(int id)
+        public async Task<IActionResult> ObterSeguidores(Guid id)
         {
             var solicitanteId = User.GetUserIdOrNull();
             var seguidores = await _usuarioServices.ObterSeguidores(id, solicitanteId);
@@ -169,7 +169,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}/seguindo")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterSeguindo(int id)
+        public async Task<IActionResult> ObterSeguindo(Guid id)
         {
             var solicitanteId = User.GetUserIdOrNull();
             var seguindo = await _usuarioServices.ObterSeguindo(id, solicitanteId);

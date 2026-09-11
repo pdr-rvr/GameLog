@@ -21,7 +21,7 @@ namespace GameLog_Backend.Services
             _mapper = mapper;
         }
 
-        private async Task<Jogo> VerificarJogoExiste(int jogoId)
+        private async Task<Jogo> VerificarJogoExiste(Guid jogoId)
         {
             var jogo = await _context.Jogos.FindAsync(jogoId);
             if (jogo == null || !jogo.EstaAtivo)
@@ -29,7 +29,7 @@ namespace GameLog_Backend.Services
             return jogo;
         }
 
-        private async Task VerificarAvaliacaoDuplicada(int usuarioId, int jogoId)
+        private async Task VerificarAvaliacaoDuplicada(Guid usuarioId, Guid jogoId)
         {
             var avaliacaoExistente = await _context.Avaliacoes
                 .AnyAsync(a => a.Usuario.Id == usuarioId &&
@@ -40,7 +40,7 @@ namespace GameLog_Backend.Services
                 throw new InvalidOperationException("Você já possui uma avaliação ativa para este jogo.");
         }
 
-        public async Task<AvaliacaoDTO> CriarAvaliacao(CriarAvaliacaoDTO avaliacaoDTO, int usuarioId)
+        public async Task<AvaliacaoDTO> CriarAvaliacao(CriarAvaliacaoDTO avaliacaoDTO, Guid usuarioId)
         {
             if (avaliacaoDTO.Nota < 1 || avaliacaoDTO.Nota > 5)
             {
@@ -67,7 +67,7 @@ namespace GameLog_Backend.Services
             return await ObterAvaliacaoDto(avaliacao.Id);
         }
 
-        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoes(int? usuarioId = null)
+        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoes(Guid? usuarioId = null)
         {
             return await _context.Avaliacoes
                 .AsNoTracking()
@@ -81,7 +81,7 @@ namespace GameLog_Backend.Services
                     NomeJogo = a.Jogo.Titulo,
                     ImagemJogo = a.Jogo.Imagem,
                     NomeEmpresa = a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
-                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (int?)null,
+                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (Guid?)null,
                     DataLancamentoJogo = a.Jogo.DataLancamento,
                     UsuarioId = a.Usuario.Id,
                     NomeUsuario = a.Usuario.NomeUsuario,
@@ -95,7 +95,7 @@ namespace GameLog_Backend.Services
                 .ToListAsync();
         }
 
-        public async Task<AvaliacaoDTO?> ObterAvaliacaoPorId(int id, int? usuarioId = null)
+        public async Task<AvaliacaoDTO?> ObterAvaliacaoPorId(Guid id, Guid? usuarioId = null)
         {
             return await _context.Avaliacoes
                 .AsNoTracking()
@@ -108,7 +108,7 @@ namespace GameLog_Backend.Services
                     NomeJogo = a.Jogo.Titulo,
                     ImagemJogo = a.Jogo.Imagem,
                     NomeEmpresa = a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
-                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (int?)null,
+                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (Guid?)null,
                     DataLancamentoJogo = a.Jogo.DataLancamento,
                     UsuarioId = a.Usuario.Id,
                     NomeUsuario = a.Usuario.NomeUsuario,
@@ -122,7 +122,7 @@ namespace GameLog_Backend.Services
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorUsuario(int usuarioId, int? usuarioSolicitanteId = null)
+        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorUsuario(Guid usuarioId, Guid? usuarioSolicitanteId = null)
         {
             return await _context.Avaliacoes
                 .AsNoTracking()
@@ -136,7 +136,7 @@ namespace GameLog_Backend.Services
                     NomeJogo = a.Jogo.Titulo,
                     ImagemJogo = a.Jogo.Imagem,
                     NomeEmpresa = a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
-                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (int?)null,
+                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (Guid?)null,
                     DataLancamentoJogo = a.Jogo.DataLancamento,
                     UsuarioId = a.Usuario.Id,
                     NomeUsuario = a.Usuario.NomeUsuario,
@@ -150,7 +150,7 @@ namespace GameLog_Backend.Services
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorJogo(int jogoId, int? usuarioId = null)
+        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoesPorJogo(Guid jogoId, Guid? usuarioId = null)
         {
             return await _context.Avaliacoes
                 .AsNoTracking()
@@ -164,7 +164,7 @@ namespace GameLog_Backend.Services
                     NomeJogo = a.Jogo.Titulo,
                     ImagemJogo = a.Jogo.Imagem,
                     NomeEmpresa = a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
-                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (int?)null,
+                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (Guid?)null,
                     DataLancamentoJogo = a.Jogo.DataLancamento,
                     UsuarioId = a.Usuario.Id,
                     NomeUsuario = a.Usuario.NomeUsuario,
@@ -178,7 +178,7 @@ namespace GameLog_Backend.Services
                 .ToListAsync();
         }
 
-        public async Task<AvaliacaoDTO?> EditarAvaliacao(int id, EditarAvaliacaoDTO avaliacaoDTO, int usuarioId)
+        public async Task<AvaliacaoDTO?> EditarAvaliacao(Guid id, EditarAvaliacaoDTO avaliacaoDTO, Guid usuarioId)
         {
             var avaliacao = await _context.Avaliacoes
                 .FirstOrDefaultAsync(a => a.Id == id &&
@@ -207,7 +207,7 @@ namespace GameLog_Backend.Services
             return await ObterAvaliacaoDto(avaliacao.Id, usuarioId);
         }
 
-        public async Task<bool> DeletarAvaliacao(int id, int usuarioId)
+        public async Task<bool> DeletarAvaliacao(Guid id, Guid usuarioId)
         {
             var avaliacao = await _context.Avaliacoes
                 .FirstOrDefaultAsync(a => a.Id == id &&
@@ -223,7 +223,7 @@ namespace GameLog_Backend.Services
             return true;
         }
 
-        private async Task<AvaliacaoDTO> ObterAvaliacaoDto(int id, int? usuarioId = null)
+        private async Task<AvaliacaoDTO> ObterAvaliacaoDto(Guid id, Guid? usuarioId = null)
         {
             return await _context.Avaliacoes
                 .AsNoTracking()
@@ -236,7 +236,7 @@ namespace GameLog_Backend.Services
                     NomeJogo = a.Jogo.Titulo,
                     ImagemJogo = a.Jogo.Imagem,
                     NomeEmpresa = a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
-                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (int?)null,
+                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (Guid?)null,
                     DataLancamentoJogo = a.Jogo.DataLancamento,
                     UsuarioId = a.Usuario.Id,
                     NomeUsuario = a.Usuario.NomeUsuario,
@@ -250,7 +250,7 @@ namespace GameLog_Backend.Services
                 .FirstAsync();
         }
 
-        public async Task<(bool Curtido, int TotalCurtidas)> AlternarCurtida(int avaliacaoId, int usuarioId)
+        public async Task<(bool Curtido, int TotalCurtidas)> AlternarCurtida(Guid avaliacaoId, Guid usuarioId)
         {
             var avaliacao = await _context.Avaliacoes
                 .Include(a => a.Usuario)
@@ -289,7 +289,7 @@ namespace GameLog_Backend.Services
             return (novoEstadoCurtida, total);
         }
 
-        public async Task<bool> RemoverCurtida(int avaliacaoId, int usuarioId)
+        public async Task<bool> RemoverCurtida(Guid avaliacaoId, Guid usuarioId)
         {
             var curtida = await _context.CurtidasDeAvaliacoes
                 .FirstOrDefaultAsync(c => c.AvaliacaoId == avaliacaoId && c.UsuarioId == usuarioId && c.EstaAtivo && c.Curtida);
@@ -303,13 +303,13 @@ namespace GameLog_Backend.Services
             return true;
         }
 
-        public async Task<int> ContarCurtidas(int avaliacaoId)
+        public async Task<int> ContarCurtidas(Guid avaliacaoId)
         {
             return await _context.CurtidasDeAvaliacoes
                 .CountAsync(c => c.AvaliacaoId == avaliacaoId && c.Curtida && c.EstaAtivo);
         }
 
-        public async Task<bool> UsuarioCurtiu(int avaliacaoId, int usuarioId)
+        public async Task<bool> UsuarioCurtiu(Guid avaliacaoId, Guid usuarioId)
         {
             return await _context.CurtidasDeAvaliacoes
                 .AnyAsync(c => c.AvaliacaoId == avaliacaoId && c.UsuarioId == usuarioId && c.Curtida && c.EstaAtivo);
@@ -317,7 +317,7 @@ namespace GameLog_Backend.Services
 
         // ======================= RESPOSTAS DE AVALIAÇÃO ======================= //
 
-        public async Task<RespostaDeAvaliacaoDTO> AdicionarResposta(int avaliacaoId, int usuarioId, CriarRespostaDTO dto)
+        public async Task<RespostaDeAvaliacaoDTO> AdicionarResposta(Guid avaliacaoId, Guid usuarioId, CriarRespostaDTO dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Comentario))
                 throw new ArgumentException("O comentário não pode ser vazio.");
@@ -363,7 +363,7 @@ namespace GameLog_Backend.Services
             };
         }
 
-        public async Task<IEnumerable<RespostaDeAvaliacaoDTO>> ListarRespostasPorAvaliacao(int avaliacaoId, int? usuarioId = null)
+        public async Task<IEnumerable<RespostaDeAvaliacaoDTO>> ListarRespostasPorAvaliacao(Guid avaliacaoId, Guid? usuarioId = null)
         {
             return await _context.RespostasDeAvaliacao
                 .AsNoTracking()
@@ -373,7 +373,7 @@ namespace GameLog_Backend.Services
                 {
                     RespostaId = r.Id,
                     AvaliacaoId = r.AvaliacaoId ?? avaliacaoId,
-                    UsuarioId = r.Usuario != null ? r.Usuario.Id : (r.UsuarioId ?? 0),
+                    UsuarioId = r.Usuario != null ? r.Usuario.Id : (r.UsuarioId ?? Guid.Empty),
                     NomeUsuario = r.Usuario != null ? r.Usuario.NomeUsuario : "Gamer",
                     FotoPerfilUsuario = r.Usuario != null ? r.Usuario.FotoDePerfil : null,
                     Comentario = r.Comentario,
@@ -385,7 +385,7 @@ namespace GameLog_Backend.Services
                 .ToListAsync();
         }
 
-        public async Task<bool> DeletarResposta(int respostaId, int usuarioId)
+        public async Task<bool> DeletarResposta(Guid respostaId, Guid usuarioId)
         {
             var resposta = await _context.RespostasDeAvaliacao
                 .Include(r => r.Avaliacao)
@@ -409,7 +409,7 @@ namespace GameLog_Backend.Services
             return true;
         }
 
-        public async Task<(bool Curtido, int TotalCurtidas)> AlternarCurtidaResposta(int respostaId, int usuarioId)
+        public async Task<(bool Curtido, int TotalCurtidas)> AlternarCurtidaResposta(Guid respostaId, Guid usuarioId)
         {
             var resposta = await _context.RespostasDeAvaliacao
                 .FirstOrDefaultAsync(r => r.Id == respostaId && r.EstaAtivo);
