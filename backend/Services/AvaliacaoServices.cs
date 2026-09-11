@@ -188,14 +188,11 @@ namespace GameLog_Backend.Services
             if (avaliacao == null)
                 return null;
 
-            if (avaliacaoDTO.Nota.HasValue)
+            if (avaliacaoDTO.Nota < 1 || avaliacaoDTO.Nota > 5)
             {
-                if (avaliacaoDTO.Nota.Value < 1 || avaliacaoDTO.Nota.Value > 5)
-                {
-                    throw new ArgumentException("A nota deve estar entre 1 e 5.");
-                }
-                avaliacao.Nota = avaliacaoDTO.Nota.Value;
+                throw new ArgumentException("A nota da avaliação deve estar entre 1 e 5 estrelas.");
             }
+            avaliacao.Nota = avaliacaoDTO.Nota;
 
             if (avaliacaoDTO.TextoAvaliacao != null)
             {

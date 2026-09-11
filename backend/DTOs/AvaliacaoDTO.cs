@@ -32,16 +32,17 @@ namespace GameLog_Backend.DTOs
         [Required(ErrorMessage = "O jogo é obrigatório.")]
         public Guid JogoId { get; set; }
 
-        [MaxLength(500, ErrorMessage = "A análise pode ter no máximo 500 caracteres.")]
+        [MaxLength(1000, ErrorMessage = "A análise pode ter no máximo 1000 caracteres.")]
         public string TextoAvaliacao { get; set; } = string.Empty;
     }
 
     public class EditarAvaliacaoDTO
     {
+        [Required(ErrorMessage = "A nota é obrigatória.")]
         [Range(1, 5, ErrorMessage = "A nota da avaliação deve estar entre 1 e 5 estrelas.")]
-        public int? Nota { get; set; }
+        public int Nota { get; set; }
 
-        [MaxLength(500, ErrorMessage = "A análise pode ter no máximo 500 caracteres.")]
+        [MaxLength(1000, ErrorMessage = "A análise pode ter no máximo 1000 caracteres.")]
         public string? TextoAvaliacao { get; set; }
     }
 

@@ -49,6 +49,7 @@ namespace GameLog_Backend.Controllers
 
         [AllowAnonymous]
         [HttpPost]
+        [HttpPost("registrar")]
         public async Task<IActionResult> CriarUsuario([FromBody] CriarUsuarioDTO usuarioDTO)
         {
             var usuario = await _usuarioServices.CriarUsuario(usuarioDTO);

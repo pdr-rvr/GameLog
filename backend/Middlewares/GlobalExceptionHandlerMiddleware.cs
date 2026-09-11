@@ -46,6 +46,38 @@ namespace GameLog_Backend.Middlewares
         {
             context.Response.ContentType = "application/problem+json";
 
+            if (exception is FluentValidation.ValidationException validationEx)
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+
+                var validationErrors = validationEx.Errors
+                    .GroupBy(e => JsonNamingPolicy.CamelCase.ConvertName(e.PropertyName))
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(e => e.ErrorMessage).ToArray()
+                    );
+
+                var validationProblem = new
+                {
+                    type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+                    title = "Erro de Validação",
+                    status = (int)HttpStatusCode.BadRequest,
+                    detail = "Um ou mais campos contêm erros de validação.",
+                    instance = context.Request.Path.Value,
+                    traceId = context.TraceIdentifier,
+                    errors = validationErrors
+                };
+
+                var validationOptions = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = false
+                };
+
+                await context.Response.WriteAsync(JsonSerializer.Serialize(validationProblem, validationOptions));
+                return;
+            }
+
             var (status, title, type) = exception switch
             {
                 KeyNotFoundException => (
