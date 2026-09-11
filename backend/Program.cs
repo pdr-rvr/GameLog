@@ -24,8 +24,9 @@ if (builder.Environment.IsDevelopment())
 }
 
 var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? "localhost";
-var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "GameLog";
-var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
+var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
+var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "gamelog";
+var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "postgres";
 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "GameLog123!@#";
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? "GameLogSuperSecretKeyDefault1234567890!";
 
@@ -36,15 +37,16 @@ if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
 }
 
 var baseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? "Server={DB_SERVER};Database={DB_NAME};User ID={DB_USER};Password={DB_PASSWORD};TrustServerCertificate=True;";
+    ?? "Host={DB_SERVER};Port={DB_PORT};Database={DB_NAME};Username={DB_USER};Password={DB_PASSWORD};";
 
 var completeConnectionString = baseConnectionString
     .Replace("{DB_SERVER}", dbServer)
+    .Replace("{DB_PORT}", dbPort)
     .Replace("{DB_NAME}", dbName)
     .Replace("{DB_USER}", dbUser)
     .Replace("{DB_PASSWORD}", dbPassword);
 
-Console.WriteLine($"[GameLog] Conectando ao banco em: {dbServer}, Database: {dbName}");
+Console.WriteLine($"[GameLog] Conectando ao PostgreSQL em: {dbServer}:{dbPort}, Database: {dbName}");
 
 builder.Services.AddCors(options =>
 {
@@ -124,7 +126,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddDbContext<GameLogContext>(options =>
-    options.UseSqlServer(completeConnectionString));
+    options.UseNpgsql(completeConnectionString));
 
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<RawgApiService>();
@@ -164,72 +166,40 @@ if (!app.Environment.IsEnvironment("Testing"))
         var services = scope.ServiceProvider;
         var logger = services.GetRequiredService<ILogger<Program>>();
 
-    var maxRetries = 15;
-    var delaySeconds = 3;
-    var connected = false;
+        var maxRetries = 15;
+        var delaySeconds = 2;
+        var connected = false;
 
-    for (var attempt = 1; attempt <= maxRetries; attempt++)
-    {
-        try
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
-            var context = services.GetRequiredService<GameLogContext>();
-            Console.WriteLine($"[GameLog] Tentativa {attempt}/{maxRetries} - Verificando conexão e inicializando banco com UUIDv7...");
-            
             try
             {
-                var isGuidSchema = false;
-                using (var conn = new Microsoft.Data.SqlClient.SqlConnection(completeConnectionString))
-                {
-                    conn.Open();
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText = "IF OBJECT_ID(N'dbo.Usuarios', N'U') IS NOT NULL SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Usuarios' AND COLUMN_NAME = 'UsuarioId' ELSE SELECT 'NONE'";
-                        var dt = cmd.ExecuteScalar()?.ToString();
-                        if (string.Equals(dt, "uniqueidentifier", StringComparison.OrdinalIgnoreCase))
-                        {
-                            isGuidSchema = true;
-                        }
-                    }
-                }
+                var context = services.GetRequiredService<GameLogContext>();
+                Console.WriteLine($"[GameLog] Tentativa {attempt}/{maxRetries} - Conectando ao PostgreSQL e garantindo schema...");
 
-                if (!isGuidSchema)
-                {
-                    Console.WriteLine("[GameLog] Detectado schema legado ou banco não inicializado. Recriando banco de dados com UUIDv7 (UNIQUEIDENTIFIER)...");
-                    context.Database.EnsureDeleted();
-                    context.Database.EnsureCreated();
-                }
-                else
-                {
-                    context.Database.EnsureCreated();
-                }
-            }
-            catch (Exception exInit)
-            {
-                Console.WriteLine($"[GameLog] Inicializando schema via EnsureCreated: {exInit.Message}");
                 context.Database.EnsureCreated();
+
+                Console.WriteLine("[GameLog] Executando limpeza e povoamento do catálogo com jogos reais da RAWG...");
+                var massiveSeeder = services.GetRequiredService<MassiveCatalogSeeder>();
+                massiveSeeder.CleanAndSeedRealGamesAsync().GetAwaiter().GetResult();
+                Console.WriteLine("[GameLog] Povoamento com jogos reais finalizado com sucesso!");
+
+                connected = true;
+                break;
             }
-
-            Console.WriteLine("[GameLog] Executando limpeza e povoamento do catálogo com jogos 100% reais e oficiais da RAWG...");
-            var massiveSeeder = services.GetRequiredService<MassiveCatalogSeeder>();
-            massiveSeeder.CleanAndSeedRealGamesAsync().GetAwaiter().GetResult();
-            Console.WriteLine("[GameLog] Povoamento com jogos reais finalizado com sucesso!");
-
-            connected = true;
-            break;
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning($"[GameLog] Banco de dados ainda não disponível (tentativa {attempt}/{maxRetries}): {ex.Message}");
-            if (attempt < maxRetries)
+            catch (Exception ex)
             {
-                Thread.Sleep(TimeSpan.FromSeconds(delaySeconds));
+                logger.LogWarning($"[GameLog] PostgreSQL ainda não disponível (tentativa {attempt}/{maxRetries}): {ex.Message}");
+                if (attempt < maxRetries)
+                {
+                    Thread.Sleep(TimeSpan.FromSeconds(delaySeconds));
+                }
             }
         }
-    }
 
         if (!connected)
         {
-            logger.LogError("[GameLog] Não foi possível conectar ao banco de dados após múltiplas tentativas.");
+            logger.LogError("[GameLog] Não foi possível conectar ao PostgreSQL após múltiplas tentativas.");
         }
     }
 }

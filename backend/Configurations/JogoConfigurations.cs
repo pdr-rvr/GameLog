@@ -19,11 +19,9 @@ namespace GameLog_Backend.Configurations
                 .IsRequired();
 
             builder.Property(p => p.Descricao)
-                .HasColumnType("nvarchar(MAX)")
                 .IsRequired(false);
 
             builder.Property(p => p.Imagem)
-                .HasColumnType("varchar(MAX)")
                 .IsRequired(false);
 
             builder.Property(p => p.DataLancamento)
