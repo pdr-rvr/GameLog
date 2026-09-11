@@ -15,14 +15,14 @@ namespace GameLog_Backend.Configurations
                 .IsRequired();
 
             builder.Property(p => p.NomeUsuario)
-                .HasMaxLength(20)
+                .HasMaxLength(30)
                 .IsRequired();
 
             builder.HasIndex(p => p.NomeUsuario)
                 .IsUnique();
 
             builder.Property(p => p.Email)
-                .HasMaxLength(30)
+                .HasMaxLength(100)
                 .IsRequired();
 
             builder.HasIndex(p => p.Email)

@@ -1,13 +1,18 @@
 using System.Text;
+using System.Text.Json;
 using DotNetEnv;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using GameLog_Backend.Configurations;
 using GameLog_Backend.Database;
 using GameLog_Backend.Middlewares;
 using GameLog_Backend.Profiles;
 using GameLog_Backend.Seeders;
 using GameLog_Backend.Services;
+using GameLog_Backend.Validators;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -50,7 +55,39 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader());
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value != null && e.Value.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => JsonNamingPolicy.CamelCase.ConvertName(kvp.Key),
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+
+            var problemDetails = new
+            {
+                type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+                title = "Erro de Validação",
+                status = StatusCodes.Status400BadRequest,
+                detail = "Um ou mais campos contêm erros de validação.",
+                instance = context.HttpContext.Request.Path.Value,
+                traceId = context.HttpContext.TraceIdentifier,
+                errors
+            };
+
+            return new BadRequestObjectResult(problemDetails)
+            {
+                ContentTypes = { "application/problem+json" }
+            };
+        };
+    });
+
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddValidatorsFromAssemblyContaining<CriarUsuarioDTOValidator>();
 
 builder.Services.Configure<JwtSettings>(options =>
 {
