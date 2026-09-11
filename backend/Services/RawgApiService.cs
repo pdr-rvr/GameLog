@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
@@ -44,6 +45,42 @@ namespace GameLog_Backend.Services
             _baseUrl = configuration["Rawg:BaseUrl"] ?? "https://api.rawg.io/api";
         }
 
+        public static bool EhJogoValido(RawgGameItemDTO? item)
+        {
+            if (item == null) return false;
+            if (!EhJogoValido(item.Name)) return false;
+
+            // 1. DLCs e expansões com parent associado na RAWG
+            if (item.ParentsCount > 0) return false;
+
+            // 2. Tags inválidas de fangames, romhacks, demakes, dlcs e ports não oficiais
+            if (item.Tags != null && item.Tags.Any())
+            {
+                var invalidTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "fangame", "fan-game", "demake", "dlc", "addon", "add-on",
+                    "soundtrack", "expansion", "gameport", "romhack", "rpg-maker", "scratch"
+                };
+
+                if (item.Tags.Any(t => !string.IsNullOrWhiteSpace(t.Slug) && invalidTags.Contains(t.Slug)))
+                {
+                    return false;
+                }
+            }
+
+            // 3. Validação de relevância/legitimidade para descartar clones vazios e projetos de teste
+            var added = item.Added ?? 0;
+            var ratingsCount = item.RatingsCount ?? 0;
+            var hasMetacritic = item.Metacritic.HasValue;
+
+            if (added < 20 && ratingsCount < 3 && !hasMetacritic)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         public static bool EhJogoValido(string? name)
         {
             if (string.IsNullOrWhiteSpace(name)) return false;
@@ -52,7 +89,7 @@ namespace GameLog_Backend.Services
             if (Regex.IsMatch(lower, @"#\w+")) return false;
 
             // 1. Palavras-chave de DLCs, expansões, demos, pacotes, trilhas sonoras, betas, protótipos e demakes
-            if (Regex.IsMatch(lower, @"\b(dlc|dlcs|expansion|expansions|soundtrack|soundtracks|score|season pass|expansion pass|battle pass|access pass|booster pack|booster|bonus content|deluxe upgrade|wallpaper engine|wallpaper|3dmark|soundpad|software|pre-order|free trial|playtest|closed beta|open beta|\bbeta\b|\balpha\b|prologue|demo|teaser|trailer|benchmark|test build|fanmade|fan game|fan-made|fangame|tribute|demake|game jam|gamejam|game clone|mod pack|blockout|toolkit|redkit|how to control my votes)\b") ||
+            if (Regex.IsMatch(lower, @"\b(dlc|dlcs|expansion|expansions|soundtrack|soundtracks|score|season pass|expansion pass|battle pass|access pass|booster pack|booster|bonus content|deluxe upgrade|wallpaper engine|wallpaper|3dmark|soundpad|software|pre-order|free trial|playtest|closed beta|open beta|\bbeta\b|\balpha\b|prologue|demo|teaser|trailer|benchmark|test build|fanmade|fan game|fan-made|fangame|tribute|demake|game jam|gamejam|game clone|mod pack|blockout|toolkit|redkit)\b") ||
                 Regex.IsMatch(lower, @"(^|\s|\()ost(\s|\)|$)") ||
                 Regex.IsMatch(lower, @"(^|\s|\()demo(\s|\)|$)") ||
                 Regex.IsMatch(lower, @"\b(remix\s*\(|fanmade\s+boss)\b"))
@@ -60,19 +97,25 @@ namespace GameLog_Backend.Services
                 return false;
             }
 
-            // 2. Pacotes, Bundles e Multi-Packs
+            // 2. Edições cosméticas / duplicadas que poluem catálogo
+            if (Regex.IsMatch(lower, @"\b(deluxe edition|digital deluxe|digital deluxe edition|premium edition|collector's edition|collectors edition|gold edition|ultimate edition|day one edition|launch edition|founder's pack|founders pack|champion edition|soundtrack edition|bonus edition|pre-order bonus|game of the year edition|goty edition|\bgoty\b|complete edition|definitive edition|royal edition|legacy edition|supreme edition|hero edition|vanguard edition|limited edition|special edition|standard edition)\b"))
+            {
+                return false;
+            }
+
+            // 3. Pacotes, Bundles e Multi-Packs
             if (Regex.IsMatch(lower, @"\b(pack|packs|bundle|bundles|two-pack|2-pack|double pack|triple pack|mission pack|upgrade pack|starter pack|character pack|skin pack|voice pack|costume pack|texture pack|item pack|clothing pack|weapon pack|bonus pack|item set|map pack)\b"))
             {
                 return false;
             }
 
-            // 3. Versões regionais duplicadas
+            // 4. Versões regionais duplicadas
             if (Regex.IsMatch(lower, @"\b(german edition|russian edition|french edition|spanish edition|japanese edition|chinese edition|italian edition|english edition|us edition|uk edition|pal version|ntsc version)\b"))
             {
                 return false;
             }
 
-            // 4. Episódios / Capítulos avulsos (preservando jogos canônicos como Half-Life 2: Episode One/Two e Star Wars Episode)
+            // 5. Episódios / Capítulos avulsos (preservando jogos canônicos como Half-Life 2: Episode One/Two e Star Wars Episode)
             if (Regex.IsMatch(lower, @"\b(episode\s+[0-9]+|ep\.\s*[0-9]+|chapter\s+[0-9]+)\b") &&
                 !lower.Contains("half-life 2: episode") &&
                 !lower.Contains("star wars episode") &&
@@ -81,9 +124,11 @@ namespace GameLog_Backend.Services
                 return false;
             }
 
-            // 5. Expansões e DLCs famosas com subtítulos específicos
+            // 6. Expansões e DLCs famosas com subtítulos específicos
             var dlcSubtitles = new[]
             {
+                "crown of the sunken king", "crown of the old iron king", "crown of the ivory king",
+                "artorias of the abyss", "the old hunters", "valhalla",
                 "blood and wine", "hearts of stone", "the ringed city", "ashes of ariandel",
                 "shadows of rose", "phantom liberty", "left behind", "shadow of the erdtree",
                 "iceborne", "sunbreak", "separate ways", "the frozen wilds", "burning shores",
@@ -91,7 +136,7 @@ namespace GameLog_Backend.Services
                 "hearthfire", "nuka-world", "far harbor", "automatron", "vault-tec workshop",
                 "lonesome road", "old world blues", "honest hearts", "dead money", "point lookout",
                 "broken steel", "the pitt", "mothership zeta", "operation: anchorage", "curse of the pharaohs",
-                "the hidden ones", "legacy of the first blade", "the fate of atlantis", "dawn of ragnar",
+                "the hidden ones", "legacy of the first blade", "the fate of atlantis", "dawn of ragnarok", "dawn of ragnar",
                 "undead nightmare", "harley quinn's revenge", "cold, cold heart", "a matter of family",
                 "the delicious last course", "whistleblower", "the signal", "the writer", "night springs",
                 "the lake house", "ancient gods", "end of zoe", "not a hero", "the consequence",
@@ -101,7 +146,14 @@ namespace GameLog_Backend.Services
                 "banned footage", "watchpoint pack", "gage historical", "reverse cosplay", "element of destruction",
                 "zinyak attack", "space pack", "yokohama massage", "expedition", "lost between worlds",
                 "ghosts - invasion", "ghosts - onslaught", "ghosts - devastation", "ghosts - nemesis",
-                "first strike", "rezurrection", "all-in-one package"
+                "first strike", "rezurrection", "all-in-one package", "intermission", "episode intermission",
+                "future connected", "future redeemed", "torna the golden country", "torna - the golden country",
+                "episode prompto", "episode gladiolus", "episode ignis", "episode ardyn",
+                "jack the ripper", "dead kings", "a criminal past", "system rift", "trespasser",
+                "jaws of hakkon", "the descent", "lair of the shadow broker", "arrival", "leviathan",
+                "citadel", "omega", "captain scarlett", "mr. torgue", "tiny tina's assault",
+                "bounty of blood", "moxxi's heist", "guns, love, and tentacles", "psycho krieg",
+                "awe", "the foundation", "side effects", "the price of neutrality", "songs of the past"
             };
 
             foreach (var sub in dlcSubtitles)
@@ -112,11 +164,13 @@ namespace GameLog_Backend.Services
                 }
             }
 
-            // 6. Protótipos, mods e fangames não-oficiais (preservando jogos oficiais como Garry's Mod, Star Wars Clone Wars e Prototype)
+            // 7. Protótipos, mods e fangames não-oficiais
             if (lower.Contains("itch.io") ||
                 lower.Contains("(itch)") ||
                 lower.Contains("notavirus") ||
                 lower.Contains(".exe") ||
+                lower.Contains(".apk") ||
+                lower.Contains("chromebook") ||
                 lower.Contains("rejiggied") ||
                 lower.Contains("buff sonic") ||
                 lower.Contains("songs of the past") ||
@@ -130,6 +184,12 @@ namespace GameLog_Backend.Services
                 lower.Contains("lost prototype") ||
                 lower.Contains("vector's lost world") ||
                 lower.Contains("diablo but") ||
+                lower.Contains("... but ...") ||
+                lower.Contains("boss fight") ||
+                lower.Contains("bark souls") ||
+                lower.Contains("ennard edition") ||
+                lower.Contains("daughters of ash") ||
+                (lower.Contains("nightfall") && lower.Contains("dark souls")) ||
                 Regex.IsMatch(lower, @"\b(mod tools|multiplayer mod|biohazard mod|cs:go mod|queue simulator|texturing)\b") ||
                 (Regex.IsMatch(lower, @"\b(clone|clones)\b") && !lower.Contains("clone wars")) ||
                 (Regex.IsMatch(lower, @"\b(mod|mods)\b") && !lower.Contains("garry's mod")) ||
@@ -151,13 +211,14 @@ namespace GameLog_Backend.Services
         {
             try
             {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3.5));
                 var cleanQuery = queryParams.TrimStart('&', '?');
                 var url = $"{_baseUrl}/games?key={_apiKey}&{cleanQuery}&page={pagina}&page_size={pageSize}";
-                var response = await _httpClient.GetFromJsonAsync<RawgResponseDTO<RawgGameItemDTO>>(url);
+                var response = await _httpClient.GetFromJsonAsync<RawgResponseDTO<RawgGameItemDTO>>(url, cts.Token);
                 if (response?.Results != null)
                 {
                     return response.Results
-                        .Where(r => EhJogoValido(r.Name) && !string.IsNullOrWhiteSpace(r.BackgroundImage) && r.BackgroundImage.StartsWith("http"))
+                        .Where(r => EhJogoValido(r) && !string.IsNullOrWhiteSpace(r.BackgroundImage) && r.BackgroundImage.StartsWith("http"))
                         .ToList();
                 }
             }
@@ -186,17 +247,18 @@ namespace GameLog_Backend.Services
 
             try
             {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3.5));
                 var url = $"{_baseUrl}/games?key={_apiKey}&search={Uri.EscapeDataString(termo.Trim())}&page={pagina}&page_size={itensPorPagina}&search_precise=true";
-                var response = await _httpClient.GetFromJsonAsync<RawgResponseDTO<RawgGameItemDTO>>(url);
+                var response = await _httpClient.GetFromJsonAsync<RawgResponseDTO<RawgGameItemDTO>>(url, cts.Token);
 
                 if (response == null || response.Results == null)
                 {
                     return new RawgSearchResultDTO();
                 }
 
-                // Filtrar DLCs, itens inválidos e títulos irrelevantes à busca
+                // Filtrar DLCs, fangames e itens irrelevantes à busca
                 var jogosValidos = response.Results
-                    .Where(r => EhJogoValido(r.Name) && RelevanciaBuscaHelper.CorrespondeBusca(r.Name, null, termo))
+                    .Where(r => EhJogoValido(r) && RelevanciaBuscaHelper.CorrespondeBusca(r.Name, null, termo))
                     .ToList();
 
                 // Carregar títulos locais para marcar os que já estão importados
@@ -232,8 +294,8 @@ namespace GameLog_Backend.Services
                         NomeEmpresa = r.Publishers.FirstOrDefault()?.Name ?? r.Developers.FirstOrDefault()?.Name,
                         Generos = r.Genres.Select(g => g.Name).ToList(),
                         NotaRawg = r.Rating,
-                        JaImportado = localId > 0,
-                        LocalJogoId = localId > 0 ? localId : null
+                        JaImportado = localId != Guid.Empty,
+                        LocalJogoId = localId != Guid.Empty ? localId : null
                     };
                 }).ToList();
 
@@ -249,7 +311,7 @@ namespace GameLog_Backend.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao consultar RAWG API para termo '{Termo}'", termo);
+                _logger.LogWarning(ex, "Erro ou timeout ao consultar RAWG API para termo '{Termo}'. Fallback para banco local ativado.", termo);
                 return new RawgSearchResultDTO();
             }
         }
@@ -310,7 +372,7 @@ namespace GameLog_Backend.Services
                 t.Contains("gran turismo") || t.Contains("horizon zero") || t.Contains("horizon forbidden") ||
                 t.Contains("ghost of tsushima") || t.Contains("bloodborne") || t.Contains("killzone") ||
                 t.Contains("infamous") || t.Contains("ratchet & clank") || t.Contains("spider-man"))
-                return "Sony Interactive Entertainment";
+                return "PlayStation Studios";
 
             if (t.Contains("halo") || t.Contains("gears of war") || t.Contains("forza") || t.Contains("fable") ||
                 t.Contains("age of empires") || t.Contains("sea of thieves") || t.Contains("banjo-kazooie"))
@@ -402,17 +464,17 @@ namespace GameLog_Backend.Services
             var url = $"{_baseUrl}/games?key={_apiKey}&{queryString}&page=1&page_size={Math.Min(maxItens, 40)}";
             try
             {
-                var response = await _httpClient.GetFromJsonAsync<RawgResponseDTO<RawgGameItemDTO>>(url);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3.5));
+                var response = await _httpClient.GetFromJsonAsync<RawgResponseDTO<RawgGameItemDTO>>(url, cts.Token);
                 if (response?.Results == null || !response.Results.Any())
                 {
                     return new List<JogoDTO>();
                 }
 
                 var validos = response.Results
-                    .Where(r => EhJogoValido(r.Name) 
+                    .Where(r => EhJogoValido(r) 
                              && !string.IsNullOrWhiteSpace(r.BackgroundImage) 
                              && r.BackgroundImage.StartsWith("http")
-                             && ((r.Added ?? 0) >= 10 || (r.RatingsCount ?? 0) >= 3 || r.Metacritic.HasValue)
                              && RelevanciaBuscaHelper.CorrespondeBusca(r.Name, null, busca))
                     .ToList();
 
@@ -440,6 +502,7 @@ namespace GameLog_Backend.Services
                 var jogosLocais = await _context.Jogos
                     .AsNoTracking()
                     .Include(j => j.Empresa)
+                    .Include(j => j.Publicadora)
                     .Include(j => j.Generos)
                     .Where(j => j.EstaAtivo && titulos.Contains(j.Titulo.ToLower()))
                     .ToListAsync();
@@ -484,8 +547,10 @@ namespace GameLog_Backend.Services
                             Imagem = localJogo.Imagem,
                             DataLancamento = localJogo.DataLancamento,
                             ClassificacaoIndicativa = localJogo.ClassificacaoIndicativa,
-                            EmpresaId = localJogo.Empresa?.Id ?? 0,
+                            EmpresaId = localJogo.Empresa?.Id ?? Guid.Empty,
                             NomeEmpresa = localJogo.Empresa?.NomeEmpresa ?? string.Empty,
+                            PublicadoraId = localJogo.Publicadora?.Id,
+                            NomePublicadora = localJogo.Publicadora?.NomeEmpresa,
                             EstaAtivo = true,
                             Generos = localJogo.Generos?.Select(g => g.TituloGenero).ToList() ?? new List<string>(),
                             EhExterno = false
@@ -520,20 +585,23 @@ namespace GameLog_Backend.Services
                             .Distinct()
                             .ToList() ?? new List<string>();
 
-                        var classificacao = MapearEsrbParaClassificacao(
-                            detail?.EsrbRating?.Slug ?? detail?.EsrbRating?.Name ?? r.EsrbRating?.Slug ?? r.EsrbRating?.Name
-                        );
+                        if (!generosNormalizados.Any())
+                        {
+                            generosNormalizados.Add("Ação");
+                        }
+
+                        int classificacao = MapearEsrbParaClassificacao(detail?.EsrbRating?.Slug ?? r.EsrbRating?.Slug);
 
                         resultado.Add(new JogoDTO
                         {
-                            JogoId = 0,
+                            JogoId = Guid.Empty,
                             RawgId = r.Id,
                             Titulo = r.Name.Trim(),
                             Descricao = detail?.DescriptionRaw ?? string.Empty,
                             Imagem = detail?.BackgroundImage ?? r.BackgroundImage ?? "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80",
                             DataLancamento = dataLanc,
                             ClassificacaoIndicativa = classificacao,
-                            EmpresaId = 0,
+                            EmpresaId = Guid.Empty,
                             NomeEmpresa = nomeDev,
                             PublicadoraId = null,
                             NomePublicadora = (nomePub != null && !string.Equals(nomePub, nomeDev, StringComparison.OrdinalIgnoreCase)) ? nomePub : null,
@@ -551,7 +619,7 @@ namespace GameLog_Backend.Services
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Falha ao buscar jogos híbridos na RAWG para query '{Query}'", queryString);
+                _logger.LogWarning(ex, "Falha ou timeout ao buscar jogos híbridos na RAWG para query '{Query}'. Utilizando catálogo local.", queryString);
                 return new List<JogoDTO>();
             }
         }
@@ -566,8 +634,9 @@ namespace GameLog_Backend.Services
 
             try
             {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3.5));
                 var url = $"{_baseUrl}/games/{rawgId}?key={_apiKey}";
-                var detail = await _httpClient.GetFromJsonAsync<RawgGameDetailDTO>(url);
+                var detail = await _httpClient.GetFromJsonAsync<RawgGameDetailDTO>(url, cts.Token);
 
                 if (detail != null)
                 {
@@ -578,7 +647,7 @@ namespace GameLog_Backend.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao obter detalhes da RAWG para jogo ID {RawgId}", rawgId);
+                _logger.LogWarning(ex, "Erro ou timeout ao obter detalhes da RAWG para jogo ID {RawgId}", rawgId);
                 return null;
             }
         }
@@ -600,6 +669,7 @@ namespace GameLog_Backend.Services
             // Verificar se já existe no banco local
             var jogoExistente = await _context.Jogos
                 .Include(j => j.Empresa)
+                .Include(j => j.Publicadora)
                 .Include(j => j.Generos)
                 .FirstOrDefaultAsync(j => j.EstaAtivo && j.Titulo.ToLower() == tituloLimpo.ToLower());
 
@@ -750,7 +820,7 @@ namespace GameLog_Backend.Services
                 Imagem = j.Imagem,
                 DataLancamento = j.DataLancamento,
                 ClassificacaoIndicativa = j.ClassificacaoIndicativa,
-                EmpresaId = j.Empresa?.Id ?? 0,
+                EmpresaId = j.Empresa?.Id ?? Guid.Empty,
                 NomeEmpresa = j.Empresa?.NomeEmpresa ?? string.Empty,
                 PublicadoraId = j.Publicadora?.Id,
                 NomePublicadora = j.Publicadora?.NomeEmpresa,

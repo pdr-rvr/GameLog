@@ -84,6 +84,9 @@ namespace GameLog_Backend.DTOs
         [JsonPropertyName("esrb_rating")]
         public RawgEsrbRatingDTO? EsrbRating { get; set; }
 
+        [JsonPropertyName("tags")]
+        public List<RawgNamedEntityDTO> Tags { get; set; } = new();
+
         [JsonPropertyName("parents_count")]
         public int ParentsCount { get; set; }
 
@@ -114,7 +117,7 @@ namespace GameLog_Backend.DTOs
         public List<string> Generos { get; set; } = new();
         public double? NotaRawg { get; set; }
         public bool JaImportado { get; set; }
-        public int? LocalJogoId { get; set; }
+        public Guid? LocalJogoId { get; set; }
     }
 
     public class RawgSearchResultDTO
