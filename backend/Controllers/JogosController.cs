@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using GameLog_Backend.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -27,6 +28,7 @@ namespace GameLog_Backend.Controllers
             [FromQuery] string? genero,
             [FromQuery] int? ano,
             [FromQuery] string? empresa,
+            [FromQuery] double? notaMinima,
             [FromQuery] string? ordenacao)
         {
             if (pagina.HasValue)
@@ -38,6 +40,7 @@ namespace GameLog_Backend.Controllers
                     genero,
                     ano,
                     empresa,
+                    notaMinima,
                     ordenacao ?? "melhores"
                 );
                 return Ok(paged);
@@ -49,7 +52,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterJogoPorId(int id)
+        public async Task<IActionResult> ObterJogoPorId(Guid id)
         {
             var jogo = await _jogoServices.ObterJogoPorId(id);
             if (jogo == null)
