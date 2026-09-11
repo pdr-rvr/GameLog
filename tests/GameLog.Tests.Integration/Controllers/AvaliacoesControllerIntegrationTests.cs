@@ -128,5 +128,17 @@ namespace GameLog.Tests.Integration.Controllers
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.OK);
         }
+
+        [Fact]
+        public async Task ListarAvaliacoes_ComFiltroDeNota_DeveRetornar200OK()
+        {
+            // Act
+            var response = await _client.GetAsync("/api/Avaliacoes?nota=5&ordenacao=curtidas");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var result = await response.Content.ReadFromJsonAsync<List<AvaliacaoDTO>>();
+            result.Should().NotBeNull();
+        }
     }
 }

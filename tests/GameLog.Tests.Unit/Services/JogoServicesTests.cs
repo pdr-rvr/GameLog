@@ -118,5 +118,36 @@ namespace GameLog.Tests.Unit.Services
             var resCapcom = await service.ListarJogosPaginados(empresa: "Capcom");
             resCapcom.Itens.Should().ContainSingle(j => j.Titulo == "Resident Evil 4");
         }
+
+        [Fact]
+        public async Task ListarDestaquesHeroAsync_DeveRetornarJogosComCapas()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var rawgService = CreateMockRawgService(context);
+            var service = new JogoServices(context, rawgService);
+
+            var empresa = new Empresa { NomeEmpresa = "CD Projekt Red", EstaAtivo = true };
+            context.Empresa.Add(empresa);
+
+            var jogo = new Jogo
+            {
+                Titulo = "The Witcher 3: Wild Hunt",
+                Descricao = "Geralt de Rivia",
+                Imagem = "witcher.jpg",
+                DataLancamento = new DateOnly(2015, 5, 18),
+                Empresa = empresa,
+                EstaAtivo = true
+            };
+            context.Jogos.Add(jogo);
+            await context.SaveChangesAsync();
+
+            // Act
+            var destaques = (await service.ListarDestaquesHeroAsync(5)).ToList();
+
+            // Assert
+            destaques.Should().NotBeEmpty();
+            destaques.First().Titulo.Should().Be("The Witcher 3: Wild Hunt");
+        }
     }
 }

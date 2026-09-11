@@ -67,12 +67,45 @@ namespace GameLog_Backend.Services
             return await ObterAvaliacaoDto(avaliacao.Id);
         }
 
-        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoes(Guid? usuarioId = null)
+        public async Task<IEnumerable<AvaliacaoDTO>> ListarAvaliacoes(
+            Guid? usuarioId = null,
+            int? notaExata = null,
+            string? ordenacao = "recentes",
+            int? pagina = null,
+            int? itensPorPagina = null)
         {
-            return await _context.Avaliacoes
+            var query = _context.Avaliacoes
                 .AsNoTracking()
-                .Where(a => a.EstaAtivo)
-                .OrderByDescending(a => a.DataPublicacao)
+                .Where(a => a.EstaAtivo && a.Jogo.EstaAtivo && a.Usuario.EstaAtivo);
+
+            if (notaExata.HasValue)
+            {
+                query = query.Where(a => a.Nota == notaExata.Value);
+            }
+
+            if (ordenacao == "curtidas")
+            {
+                query = query.OrderByDescending(a => a.CurtidasDeAvaliacao.Count(c => c.EstaAtivo && c.Curtida))
+                             .ThenByDescending(a => a.DataPublicacao);
+            }
+            else if (ordenacao == "melhores")
+            {
+                query = query.OrderByDescending(a => a.Nota)
+                             .ThenByDescending(a => a.DataPublicacao);
+            }
+            else
+            {
+                query = query.OrderByDescending(a => a.DataPublicacao);
+            }
+
+            if (pagina.HasValue && itensPorPagina.HasValue)
+            {
+                var p = Math.Max(1, pagina.Value);
+                var take = Math.Clamp(itensPorPagina.Value, 1, 50);
+                query = query.Skip((p - 1) * take).Take(take);
+            }
+
+            return await query
                 .Select(a => new AvaliacaoDTO
                 {
                     AvaliacaoId = a.Id,

@@ -204,5 +204,42 @@ namespace GameLog.Tests.Unit.Services
             var seguidores = await service.ObterSeguidores(user2.UsuarioId);
             seguidores.Should().BeEmpty();
         }
+
+        [Fact]
+        public async Task ObterTimelineAtividades_DeveRetornarEventosDeSeguidos()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var mapper = TestContextHelper.CreateMapper();
+            var jwtOptions = TestContextHelper.CreateJwtSettings();
+            var service = new UsuarioServices(context, mapper, jwtOptions);
+
+            var user1 = await service.CriarUsuario(new CriarUsuarioDTO { NomeUsuario = "UserA", Email = "a@test.com", Senha = "Password123!" });
+            var user2 = await service.CriarUsuario(new CriarUsuarioDTO { NomeUsuario = "UserB", Email = "b@test.com", Senha = "Password123!" });
+
+            // UserA segue UserB
+            await service.AlternarSeguirUsuario(user1.UsuarioId, user2.UsuarioId);
+
+            var empresa = new Empresa { NomeEmpresa = "TestStudio", EstaAtivo = true };
+            context.Empresa.Add(empresa);
+
+            var jogo = new Jogo { Titulo = "Timeline Game", Imagem = "img.jpg", DataLancamento = new DateOnly(2024, 1, 1), Empresa = empresa, EstaAtivo = true };
+            context.Jogos.Add(jogo);
+
+            var user2Entity = await context.Usuarios.FindAsync(user2.UsuarioId);
+            var avaliacao = new Avaliacao { Jogo = jogo, Usuario = user2Entity!, Nota = 5, TextoAvaliacao = "Incrivel!", DataPublicacao = DateTime.UtcNow, EstaAtivo = true };
+            context.Avaliacoes.Add(avaliacao);
+            await context.SaveChangesAsync();
+
+            // Act
+            var timeline = await service.ObterTimelineAtividades(user1.UsuarioId);
+
+            // Assert
+            timeline.Should().ContainSingle();
+            var act = timeline.First();
+            act.Tipo.Should().Be("Avaliou");
+            act.UsuarioNome.Should().Be("UserB");
+            act.JogoTitulo.Should().Be("Timeline Game");
+        }
     }
 }

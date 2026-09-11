@@ -120,5 +120,21 @@ namespace GameLog.Tests.Integration.Controllers
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
+
+        [Fact]
+        public async Task ObterAtividades_Autenticado_DeveRetornar200OK()
+        {
+            // Arrange
+            var userId = Guid.NewGuid();
+            var authClient = _factory.CreateAuthenticatedClient(userId);
+
+            // Act
+            var response = await authClient.GetAsync("/api/Usuarios/atividades?pagina=1&itensPorPagina=10");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var result = await response.Content.ReadFromJsonAsync<List<ItemAtividadeTimelineDTO>>();
+            result.Should().NotBeNull();
+        }
     }
 }

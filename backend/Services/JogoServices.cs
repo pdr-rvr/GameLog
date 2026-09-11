@@ -340,6 +340,82 @@ namespace GameLog_Backend.Services
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<JogoDTO>> ListarDestaquesHeroAsync(int limite = 5)
+        {
+            limite = Math.Clamp(limite, 1, 10);
+            var titulosCanonicicos = new[]
+            {
+                "The Witcher 3: Wild Hunt",
+                "Red Dead Redemption 2",
+                "Baldur's Gate III",
+                "Cyberpunk 2077",
+                "Elden Ring",
+                "God of War",
+                "The Legend of Zelda: Tears of the Kingdom",
+                "Grand Theft Auto V"
+            };
+
+            var destaques = await _context.Jogos
+                .AsNoTracking()
+                .Include(j => j.Generos)
+                .Include(j => j.Empresa)
+                .Include(j => j.Publicadora)
+                .Where(j => j.EstaAtivo && !string.IsNullOrEmpty(j.Imagem) && titulosCanonicicos.Contains(j.Titulo))
+                .Take(limite)
+                .ToListAsync();
+
+            if (destaques.Count < limite)
+            {
+                var destaquesIds = destaques.Select(d => d.Id).ToHashSet();
+                var fallback = await _context.Jogos
+                    .AsNoTracking()
+                    .Include(j => j.Generos)
+                    .Include(j => j.Empresa)
+                    .Include(j => j.Publicadora)
+                    .Where(j => j.EstaAtivo && !string.IsNullOrEmpty(j.Imagem) && !destaquesIds.Contains(j.Id))
+                    .OrderByDescending(j => j.DataLancamento)
+                    .Take(limite - destaques.Count)
+                    .ToListAsync();
+                destaques.AddRange(fallback);
+            }
+
+            var ids = destaques.Select(d => d.Id).ToList();
+            var stats = await _context.Avaliacoes
+                .AsNoTracking()
+                .Where(a => ids.Contains(a.Jogo.Id) && a.EstaAtivo)
+                .GroupBy(a => a.Jogo.Id)
+                .Select(g => new
+                {
+                    JogoId = g.Key,
+                    Media = g.Average(x => (double)x.Nota),
+                    Total = g.Count()
+                })
+                .ToDictionaryAsync(x => x.JogoId);
+
+            return destaques.Select(j =>
+            {
+                stats.TryGetValue(j.Id, out var s);
+                return new JogoDTO
+                {
+                    JogoId = j.Id,
+                    Titulo = j.Titulo,
+                    Descricao = j.Descricao,
+                    Imagem = j.Imagem,
+                    DataLancamento = j.DataLancamento,
+                    ClassificacaoIndicativa = j.ClassificacaoIndicativa,
+                    EmpresaId = j.Empresa?.Id ?? Guid.Empty,
+                    NomeEmpresa = j.Empresa?.NomeEmpresa ?? string.Empty,
+                    PublicadoraId = j.Publicadora?.Id,
+                    NomePublicadora = j.Publicadora?.NomeEmpresa,
+                    EstaAtivo = j.EstaAtivo,
+                    Generos = j.Generos.Select(g => g.TituloGenero).ToList(),
+                    MediaAvaliacoes = s != null ? Math.Round(s.Media, 1) : 5.0, // Destaques padrão
+                    TotalAvaliacoes = s?.Total ?? 0,
+                    EhExterno = false
+                };
+            }).ToList();
+        }
+
         public async Task<MetadadosFiltrosDTO> ObterMetadadosFiltros()
         {
             var generos = await _context.Generos

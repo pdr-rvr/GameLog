@@ -910,5 +910,110 @@ namespace GameLog_Backend.Services
                 .Take(itensPorPagina)
                 .ToList();
         }
+
+        public async Task<List<ItemAtividadeTimelineDTO>> ObterTimelineAtividades(Guid usuarioId, int pagina = 1, int itensPorPagina = 30)
+        {
+            pagina = Math.Max(1, pagina);
+            itensPorPagina = Math.Clamp(itensPorPagina, 1, 60);
+
+            var seguindoIds = await _context.SegueUsuarios
+                .AsNoTracking()
+                .Where(s => s.UsuarioSeguidor.Id == usuarioId && s.EstaAtivo)
+                .Select(s => s.UsuarioSeguido.Id)
+                .ToListAsync();
+
+            if (!seguindoIds.Any())
+            {
+                return new List<ItemAtividadeTimelineDTO>();
+            }
+
+            // 1. Avaliações
+            var avaliacoes = await _context.Avaliacoes
+                .AsNoTracking()
+                .Include(a => a.Usuario)
+                .Include(a => a.Jogo)
+                .Where(a => seguindoIds.Contains(a.Usuario.Id) && a.EstaAtivo)
+                .OrderByDescending(a => a.DataPublicacao)
+                .Take(itensPorPagina * 2)
+                .Select(a => new ItemAtividadeTimelineDTO
+                {
+                    Id = "act-eval-" + a.Id,
+                    Tipo = "Avaliou",
+                    DataAtividade = a.DataPublicacao,
+                    UsuarioId = a.Usuario.Id,
+                    UsuarioNome = a.Usuario.NomeUsuario,
+                    UsuarioFoto = a.Usuario.FotoDePerfil,
+                    JogoId = a.Jogo.Id,
+                    JogoTitulo = a.Jogo.Titulo,
+                    JogoImagem = a.Jogo.Imagem,
+                    Nota = a.Nota,
+                    TextoCurto = !string.IsNullOrEmpty(a.TextoAvaliacao) 
+                        ? (a.TextoAvaliacao.Length > 80 ? a.TextoAvaliacao.Substring(0, 80) + "..." : a.TextoAvaliacao) 
+                        : null
+                })
+                .ToListAsync();
+
+            // 2. Status na Biblioteca (Zerado ou Jogando)
+            var bibItems = await _context.ItensBiblioteca
+                .AsNoTracking()
+                .Include(b => b.Jogo)
+                .Where(b => seguindoIds.Contains(b.UsuarioId) && b.EstaAtivo && (b.Status == StatusJogo.Zerado || b.Status == StatusJogo.Jogando))
+                .OrderByDescending(b => b.DataAtualizacao)
+                .Take(itensPorPagina * 2)
+                .ToListAsync();
+
+            var bibUserIds = bibItems.Select(b => b.UsuarioId).Distinct().ToList();
+            var usuariosMap = await _context.Usuarios
+                .AsNoTracking()
+                .Where(u => bibUserIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => new { u.NomeUsuario, u.FotoDePerfil });
+
+            var statusItems = bibItems.Select(b =>
+            {
+                usuariosMap.TryGetValue(b.UsuarioId, out var u);
+                return new ItemAtividadeTimelineDTO
+                {
+                    Id = "act-bib-" + b.Id,
+                    Tipo = b.Status == StatusJogo.Zerado ? "Zerou" : "Jogando",
+                    DataAtividade = b.DataConclusao ?? b.DataAtualizacao,
+                    UsuarioId = b.UsuarioId,
+                    UsuarioNome = u?.NomeUsuario ?? "Gamer",
+                    UsuarioFoto = u?.FotoDePerfil,
+                    JogoId = b.JogoId,
+                    JogoTitulo = b.Jogo.Titulo,
+                    JogoImagem = b.Jogo.Imagem
+                };
+            }).ToList();
+
+            // 3. Listas
+            var listas = await _context.ListasDeJogos
+                .AsNoTracking()
+                .Include(l => l.Usuario)
+                .Include(l => l.Itens)
+                .Where(l => seguindoIds.Contains(l.UsuarioId) && l.EstaPublica && l.EstaAtivo)
+                .OrderByDescending(l => l.DataCriacao)
+                .Take(itensPorPagina * 2)
+                .Select(l => new ItemAtividadeTimelineDTO
+                {
+                    Id = "act-list-" + l.Id,
+                    Tipo = "CriouLista",
+                    DataAtividade = l.DataCriacao,
+                    UsuarioId = l.Usuario.Id,
+                    UsuarioNome = l.Usuario.NomeUsuario,
+                    UsuarioFoto = l.Usuario.FotoDePerfil,
+                    ListaId = l.Id,
+                    ListaTitulo = l.Titulo,
+                    TotalJogos = l.Itens.Count(i => i.EstaAtivo)
+                })
+                .ToListAsync();
+
+            return avaliacoes
+                .Concat(statusItems)
+                .Concat(listas)
+                .OrderByDescending(item => item.DataAtividade)
+                .Skip((pagina - 1) * itensPorPagina)
+                .Take(itensPorPagina)
+                .ToList();
+        }
     }
 }

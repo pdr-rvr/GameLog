@@ -185,5 +185,14 @@ namespace GameLog_Backend.Controllers
             var feed = await _usuarioServices.ObterFeedSocial(usuarioId, pagina, itensPorPagina);
             return Ok(feed);
         }
+
+        [HttpGet("atividades")]
+        [Authorize]
+        public async Task<IActionResult> ObterAtividadesTimeline([FromQuery] int pagina = 1, [FromQuery] int itensPorPagina = 30)
+        {
+            var usuarioId = User.GetUserId();
+            var timeline = await _usuarioServices.ObterTimelineAtividades(usuarioId, pagina, itensPorPagina);
+            return Ok(timeline);
+        }
     }
 }

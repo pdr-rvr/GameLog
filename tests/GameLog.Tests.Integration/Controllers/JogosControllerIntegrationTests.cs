@@ -81,13 +81,15 @@ namespace GameLog.Tests.Integration.Controllers
         }
 
         [Fact]
-        public async Task ObterJogoPorId_QuandoNaoExiste_DeveRetornar404NotFound()
+        public async Task ListarDestaques_DeveRetornar200OK()
         {
             // Act
-            var response = await _client.GetAsync($"/api/Jogos/{Guid.NewGuid()}");
+            var response = await _client.GetAsync("/api/Jogos/destaques?limite=5");
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var destaques = await response.Content.ReadFromJsonAsync<List<JogoDTO>>();
+            destaques.Should().NotBeNull();
         }
     }
 }

@@ -70,6 +70,14 @@ namespace GameLog_Backend.Controllers
             return Ok(jogos);
         }
 
+        [HttpGet("destaques")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ListarDestaquesHero([FromQuery] int limite = 5)
+        {
+            var destaques = await _jogoServices.ListarDestaquesHeroAsync(limite);
+            return Ok(destaques);
+        }
+
         [HttpGet("metadados-filtros")]
         [AllowAnonymous]
         public async Task<IActionResult> ObterMetadadosFiltros()
