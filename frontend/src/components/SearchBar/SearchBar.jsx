@@ -93,7 +93,7 @@ const SearchBar = ({
         } catch (err) {
           console.error("Erro ao importar jogo selecionado:", err);
           const fallbackId = jogo.jogoId || jogo.id;
-          if (fallbackId > 0) navigate(`/jogos/${fallbackId}`);
+          if (fallbackId) navigate(`/jogos/${fallbackId}`);
         }
       } else {
         const id = jogo.jogoId || jogo.id;
@@ -120,7 +120,7 @@ const SearchBar = ({
     if (e.key === 'Enter' && query.trim().length > 0) {
       setShowSuggestions(false);
       if (globalMode) {
-        navigate(`/jogos?q=${encodeURIComponent(query.trim())}`);
+        navigate(`/jogos?busca=${encodeURIComponent(query.trim())}`);
       }
     }
   };
@@ -203,34 +203,35 @@ const SearchBar = ({
                   {globalResults.jogos.map((jogo) => {
                     const id = jogo.jogoId || jogo.id;
                     const title = jogo.titulo || jogo.nome || 'Jogo';
+                    const image = jogo.imagem || jogo.foto || jogo.imagemCapa || '';
                     const year = jogo.anoLancamento || (jogo.dataLancamento ? String(jogo.dataLancamento).substring(0, 4) : '');
-                        const dev = jogo.nomeDesenvolvedora || jogo.nomeEmpresa || '';
-                        const pub = jogo.nomePublicadora || '';
-                        const temPubDif = pub && dev && pub.trim().toLowerCase() !== dev.trim().toLowerCase();
-                        const companyText = temPubDif ? `${dev} (Pub: ${pub})` : dev;
+                    const dev = jogo.nomeDesenvolvedora || jogo.nomeEmpresa || '';
+                    const pub = jogo.nomePublicadora || '';
+                    const temPubDif = pub && dev && pub.trim().toLowerCase() !== dev.trim().toLowerCase();
+                    const companyText = temPubDif ? `${dev} (Pub: ${pub})` : dev;
 
-                        return (
-                          <div 
-                            key={`game-${id}`} 
-                            className="suggestion-item" 
-                            onClick={() => handleSelectGame(jogo)}
-                          >
-                            {image ? (
-                              <img src={image} alt={title} className="suggestion-thumb" />
-                            ) : (
-                              <div className="suggestion-thumb-fallback">
-                                <FaGamepad />
-                              </div>
-                            )}
-                            <div className="suggestion-meta">
-                              <span className="suggestion-title">{title}</span>
-                              <span className="suggestion-sub">
-                                {year} {companyText ? `• ${companyText}` : ''}
-                              </span>
-                            </div>
-                            <FaChevronRight className="suggestion-arrow" />
+                    return (
+                      <div 
+                        key={`game-${id || title}`} 
+                        className="suggestion-item" 
+                        onClick={() => handleSelectGame(jogo)}
+                      >
+                        {image ? (
+                          <img src={image} alt={title} className="suggestion-thumb" />
+                        ) : (
+                          <div className="suggestion-thumb-fallback">
+                            <FaGamepad />
                           </div>
-                        );
+                        )}
+                        <div className="suggestion-meta">
+                          <span className="suggestion-title">{title}</span>
+                          <span className="suggestion-sub">
+                            {year} {companyText ? `• ${companyText}` : ''}
+                          </span>
+                        </div>
+                        <FaChevronRight className="suggestion-arrow" />
+                      </div>
+                    );
                   })}
                 </div>
               )}
