@@ -17,13 +17,17 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^6.2.0"
+    "jsdom": "^26.0.0",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.7"
   },
   "scripts": {
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "browserslist": {
     "production": [
