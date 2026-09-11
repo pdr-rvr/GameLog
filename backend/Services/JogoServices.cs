@@ -27,12 +27,12 @@ namespace GameLog_Backend.Services
                 .Where(j => j.EstaAtivo)
                 .Include(j => j.Generos)
                 .Include(j => j.Empresa)
+                .Include(j => j.Publicadora)
                 .ToListAsync();
 
             if (!jogos.Any())
                 return Enumerable.Empty<JogoDTO>();
 
-            // Otimização em lote: 1 query de agregação para todas as avaliações ativas
             var stats = await _context.Avaliacoes
                 .AsNoTracking()
                 .Where(a => a.EstaAtivo)
@@ -56,8 +56,10 @@ namespace GameLog_Backend.Services
                     Imagem = j.Imagem,
                     DataLancamento = j.DataLancamento,
                     ClassificacaoIndicativa = j.ClassificacaoIndicativa,
-                    EmpresaId = j.Empresa?.Id ?? 0,
+                    EmpresaId = j.Empresa?.Id ?? Guid.Empty,
                     NomeEmpresa = j.Empresa?.NomeEmpresa ?? string.Empty,
+                    PublicadoraId = j.Publicadora?.Id,
+                    NomePublicadora = j.Publicadora?.NomeEmpresa,
                     EstaAtivo = j.EstaAtivo,
                     Generos = j.Generos.Select(g => g.TituloGenero).ToList(),
                     MediaAvaliacoes = s != null ? s.Media : null,
@@ -74,6 +76,7 @@ namespace GameLog_Backend.Services
             string? genero = null,
             int? ano = null,
             string? empresa = null,
+            double? notaMinima = null,
             string ordenacao = "melhores")
         {
             pagina = Math.Max(1, pagina);
@@ -144,7 +147,7 @@ namespace GameLog_Backend.Services
                         Imagem = j.Imagem,
                         DataLancamento = j.DataLancamento,
                         ClassificacaoIndicativa = j.ClassificacaoIndicativa,
-                        EmpresaId = j.Empresa?.Id ?? 0,
+                        EmpresaId = j.Empresa?.Id ?? Guid.Empty,
                         NomeEmpresa = j.Empresa?.NomeEmpresa ?? string.Empty,
                         PublicadoraId = j.Publicadora?.Id,
                         NomePublicadora = j.Publicadora?.NomeEmpresa,
@@ -156,7 +159,17 @@ namespace GameLog_Backend.Services
                     };
                 }).ToList();
 
-                var externos = await _rawgApiService.BuscarJogosExternosFormatados(busca, ano, genero, empresa, 40);
+                List<JogoDTO> externos = new();
+                try
+                {
+                    // Busca externa com fallback automático embutido
+                    externos = await _rawgApiService.BuscarJogosExternosFormatados(busca, ano, genero, empresa, 60);
+                }
+                catch
+                {
+                    // Fallback transparente para o banco local
+                    externos = new List<JogoDTO>();
+                }
 
                 var titulosLocais = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var listaFinal = new List<JogoDTO>();
@@ -165,6 +178,11 @@ namespace GameLog_Backend.Services
                 {
                     if (RelevanciaBuscaHelper.CorrespondeBusca(local.Titulo, local.NomeEmpresa, local.NomePublicadora, busca))
                     {
+                        if (notaMinima.HasValue && (local.MediaAvaliacoes == null || local.MediaAvaliacoes < notaMinima.Value))
+                        {
+                            continue;
+                        }
+
                         titulosLocais.Add(local.Titulo.Trim().ToLower());
                         listaFinal.Add(local);
                     }
@@ -175,6 +193,11 @@ namespace GameLog_Backend.Services
                     var tLower = ext.Titulo.Trim().ToLower();
                     if (!titulosLocais.Contains(tLower) && RelevanciaBuscaHelper.CorrespondeBusca(ext.Titulo, ext.NomeEmpresa, ext.NomePublicadora, busca))
                     {
+                        if (notaMinima.HasValue && (ext.MediaAvaliacoes == null || ext.MediaAvaliacoes < notaMinima.Value))
+                        {
+                            continue;
+                        }
+
                         titulosLocais.Add(tLower);
                         listaFinal.Add(ext);
                     }
@@ -199,9 +222,7 @@ namespace GameLog_Backend.Services
                 return new PagedResult<JogoDTO>(itens, total, pagina, itensPorPagina);
             }
 
-            // Caso padrão (Navegação geral do catálogo de 2.500 jogos no banco)
-            var totalItens = await query.CountAsync();
-
+            // Caso padrão (Navegação geral do catálogo no banco local)
             var jogosQuery = query.Select(j => new JogoDTO
             {
                 JogoId = j.Id,
@@ -210,7 +231,7 @@ namespace GameLog_Backend.Services
                 Imagem = j.Imagem,
                 DataLancamento = j.DataLancamento,
                 ClassificacaoIndicativa = j.ClassificacaoIndicativa,
-                EmpresaId = j.Empresa != null ? j.Empresa.Id : 0,
+                EmpresaId = j.Empresa != null ? j.Empresa.Id : Guid.Empty,
                 NomeEmpresa = j.Empresa != null ? j.Empresa.NomeEmpresa : string.Empty,
                 PublicadoraId = j.Publicadora != null ? j.Publicadora.Id : null,
                 NomePublicadora = j.Publicadora != null ? j.Publicadora.NomeEmpresa : null,
@@ -223,6 +244,13 @@ namespace GameLog_Backend.Services
                     .Count(a => a.Jogo.Id == j.Id && a.EstaAtivo),
                 EhExterno = false
             });
+
+            if (notaMinima.HasValue)
+            {
+                jogosQuery = jogosQuery.Where(j => j.MediaAvaliacoes != null && j.MediaAvaliacoes >= notaMinima.Value);
+            }
+
+            var totalItens = await jogosQuery.CountAsync();
 
             jogosQuery = (ordenacao ?? "melhores").ToLower() switch
             {
@@ -241,7 +269,7 @@ namespace GameLog_Backend.Services
             return new PagedResult<JogoDTO>(itensPaginados, totalItens, pagina, itensPorPagina);
         }
 
-        public async Task<JogoDTO?> ObterJogoPorId(int id)
+        public async Task<JogoDTO?> ObterJogoPorId(Guid id)
         {
             var jogo = await _context.Jogos
                 .AsNoTracking()
@@ -272,7 +300,7 @@ namespace GameLog_Backend.Services
                 Imagem = jogo.Imagem,
                 DataLancamento = jogo.DataLancamento,
                 ClassificacaoIndicativa = jogo.ClassificacaoIndicativa,
-                EmpresaId = jogo.Empresa?.Id ?? 0,
+                EmpresaId = jogo.Empresa?.Id ?? Guid.Empty,
                 NomeEmpresa = jogo.Empresa?.NomeEmpresa ?? string.Empty,
                 PublicadoraId = jogo.Publicadora?.Id,
                 NomePublicadora = jogo.Publicadora?.NomeEmpresa,
@@ -299,6 +327,8 @@ namespace GameLog_Backend.Services
                     ClassificacaoIndicativa = g.Key.ClassificacaoIndicativa,
                     EmpresaId = g.Key.Empresa.Id,
                     NomeEmpresa = g.Key.Empresa.NomeEmpresa,
+                    PublicadoraId = g.Key.Publicadora != null ? g.Key.Publicadora.Id : null,
+                    NomePublicadora = g.Key.Publicadora != null ? g.Key.Publicadora.NomeEmpresa : null,
                     EstaAtivo = g.Key.EstaAtivo,
                     MediaAvaliacoes = g.Average(a => (double?)a.Nota),
                     TotalAvaliacoes = g.Count(),

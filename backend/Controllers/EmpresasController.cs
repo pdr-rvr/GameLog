@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using GameLog_Backend.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -26,7 +27,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<IActionResult> ObterEmpresaPorId(int id)
+        public async Task<IActionResult> ObterEmpresaPorId(Guid id)
         {
             var empresa = await _empresaServices.ObterEmpresaPorId(id);
             if (empresa == null)
@@ -39,7 +40,7 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet("{id}/jogos")]
         [AllowAnonymous]
-        public async Task<IActionResult> ListarJogosPorEmpresa(int id)
+        public async Task<IActionResult> ListarJogosPorEmpresa(Guid id)
         {
             var jogos = await _empresaServices.ListarJogosPorEmpresa(id);
             return Ok(jogos);
