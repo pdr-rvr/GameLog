@@ -29,10 +29,14 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> ListarAvaliacoes()
+        public async Task<IActionResult> ListarAvaliacoes(
+            [FromQuery] int? nota,
+            [FromQuery] string? ordenacao,
+            [FromQuery] int? pagina,
+            [FromQuery] int? itensPorPagina)
         {
             var usuarioId = User.GetUserIdOrNull();
-            var avaliacoes = await _avaliacaoServices.ListarAvaliacoes(usuarioId);
+            var avaliacoes = await _avaliacaoServices.ListarAvaliacoes(usuarioId, nota, ordenacao, pagina, itensPorPagina);
             return Ok(avaliacoes);
         }
 

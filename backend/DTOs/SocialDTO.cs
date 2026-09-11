@@ -57,4 +57,26 @@ namespace GameLog_Backend.DTOs
         public int? TotalJogosLista { get; set; }
         public List<string>? CapasPreviewLista { get; set; }
     }
+
+    public class ItemAtividadeTimelineDTO
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Tipo { get; set; } = string.Empty; // "Zerou", "Jogando", "Avaliou", "CriouLista"
+        public DateTime DataAtividade { get; set; }
+        
+        public Guid UsuarioId { get; set; }
+        public string UsuarioNome { get; set; } = string.Empty;
+        public string? UsuarioFoto { get; set; }
+
+        public Guid? JogoId { get; set; }
+        public string? JogoTitulo { get; set; }
+        public string? JogoImagem { get; set; }
+
+        public int? Nota { get; set; }
+        public string? TextoCurto { get; set; }
+
+        public Guid? ListaId { get; set; }
+        public string? ListaTitulo { get; set; }
+        public int? TotalJogos { get; set; }
+    }
 }
