@@ -19,7 +19,7 @@ namespace GameLog_Backend.Configurations
 
             builder.ToTable(t => t.HasCheckConstraint(
                 "CK_Avaliacao_Nota_Range",
-                "[Nota] >= 0 AND [Nota] <= 5" 
+                "\"Nota\" >= 0 AND \"Nota\" <= 5" 
             ));
 
             builder.HasOne(e => e.Jogo)

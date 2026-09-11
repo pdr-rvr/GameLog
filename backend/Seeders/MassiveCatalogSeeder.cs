@@ -11,7 +11,6 @@ using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
 using GameLog_Backend.Helpers;
 using GameLog_Backend.Services;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -584,46 +583,34 @@ namespace GameLog_Backend.Seeders
                 }
             }
 
-            // 6. Montar tabelas em memória para SqlBulkCopy com Garantia Absoluta Anti-Duplicação e Estúdios 100% Autênticos
-            var tableJogos = new DataTable("Jogos");
-            tableJogos.Columns.Add("JogoId", typeof(Guid));
-            tableJogos.Columns.Add("Titulo", typeof(string));
-            tableJogos.Columns.Add("Descricao", typeof(string));
-            tableJogos.Columns.Add("Imagem", typeof(string));
-            tableJogos.Columns.Add("DataLancamento", typeof(DateTime));
-            tableJogos.Columns.Add("ClassificacaoIndicativa", typeof(int));
-            tableJogos.Columns.Add("EmpresaId", typeof(Guid));
-            tableJogos.Columns.Add("PublicadoraId", typeof(Guid));
-            tableJogos.Columns.Add("EstaAtivo", typeof(bool));
-
-            var tableJogoGenero = new DataTable("JogoGenero");
-            tableJogoGenero.Columns.Add("GenerosId", typeof(Guid));
-            tableJogoGenero.Columns.Add("JogosId", typeof(Guid));
+            // 6. Montar entidades Jogo com relacionamentos para inserção em lote
+            var generosEntidades = await _context.Generos.ToDictionaryAsync(g => g.Id, g => g);
+            var empresasEntidades = await _context.Empresa.ToDictionaryAsync(e => e.Id, e => e);
 
             var titulosInseridosNaTabela = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var relacoesVistas = new HashSet<(Guid, Guid)>();
+            var jogosParaInserir = new List<Jogo>();
 
             foreach (var (rawg, studioNome) in jogosComEstudioValido)
             {
                 var titulo = FormatarTituloFinal(rawg.Name.Trim());
                 if (titulo.Length > 250) titulo = titulo.Substring(0, 250).Trim();
 
-                // Garantia estrita de que nenhum título duplicado entrará no DataTable
+                // Garantia estrita de que nenhum título duplicado entrará na lista
                 if (!titulosInseridosNaTabela.Add(titulo))
                 {
                     continue;
                 }
 
-                if (!empresaDict.TryGetValue(studioNome, out var empId))
+                if (!empresaDict.TryGetValue(studioNome, out var empId) || !empresasEntidades.TryGetValue(empId, out var empEntidade))
                 {
                     continue;
                 }
 
-                Guid? pubId = null;
+                Empresa? pubEntidade = null;
                 var rawgPub = rawg.Publishers?.FirstOrDefault()?.Name;
                 if (!string.IsNullOrWhiteSpace(rawgPub) && empresaDict.TryGetValue(rawgPub, out var foundPubId))
                 {
-                    pubId = foundPubId;
+                    empresasEntidades.TryGetValue(foundPubId, out pubEntidade);
                 }
 
                 var dtLanc = DateTime.UtcNow;
@@ -649,51 +636,42 @@ namespace GameLog_Backend.Seeders
                 // Resolução dos gêneros
                 var (gensIds, gensNomes) = ResolverGeneros(rawg, generoDict, defaultGeneroId);
 
-                // Geração de Descrição Rica e Narrativa (sem apenas repetir a nota)
+                // Geração de Descrição Rica e Narrativa
                 var desc = GerarDescricaoRica(titulo, rawg, studioNome, gensNomes, dtLanc);
 
-                var jogoId = UuidV7Helper.NewGuid();
-                tableJogos.Rows.Add(jogoId, titulo, desc, rawg.BackgroundImage, dtLanc, classif, empId, pubId.HasValue ? (object)pubId.Value : DBNull.Value, true);
+                var jogo = new Jogo
+                {
+                    Id = UuidV7Helper.NewGuid(),
+                    Titulo = titulo,
+                    Descricao = desc,
+                    Imagem = rawg.BackgroundImage ?? string.Empty,
+                    DataLancamento = DateOnly.FromDateTime(dtLanc),
+                    ClassificacaoIndicativa = classif,
+                    Empresa = empEntidade,
+                    Publicadora = pubEntidade,
+                    EstaAtivo = true
+                };
 
                 foreach (var gId in gensIds)
                 {
-                    if (relacoesVistas.Add((gId, jogoId)))
+                    if (generosEntidades.TryGetValue(gId, out var genEntidade))
                     {
-                        tableJogoGenero.Rows.Add(gId, jogoId);
+                        jogo.Generos.Add(genEntidade);
                     }
                 }
+
+                jogosParaInserir.Add(jogo);
             }
 
-            // 7. Bulk Copy no SQL Server
-            _logger.LogInformation("[Seeder] Executando SqlBulkCopy para {Total} jogos curados e únicos...", tableJogos.Rows.Count);
-            using (var connection = new SqlConnection(connectionString))
+            // 7. Inserção em lote no banco de dados via EF Core
+            _logger.LogInformation("[Seeder] Salvando {Total} jogos curados com gêneros e estúdios...", jogosParaInserir.Count);
+            const int batchSize = 500;
+            for (var i = 0; i < jogosParaInserir.Count; i += batchSize)
             {
-                await connection.OpenAsync();
-                using (var bulkCopy = new SqlBulkCopy(connection))
-                {
-                    bulkCopy.DestinationTableName = "dbo.Jogos";
-                    bulkCopy.BulkCopyTimeout = 300;
-                    bulkCopy.ColumnMappings.Add("JogoId", "JogoId");
-                    bulkCopy.ColumnMappings.Add("Titulo", "Titulo");
-                    bulkCopy.ColumnMappings.Add("Descricao", "Descricao");
-                    bulkCopy.ColumnMappings.Add("Imagem", "Imagem");
-                    bulkCopy.ColumnMappings.Add("DataLancamento", "DataLancamento");
-                    bulkCopy.ColumnMappings.Add("ClassificacaoIndicativa", "ClassificacaoIndicativa");
-                    bulkCopy.ColumnMappings.Add("EmpresaId", "EmpresaId");
-                    bulkCopy.ColumnMappings.Add("PublicadoraId", "PublicadoraId");
-                    bulkCopy.ColumnMappings.Add("EstaAtivo", "EstaAtivo");
-                    await bulkCopy.WriteToServerAsync(tableJogos);
-                }
-
-                _logger.LogInformation("[Seeder] Executando SqlBulkCopy para {Total} relações JogoGenero...", tableJogoGenero.Rows.Count);
-                using (var bulkCopyJG = new SqlBulkCopy(connection))
-                {
-                    bulkCopyJG.DestinationTableName = "dbo.JogoGenero";
-                    bulkCopyJG.BulkCopyTimeout = 300;
-                    bulkCopyJG.ColumnMappings.Add("GenerosId", "GenerosId");
-                    bulkCopyJG.ColumnMappings.Add("JogosId", "JogosId");
-                    await bulkCopyJG.WriteToServerAsync(tableJogoGenero);
-                }
+                var batch = jogosParaInserir.Skip(i).Take(batchSize).ToList();
+                await _context.Jogos.AddRangeAsync(batch);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("[Seeder] Inseridos {Count}/{Total} jogos...", Math.Min(i + batchSize, jogosParaInserir.Count), jogosParaInserir.Count);
             }
 
             // 8. Criar Usuários Padrão e Configurar Perfil com Jogos Top-Tier Reais
@@ -825,7 +803,7 @@ namespace GameLog_Backend.Seeders
                 }
             }
 
-            _logger.LogInformation("[Seeder] Catálogo semeado com {Total} jogos 100% autênticos e descrições ricas!", tableJogos.Rows.Count);
+            _logger.LogInformation("[Seeder] Catálogo semeado com {Total} jogos 100% autênticos e descrições ricas!", jogosParaInserir.Count);
         }
 
         private static string NormalizarTituloParaDeduplicacao(string title)

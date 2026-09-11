@@ -33,7 +33,6 @@ namespace GameLog_Backend.Configurations
                 .IsRequired();
 
             builder.Property(p => p.FotoDePerfil)
-                .HasColumnType("varchar(MAX)")
                 .IsRequired(false);
 
             builder.Property(p => p.Bio)
