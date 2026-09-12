@@ -1,10 +1,11 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/TelaLogin/TelaLogin';
 import Cadastro from './pages/TelaCadastro/TelaCadastro';
 import Home from './pages/TelaHome/TelaHome';
 import PaginaJogos from './pages/PaginaJogos/PaginaJogos'; 
 import TelaJogo from './pages/TelaJogo/TelaJogo';
+import PaginaComunidade from './pages/PaginaComunidade/PaginaComunidade';
 import PaginaAvaliacoes from './pages/PaginaAvaliacoes/PaginaAvaliacoes';
 import PerfilUsuario from './pages/PerfilUsuario/PerfilUsuario';
 import PaginaEmpresa from './pages/PaginaEmpresa/PaginaEmpresa';
@@ -33,7 +34,8 @@ function App() {
             <Route path="/home" element={<Home />} />
             <Route path="/jogos" element={<PaginaJogos />} />
             <Route path="/jogos/:jogoId" element={<TelaJogo />} />
-            <Route path="/avaliacoes" element={<PaginaAvaliacoes />} />
+            <Route path="/comunidade" element={<PaginaComunidade />} />
+            <Route path="/avaliacoes" element={<Navigate to="/comunidade" replace />} />
             <Route path="/avaliacoes/:id" element={<PaginaDetalhesAvaliacao />} />
             <Route path="/empresas/:empresaId" element={<PaginaEmpresa />} />
             <Route path="/perfil/:userId" element={<PerfilUsuario />} />
