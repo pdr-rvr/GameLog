@@ -25,7 +25,8 @@ describe("ActivityTimelineItem Component", () => {
     );
 
     expect(screen.getByText("ana_gamer")).toBeInTheDocument();
-    expect(screen.getByText("marcou como zerado")).toBeInTheDocument();
+    expect(screen.getByText(/marcou como/)).toBeInTheDocument();
+    expect(screen.getByText("zerado")).toBeInTheDocument();
     expect(screen.getByText("Elden Ring")).toBeInTheDocument();
     expect(screen.getByText("agora mesmo")).toBeInTheDocument();
   });
@@ -49,8 +50,34 @@ describe("ActivityTimelineItem Component", () => {
     );
 
     expect(screen.getByText("pedro")).toBeInTheDocument();
-    expect(screen.getByText("criou a coleção")).toBeInTheDocument();
+    expect(screen.getByText(/criou uma nova/)).toBeInTheDocument();
     expect(screen.getByText("RPGs Lendários")).toBeInTheDocument();
     expect(screen.getByText("5 jogos adicionados")).toBeInTheDocument();
   });
+
+  it("deve renderizar atividade de comentário em análise", () => {
+    const mockCommentItem = {
+      id: "act-3",
+      tipo: "Comentou",
+      dataAtividade: new Date().toISOString(),
+      usuarioId: "user-3",
+      usuarioNome: "carlos",
+      autorAvaliacaoRespondidaNome: "lucas",
+      jogoId: "jogo-2",
+      jogoTitulo: "God of War",
+      comentarioTexto: "Excelente análise, concordo com os pontos sobre o combate!"
+    };
+
+    render(
+      <BrowserRouter>
+        <ActivityTimelineItem item={mockCommentItem} />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByText("carlos")).toBeInTheDocument();
+    expect(screen.getByText("@lucas")).toBeInTheDocument();
+    expect(screen.getByText("God of War")).toBeInTheDocument();
+    expect(screen.getByText('"Excelente análise, concordo com os pontos sobre o combate!"')).toBeInTheDocument();
+  });
 });
+

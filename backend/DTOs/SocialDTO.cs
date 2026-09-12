@@ -28,7 +28,7 @@ namespace GameLog_Backend.DTOs
     public class ItemFeedSocialDTO
     {
         public string Id { get; set; } = string.Empty;
-        public string TipoAtividade { get; set; } = string.Empty; // "Avaliacao", "JogoZerado", "ListaCriada"
+        public string TipoAtividade { get; set; } = string.Empty; // "Avaliacao", "Discussao", "ListaCriada"
         public DateTime DataAtividade { get; set; }
         
         // Dados do Autor
@@ -50,6 +50,12 @@ namespace GameLog_Backend.DTOs
         public bool CurtidaPorMim { get; set; }
         public int TotalRespostas { get; set; }
 
+        // Dados de Discussao / Comentario em Avaliacao (se aplicavel)
+        public string? ComentarioTexto { get; set; }
+        public Guid? AutorAvaliacaoRespondidaId { get; set; }
+        public string? AutorAvaliacaoRespondidaNome { get; set; }
+        public string? AvaliacaoOriginalTexto { get; set; }
+
         // Dados da Lista/Colecao (se aplicavel)
         public Guid? ListaId { get; set; }
         public string? ListaTitulo { get; set; }
@@ -61,7 +67,7 @@ namespace GameLog_Backend.DTOs
     public class ItemAtividadeTimelineDTO
     {
         public string Id { get; set; } = string.Empty;
-        public string Tipo { get; set; } = string.Empty; // "Zerou", "Jogando", "Avaliou", "CriouLista"
+        public string Tipo { get; set; } = string.Empty; // "Zerou", "Jogando", "AdicionouBiblioteca", "Avaliou", "Comentou", "CriouLista", "AdicionouJogoLista"
         public DateTime DataAtividade { get; set; }
         
         public Guid UsuarioId { get; set; }
@@ -72,8 +78,13 @@ namespace GameLog_Backend.DTOs
         public string? JogoTitulo { get; set; }
         public string? JogoImagem { get; set; }
 
+        public string? StatusBiblioteca { get; set; } // "QueroJogar", "Abandonado", "Pausado", etc.
+
         public int? Nota { get; set; }
         public string? TextoCurto { get; set; }
+        public string? ComentarioTexto { get; set; }
+        public string? AutorAvaliacaoRespondidaNome { get; set; }
+        public Guid? AvaliacaoId { get; set; }
 
         public Guid? ListaId { get; set; }
         public string? ListaTitulo { get; set; }

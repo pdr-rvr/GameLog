@@ -1,27 +1,28 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaStar, FaHeart, FaRegHeart, FaCommentDots, FaArrowRight } from "react-icons/fa";
 import "./ReviewCardV2.css";
 
 const ReviewCardV2 = ({ avaliacao, onToggleCurtir }) => {
+  const [avatarError, setAvatarError] = useState(false);
+  const [coverError, setCoverError] = useState(false);
+
   if (!avaliacao) return null;
 
-  const {
-    avaliacaoId,
-    nota = 0,
-    textoAvaliacao = "",
-    nomeJogo = "Jogo",
-    imagemJogo,
-    jogoId,
-    nomeEmpresa,
-    nomeUsuario = "Gamer",
-    fotoPerfilUsuario,
-    usuarioId,
-    dataPublicacao,
-    totalCurtidas = 0,
-    curtidaPorMim = false,
-    totalRespostas = 0
-  } = avaliacao;
+  const avaliacaoId = avaliacao.avaliacaoId || avaliacao.id;
+  const usuarioId = avaliacao.usuarioId || avaliacao.autorId || avaliacao.idUsuario;
+  const nomeUsuario = avaliacao.nomeUsuario || avaliacao.autorNome || avaliacao.usuarioNome || "Gamer";
+  const fotoPerfilUsuario = avaliacao.fotoPerfilUsuario || avaliacao.autorFoto || avaliacao.usuarioFoto || avaliacao.fotoPerfil;
+  const jogoId = avaliacao.jogoId || avaliacao.idJogo;
+  const nomeJogo = avaliacao.nomeJogo || avaliacao.jogoTitulo || avaliacao.tituloJogo || (typeof avaliacao.jogo === "object" ? avaliacao.jogo?.titulo : null) || avaliacao.titulo || "Jogo";
+  const imagemJogo = avaliacao.imagemJogo || avaliacao.jogoImagem || (typeof avaliacao.jogo === "object" ? avaliacao.jogo?.imagem : null) || avaliacao.imagem;
+  const nomeEmpresa = avaliacao.nomeEmpresa || avaliacao.empresaNome || (typeof avaliacao.empresa === "object" ? avaliacao.empresa?.nomeEmpresa : avaliacao.empresa) || (typeof avaliacao.jogo?.empresa === "object" ? avaliacao.jogo?.empresa?.nomeEmpresa : null);
+  const dataPublicacao = avaliacao.dataPublicacao || avaliacao.dataAtividade;
+  const nota = avaliacao.nota || 0;
+  const textoAvaliacao = avaliacao.textoAvaliacao || avaliacao.comentario || "";
+  const totalCurtidas = avaliacao.totalCurtidas || 0;
+  const curtidaPorMim = avaliacao.curtidaPorMim || false;
+  const totalRespostas = avaliacao.totalRespostas || 0;
 
   const formatarData = (dt) => {
     if (!dt) return "";
@@ -42,15 +43,12 @@ const ReviewCardV2 = ({ avaliacao, onToggleCurtir }) => {
       {/* Topo do Card: Informações do Autor e Data */}
       <div className="review-v2-author-bar">
         <Link to={`/perfil/${usuarioId}`} className="review-v2-author-info">
-          {fotoPerfilUsuario ? (
+          {fotoPerfilUsuario && !avatarError ? (
             <img 
               src={fotoPerfilUsuario} 
               alt={nomeUsuario} 
               className="review-v2-avatar"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80";
-              }}
+              onError={() => setAvatarError(true)}
             />
           ) : (
             <div className="review-v2-avatar-fallback">
@@ -76,16 +74,13 @@ const ReviewCardV2 = ({ avaliacao, onToggleCurtir }) => {
 
       {/* Meio do Card: Jogo e Texto da Análise */}
       <div className="review-v2-body">
-        {imagemJogo && (
+        {imagemJogo && !coverError && (
           <Link to={`/jogos/${jogoId}`} className="review-v2-game-cover-link">
             <img 
               src={imagemJogo} 
               alt={nomeJogo} 
               className="review-v2-game-cover"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=200&auto=format&fit=crop&q=80";
-              }}
+              onError={() => setCoverError(true)}
             />
           </Link>
         )}
