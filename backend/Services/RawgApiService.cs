@@ -10,6 +10,7 @@ using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
 using GameLog_Backend.Helpers;
+using GameLog_Backend.Services.Catalog;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -48,12 +49,12 @@ namespace GameLog_Backend.Services
         public static bool EhJogoValido(RawgGameItemDTO? item)
         {
             if (item == null) return false;
-            if (!EhJogoValido(item.Name)) return false;
+            if (!CatalogSanitizer.EhJogoValido(item.Name)) return false;
 
-            // 1. DLCs e expansões com parent associado na RAWG
+            // DLCs e expansões com parent associado na RAWG
             if (item.ParentsCount > 0) return false;
 
-            // 2. Tags inválidas de fangames, romhacks, demakes, dlcs e ports não oficiais
+            // Tags inválidas de fangames, romhacks, demakes, dlcs e ports não oficiais
             if (item.Tags != null && item.Tags.Any())
             {
                 var invalidTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -68,7 +69,7 @@ namespace GameLog_Backend.Services
                 }
             }
 
-            // 3. Validação de relevância/legitimidade para descartar clones vazios e projetos de teste
+            // Validação de relevância/legitimidade para descartar clones vazios e projetos de teste
             var added = item.Added ?? 0;
             var ratingsCount = item.RatingsCount ?? 0;
             var hasMetacritic = item.Metacritic.HasValue;
@@ -81,126 +82,7 @@ namespace GameLog_Backend.Services
             return true;
         }
 
-        public static bool EhJogoValido(string? name)
-        {
-            if (string.IsNullOrWhiteSpace(name)) return false;
-            var lower = name.ToLowerInvariant().Trim();
-
-            if (Regex.IsMatch(lower, @"#\w+")) return false;
-
-            // 1. Palavras-chave de DLCs, expansões, demos, pacotes, trilhas sonoras, betas, protótipos e demakes
-            if (Regex.IsMatch(lower, @"\b(dlc|dlcs|expansion|expansions|soundtrack|soundtracks|score|season pass|expansion pass|battle pass|access pass|booster pack|booster|bonus content|deluxe upgrade|wallpaper engine|wallpaper|3dmark|soundpad|software|pre-order|free trial|playtest|closed beta|open beta|\bbeta\b|\balpha\b|prologue|demo|teaser|trailer|benchmark|test build|fanmade|fan game|fan-made|fangame|tribute|demake|game jam|gamejam|game clone|mod pack|blockout|toolkit|redkit)\b") ||
-                Regex.IsMatch(lower, @"(^|\s|\()ost(\s|\)|$)") ||
-                Regex.IsMatch(lower, @"(^|\s|\()demo(\s|\)|$)") ||
-                Regex.IsMatch(lower, @"\b(remix\s*\(|fanmade\s+boss)\b"))
-            {
-                return false;
-            }
-
-            // 2. Edições cosméticas / duplicadas que poluem catálogo
-            if (Regex.IsMatch(lower, @"\b(deluxe edition|digital deluxe|digital deluxe edition|premium edition|collector's edition|collectors edition|gold edition|ultimate edition|day one edition|launch edition|founder's pack|founders pack|champion edition|soundtrack edition|bonus edition|pre-order bonus|game of the year edition|goty edition|\bgoty\b|complete edition|definitive edition|royal edition|legacy edition|supreme edition|hero edition|vanguard edition|limited edition|special edition|standard edition)\b"))
-            {
-                return false;
-            }
-
-            // 3. Pacotes, Bundles e Multi-Packs
-            if (Regex.IsMatch(lower, @"\b(pack|packs|bundle|bundles|two-pack|2-pack|double pack|triple pack|mission pack|upgrade pack|starter pack|character pack|skin pack|voice pack|costume pack|texture pack|item pack|clothing pack|weapon pack|bonus pack|item set|map pack)\b"))
-            {
-                return false;
-            }
-
-            // 4. Versões regionais duplicadas
-            if (Regex.IsMatch(lower, @"\b(german edition|russian edition|french edition|spanish edition|japanese edition|chinese edition|italian edition|english edition|us edition|uk edition|pal version|ntsc version)\b"))
-            {
-                return false;
-            }
-
-            // 5. Episódios / Capítulos avulsos (preservando jogos canônicos como Half-Life 2: Episode One/Two e Star Wars Episode)
-            if (Regex.IsMatch(lower, @"\b(episode\s+[0-9]+|ep\.\s*[0-9]+|chapter\s+[0-9]+)\b") &&
-                !lower.Contains("half-life 2: episode") &&
-                !lower.Contains("star wars episode") &&
-                !lower.Contains("sonic the hedgehog 4"))
-            {
-                return false;
-            }
-
-            // 6. Expansões e DLCs famosas com subtítulos específicos
-            var dlcSubtitles = new[]
-            {
-                "crown of the sunken king", "crown of the old iron king", "crown of the ivory king",
-                "artorias of the abyss", "the old hunters", "valhalla",
-                "blood and wine", "hearts of stone", "the ringed city", "ashes of ariandel",
-                "shadows of rose", "phantom liberty", "left behind", "shadow of the erdtree",
-                "iceborne", "sunbreak", "separate ways", "the frozen wilds", "burning shores",
-                "iki island", "burial at sea", "minerva's den", "dragonborn", "dawnguard",
-                "hearthfire", "nuka-world", "far harbor", "automatron", "vault-tec workshop",
-                "lonesome road", "old world blues", "honest hearts", "dead money", "point lookout",
-                "broken steel", "the pitt", "mothership zeta", "operation: anchorage", "curse of the pharaohs",
-                "the hidden ones", "legacy of the first blade", "the fate of atlantis", "dawn of ragnarok", "dawn of ragnar",
-                "undead nightmare", "harley quinn's revenge", "cold, cold heart", "a matter of family",
-                "the delicious last course", "whistleblower", "the signal", "the writer", "night springs",
-                "the lake house", "ancient gods", "end of zoe", "not a hero", "the consequence",
-                "the assignment", "the executioner", "freedom cry", "knife of dunwall", "the brigmore witches",
-                "the missing link", "commander lilith", "sinclair solutions", "the lost artifact",
-                "gathering storm", "rise and fall", "the grim and the grave", "call of the beastmen",
-                "banned footage", "watchpoint pack", "gage historical", "reverse cosplay", "element of destruction",
-                "zinyak attack", "space pack", "yokohama massage", "expedition", "lost between worlds",
-                "ghosts - invasion", "ghosts - onslaught", "ghosts - devastation", "ghosts - nemesis",
-                "first strike", "rezurrection", "all-in-one package", "intermission", "episode intermission",
-                "future connected", "future redeemed", "torna the golden country", "torna - the golden country",
-                "episode prompto", "episode gladiolus", "episode ignis", "episode ardyn",
-                "jack the ripper", "dead kings", "a criminal past", "system rift", "trespasser",
-                "jaws of hakkon", "the descent", "lair of the shadow broker", "arrival", "leviathan",
-                "citadel", "omega", "captain scarlett", "mr. torgue", "tiny tina's assault",
-                "bounty of blood", "moxxi's heist", "guns, love, and tentacles", "psycho krieg",
-                "awe", "the foundation", "side effects", "the price of neutrality", "songs of the past"
-            };
-
-            foreach (var sub in dlcSubtitles)
-            {
-                if (lower.Contains(sub, StringComparison.OrdinalIgnoreCase))
-                {
-                    return false;
-                }
-            }
-
-            // 7. Protótipos, mods e fangames não-oficiais
-            if (lower.Contains("itch.io") ||
-                lower.Contains("(itch)") ||
-                lower.Contains("notavirus") ||
-                lower.Contains(".exe") ||
-                lower.Contains(".apk") ||
-                lower.Contains("chromebook") ||
-                lower.Contains("rejiggied") ||
-                lower.Contains("buff sonic") ||
-                lower.Contains("songs of the past") ||
-                lower.Contains("witcher switcher") ||
-                lower.Contains("the new path") ||
-                lower.Contains("a contract") ||
-                lower.Contains("witcher go") ||
-                lower.Contains("scratch edition") ||
-                lower.Contains("street fighter: scratch") ||
-                lower.Contains("cost of hope") ||
-                lower.Contains("lost prototype") ||
-                lower.Contains("vector's lost world") ||
-                lower.Contains("diablo but") ||
-                lower.Contains("... but ...") ||
-                lower.Contains("boss fight") ||
-                lower.Contains("bark souls") ||
-                lower.Contains("ennard edition") ||
-                lower.Contains("daughters of ash") ||
-                (lower.Contains("nightfall") && lower.Contains("dark souls")) ||
-                Regex.IsMatch(lower, @"\b(mod tools|multiplayer mod|biohazard mod|cs:go mod|queue simulator|texturing)\b") ||
-                (Regex.IsMatch(lower, @"\b(clone|clones)\b") && !lower.Contains("clone wars")) ||
-                (Regex.IsMatch(lower, @"\b(mod|mods)\b") && !lower.Contains("garry's mod")) ||
-                Regex.IsMatch(lower, @"prototype\s+(ver|version|no\.|-\d+|\d+\.\d+|rectangulo|movement)") ||
-                Regex.IsMatch(lower, @"\b(movement prototype|demake prototype|prototype 2-week)\b"))
-            {
-                return false;
-            }
-
-            return true;
-        }
+        public static bool EhJogoValido(string? name) => CatalogSanitizer.EhJogoValido(name);
 
         public async Task<List<RawgGameItemDTO>> ObterJogosPopularesRawg(int pagina, int pageSize = 40)
         {
@@ -316,35 +198,7 @@ namespace GameLog_Backend.Services
             }
         }
 
-        public static string MapearGeneroParaPortugues(string rawgGenre)
-        {
-            if (string.IsNullOrWhiteSpace(rawgGenre)) return "Ação";
-            var slug = rawgGenre.Trim().ToLowerInvariant();
-
-            if (slug.Contains("action") || slug.Contains("acao") || slug.Contains("aao")) return "Ação";
-            if (slug.Contains("adventure") || slug.Contains("aventura")) return "Aventura";
-            if (slug.Contains("role-playing") || slug.Contains("rpg")) return "RPG";
-            if (slug.Contains("shooter") || slug.Contains("tiro") || slug.Contains("fps")) return "Tiro";
-            if (slug.Contains("strategy") || slug.Contains("estrategia") || slug.Contains("estratgia")) return "Estratégia";
-            if (slug.Contains("racing") || slug.Contains("corrida")) return "Corrida";
-            if (slug.Contains("sports") || slug.Contains("esportes")) return "Esportes";
-            if (slug.Contains("fighting") || slug.Contains("luta")) return "Luta";
-            if (slug.Contains("puzzle") || slug.Contains("quebra-cabeca") || slug.Contains("quebra-cabea")) return "Quebra-Cabeça";
-            if (slug.Contains("simulation") || slug.Contains("simulacao") || slug.Contains("simulaao")) return "Simulação";
-            if (slug.Contains("horror") || slug.Contains("survival") || slug.Contains("terror")) return "Terror e Sobrevivência";
-            if (slug.Contains("platform") || slug.Contains("plataforma")) return "Plataforma";
-            if (slug.Contains("open world") || slug.Contains("mundo aberto")) return "Mundo Aberto";
-            if (slug.Contains("hack and slash") || slug.Contains("hack-and-slash")) return "Hack and Slash";
-            if (slug.Contains("metroidvania")) return "Metroidvania";
-            if (slug.Contains("roguelike") || slug.Contains("rogue-like")) return "Roguelike";
-            if (slug.Contains("stealth")) return "Stealth";
-            if (slug.Contains("indie")) return "Indie";
-            if (slug.Contains("casual")) return "Casual";
-            if (slug.Contains("arcade")) return "Arcade";
-            if (slug.Contains("massively multiplayer") || slug.Contains("mmo")) return "MMO";
-
-            return rawgGenre.Trim();
-        }
+        public static string MapearGeneroParaPortugues(string rawgGenre) => GenreTaxonomyService.MapearGenero(rawgGenre);
 
         public static int MapearEsrbParaClassificacao(string? esrbSlug)
         {
@@ -357,79 +211,7 @@ namespace GameLog_Backend.Services
             return 0;
         }
 
-        public static string? ResolverEmpresaPorFranquia(string titulo)
-        {
-            if (string.IsNullOrWhiteSpace(titulo)) return null;
-            var t = titulo.ToLowerInvariant();
-
-            if (t.Contains("zelda") || t.Contains("mario") || t.Contains("pokemon") || t.Contains("pokémon") ||
-                t.Contains("metroid") || t.Contains("donkey kong") || t.Contains("kirby") || t.Contains("fire emblem") ||
-                t.Contains("super smash") || t.Contains("splatoon") || t.Contains("xenoblade") || t.Contains("animal crossing") ||
-                t.Contains("f-zero") || t.Contains("star fox") || t.Contains("luigi") || t.Contains("pikmin") || t.Contains("smash bros"))
-                return "Nintendo";
-
-            if (t.Contains("god of war") || t.Contains("uncharted") || t.Contains("the last of us") ||
-                t.Contains("gran turismo") || t.Contains("horizon zero") || t.Contains("horizon forbidden") ||
-                t.Contains("ghost of tsushima") || t.Contains("bloodborne") || t.Contains("killzone") ||
-                t.Contains("infamous") || t.Contains("ratchet & clank") || t.Contains("spider-man"))
-                return "PlayStation Studios";
-
-            if (t.Contains("halo") || t.Contains("gears of war") || t.Contains("forza") || t.Contains("fable") ||
-                t.Contains("age of empires") || t.Contains("sea of thieves") || t.Contains("banjo-kazooie"))
-                return "Xbox Game Studios";
-
-            if (t.Contains("grand theft auto") || t.Contains("gta") || t.Contains("red dead") ||
-                t.Contains("max payne") || t.Contains("bully") || t.Contains("midnight club"))
-                return "Rockstar Games";
-
-            if (t.Contains("witcher") || t.Contains("cyberpunk 2077"))
-                return "CD Projekt Red";
-
-            if (t.Contains("resident evil") || t.Contains("monster hunter") || t.Contains("devil may cry") ||
-                t.Contains("street fighter") || t.Contains("mega man") || t.Contains("dragons dogma") || t.Contains("dragon's dogma") ||
-                t.Contains("ace attorney") || t.Contains("dead rising"))
-                return "Capcom";
-
-            if (t.Contains("final fantasy") || t.Contains("dragon quest") || t.Contains("kingdom hearts") ||
-                t.Contains("chrono") || t.Contains("nier") || t.Contains("tomb raider") || t.Contains("deus ex"))
-                return "Square Enix";
-
-            if (t.Contains("dark souls") || t.Contains("elden ring") || t.Contains("sekiro") || t.Contains("armored core"))
-                return "FromSoftware";
-
-            if (t.Contains("assassin's creed") || t.Contains("far cry") || t.Contains("rainbow six") ||
-                t.Contains("splinter cell") || t.Contains("ghost recon") || t.Contains("watch dogs") ||
-                t.Contains("rayman") || t.Contains("prince of persia") || t.Contains("the division"))
-                return "Ubisoft";
-
-            if (t.Contains("fifa") || t.Contains("ea sports") || t.Contains("battlefield") ||
-                t.Contains("mass effect") || t.Contains("dragon age") || t.Contains("need for speed") ||
-                t.Contains("dead space") || t.Contains("the sims") || t.Contains("apex legends") || t.Contains("titanfall"))
-                return "Electronic Arts";
-
-            if (t.Contains("half-life") || t.Contains("portal") || t.Contains("left 4 dead") ||
-                t.Contains("counter-strike") || t.Contains("team fortress") || t.Contains("dota"))
-                return "Valve";
-
-            if (t.Contains("elder scrolls") || t.Contains("skyrim") || t.Contains("fallout") ||
-                t.Contains("doom") || t.Contains("dishonored") || t.Contains("wolfenstein") || t.Contains("quake") || t.Contains("prey"))
-                return "Bethesda Softworks";
-
-            if (t.Contains("metal gear") || t.Contains("silent hill") || t.Contains("castlevania") || t.Contains("pes ") || t.Contains("efootball"))
-                return "Konami";
-
-            if (t.Contains("sonic") || t.Contains("yakuza") || t.Contains("like a dragon") ||
-                t.Contains("persona") || t.Contains("shin megami") || t.Contains("total war"))
-                return "SEGA";
-
-            if (t.Contains("tekken") || t.Contains("tales of") || t.Contains("naruto") || t.Contains("dragon ball") || t.Contains("pac-man"))
-                return "Bandai Namco Entertainment";
-
-            if (t.Contains("warcraft") || t.Contains("diablo") || t.Contains("starcraft") || t.Contains("overwatch"))
-                return "Blizzard Entertainment";
-
-            return null;
-        }
+        public static string? ResolverEmpresaPorFranquia(string titulo) => CompanyNormalizer.ResolverEmpresaPorFranquia(titulo);
 
         public async Task<List<JogoDTO>> BuscarJogosExternosFormatados(
             string? busca,
@@ -576,8 +358,8 @@ namespace GameLog_Backend.Services
                         var devRaw = detail?.Developers?.FirstOrDefault()?.Name ?? r.Developers?.FirstOrDefault()?.Name;
                         var pubRaw = detail?.Publishers?.FirstOrDefault()?.Name ?? r.Publishers?.FirstOrDefault()?.Name ?? ResolverEmpresaPorFranquia(r.Name);
 
-                        var nomeDev = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(devRaw ?? pubRaw);
-                        var nomePub = !string.IsNullOrWhiteSpace(pubRaw) ? NormalizadorEmpresaHelper.NormalizarNomeEmpresa(pubRaw) : null;
+                        var nomeDev = CompanyNormalizer.NormalizarNomeEmpresa(devRaw ?? pubRaw);
+                        var nomePub = !string.IsNullOrWhiteSpace(pubRaw) ? CompanyNormalizer.NormalizarNomeEmpresa(pubRaw) : null;
 
                         var generosSource = (detail?.Genres != null && detail.Genres.Any()) ? detail.Genres : r.Genres;
                         var generosNormalizados = generosSource?
@@ -682,8 +464,8 @@ namespace GameLog_Backend.Services
             var devRaw = detail.Developers.FirstOrDefault()?.Name ?? detail.Publishers.FirstOrDefault()?.Name;
             var pubRaw = detail.Publishers.FirstOrDefault()?.Name ?? ResolverEmpresaPorFranquia(detail.Name);
 
-            var nomeDev = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(devRaw ?? pubRaw);
-            var nomePub = !string.IsNullOrWhiteSpace(pubRaw) ? NormalizadorEmpresaHelper.NormalizarNomeEmpresa(pubRaw) : null;
+            var nomeDev = CompanyNormalizer.NormalizarNomeEmpresa(devRaw ?? pubRaw);
+            var nomePub = !string.IsNullOrWhiteSpace(pubRaw) ? CompanyNormalizer.NormalizarNomeEmpresa(pubRaw) : null;
 
             if (string.IsNullOrWhiteSpace(nomeDev))
             {

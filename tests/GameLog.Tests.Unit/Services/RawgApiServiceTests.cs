@@ -58,12 +58,12 @@ namespace GameLog.Tests.Unit.Services
         [InlineData("action", "Ação")]
         [InlineData("role-playing-games-rpg", "RPG")]
         [InlineData("adventure", "Aventura")]
-        [InlineData("shooter", "Tiro")]
+        [InlineData("shooter", "Tiro (FPS / TPS)")]
         [InlineData("strategy", "Estratégia")]
         [InlineData("racing", "Corrida")]
         [InlineData("sports", "Esportes")]
         [InlineData("fighting", "Luta")]
-        [InlineData("unknown-genre", "unknown-genre")]
+        [InlineData("unknown-genre", "Unknown-genre")]
         public void MapearGeneroParaPortugues_DeveMapearCorretamente(string generoRaw, string esperado)
         {
             var resultado = RawgApiService.MapearGeneroParaPortugues(generoRaw);
