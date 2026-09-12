@@ -837,39 +837,40 @@ namespace GameLog_Backend.Services
                 })
                 .ToListAsync();
 
-            // 2. Jogos Zerados adicionados à biblioteca
-            var zerados = await _context.ItensBiblioteca
+            // 2. Comentários / Discussões feitos por seguidos em análises
+            var comentarios = await _context.RespostasDeAvaliacao
                 .AsNoTracking()
-                .Include(b => b.Jogo)
-                    .ThenInclude(j => j.Empresa)
-                .Where(b => seguindoIds.Contains(b.UsuarioId) && b.Status == StatusJogo.Zerado && b.EstaAtivo)
-                .OrderByDescending(b => b.DataAtualizacao)
+                .Include(r => r.Usuario)
+                .Include(r => r.Avaliacao)
+                    .ThenInclude(a => a.Usuario)
+                .Include(r => r.Avaliacao)
+                    .ThenInclude(a => a.Jogo)
+                        .ThenInclude(j => j.Empresa)
+                .Include(r => r.CurtidasDeRespostas)
+                .Where(r => r.UsuarioId.HasValue && seguindoIds.Contains(r.UsuarioId.Value) && r.EstaAtivo && r.Avaliacao != null && r.Avaliacao.EstaAtivo)
+                .OrderByDescending(r => r.DataCriacao)
                 .Take(itensPorPagina * 2)
-                .ToListAsync();
-
-            var zeradosUserIds = zerados.Select(z => z.UsuarioId).Distinct().ToList();
-            var usuariosMap = await _context.Usuarios
-                .AsNoTracking()
-                .Where(u => zeradosUserIds.Contains(u.Id))
-                .ToDictionaryAsync(u => u.Id, u => new { u.NomeUsuario, u.FotoDePerfil });
-
-            var zeradosItems = zerados.Select(z =>
-            {
-                usuariosMap.TryGetValue(z.UsuarioId, out var u);
-                return new ItemFeedSocialDTO
+                .Select(r => new ItemFeedSocialDTO
                 {
-                    Id = "zerado-" + z.Id,
-                    TipoAtividade = "JogoZerado",
-                    DataAtividade = z.DataConclusao ?? z.DataAtualizacao,
-                    AutorId = z.UsuarioId,
-                    AutorNome = u?.NomeUsuario ?? "Gamer",
-                    AutorFoto = u?.FotoDePerfil,
-                    JogoId = z.JogoId,
-                    JogoTitulo = z.Jogo.Titulo,
-                    JogoImagem = z.Jogo.Imagem,
-                    NomeEmpresa = z.Jogo.Empresa?.NomeEmpresa
-                };
-            }).ToList();
+                    Id = "comm-" + r.Id,
+                    TipoAtividade = "Discussao",
+                    DataAtividade = r.DataCriacao,
+                    AutorId = r.UsuarioId!.Value,
+                    AutorNome = r.Usuario != null ? r.Usuario.NomeUsuario : "Gamer",
+                    AutorFoto = r.Usuario != null ? r.Usuario.FotoDePerfil : null,
+                    JogoId = r.Avaliacao!.Jogo.Id,
+                    JogoTitulo = r.Avaliacao.Jogo.Titulo,
+                    JogoImagem = r.Avaliacao.Jogo.Imagem,
+                    NomeEmpresa = r.Avaliacao.Jogo.Empresa != null ? r.Avaliacao.Jogo.Empresa.NomeEmpresa : null,
+                    AvaliacaoId = r.AvaliacaoId,
+                    ComentarioTexto = r.Comentario,
+                    AutorAvaliacaoRespondidaId = r.Avaliacao.Usuario.Id,
+                    AutorAvaliacaoRespondidaNome = r.Avaliacao.Usuario.NomeUsuario,
+                    AvaliacaoOriginalTexto = r.Avaliacao.TextoAvaliacao,
+                    TotalCurtidas = r.CurtidasDeRespostas.Count(c => c.EstaAtivo && c.Curtida),
+                    CurtidaPorMim = r.CurtidasDeRespostas.Any(c => c.UsuarioId == usuarioId && c.EstaAtivo && c.Curtida)
+                })
+                .ToListAsync();
 
             // 3. Listas públicas criadas pelos seguidos
             var listas = await _context.ListasDeJogos
@@ -903,7 +904,7 @@ namespace GameLog_Backend.Services
             }).ToList();
 
             return avaliacoes
-                .Concat(zeradosItems)
+                .Concat(comentarios)
                 .Concat(listasItems)
                 .OrderByDescending(item => item.DataAtividade)
                 .Skip((pagina - 1) * itensPorPagina)
@@ -946,6 +947,7 @@ namespace GameLog_Backend.Services
                     JogoId = a.Jogo.Id,
                     JogoTitulo = a.Jogo.Titulo,
                     JogoImagem = a.Jogo.Imagem,
+                    AvaliacaoId = a.Id,
                     Nota = a.Nota,
                     TextoCurto = !string.IsNullOrEmpty(a.TextoAvaliacao) 
                         ? (a.TextoAvaliacao.Length > 80 ? a.TextoAvaliacao.Substring(0, 80) + "..." : a.TextoAvaliacao) 
@@ -953,11 +955,11 @@ namespace GameLog_Backend.Services
                 })
                 .ToListAsync();
 
-            // 2. Status na Biblioteca (Zerado ou Jogando)
+            // 2. Status na Biblioteca (Zerado, Jogando ou Adicionou à Biblioteca)
             var bibItems = await _context.ItensBiblioteca
                 .AsNoTracking()
                 .Include(b => b.Jogo)
-                .Where(b => seguindoIds.Contains(b.UsuarioId) && b.EstaAtivo && (b.Status == StatusJogo.Zerado || b.Status == StatusJogo.Jogando))
+                .Where(b => seguindoIds.Contains(b.UsuarioId) && b.EstaAtivo)
                 .OrderByDescending(b => b.DataAtualizacao)
                 .Take(itensPorPagina * 2)
                 .ToListAsync();
@@ -971,21 +973,58 @@ namespace GameLog_Backend.Services
             var statusItems = bibItems.Select(b =>
             {
                 usuariosMap.TryGetValue(b.UsuarioId, out var u);
+                string tipo;
+                if (b.Status == StatusJogo.Zerado) tipo = "Zerou";
+                else if (b.Status == StatusJogo.Jogando) tipo = "Jogando";
+                else tipo = "AdicionouBiblioteca";
+
                 return new ItemAtividadeTimelineDTO
                 {
                     Id = "act-bib-" + b.Id,
-                    Tipo = b.Status == StatusJogo.Zerado ? "Zerou" : "Jogando",
+                    Tipo = tipo,
+                    StatusBiblioteca = b.Status.ToString(),
                     DataAtividade = b.DataConclusao ?? b.DataAtualizacao,
                     UsuarioId = b.UsuarioId,
                     UsuarioNome = u?.NomeUsuario ?? "Gamer",
                     UsuarioFoto = u?.FotoDePerfil,
                     JogoId = b.JogoId,
-                    JogoTitulo = b.Jogo.Titulo,
-                    JogoImagem = b.Jogo.Imagem
+                    JogoTitulo = b.Jogo?.Titulo ?? "Jogo",
+                    JogoImagem = b.Jogo?.Imagem
                 };
             }).ToList();
 
-            // 3. Listas
+            // 3. Comentários / Discussões
+            var comentarios = await _context.RespostasDeAvaliacao
+                .AsNoTracking()
+                .Include(r => r.Usuario)
+                .Include(r => r.Avaliacao)
+                    .ThenInclude(a => a.Usuario)
+                .Include(r => r.Avaliacao)
+                    .ThenInclude(a => a.Jogo)
+                .Where(r => r.UsuarioId.HasValue && seguindoIds.Contains(r.UsuarioId.Value) && r.EstaAtivo && r.Avaliacao != null && r.Avaliacao.EstaAtivo)
+                .OrderByDescending(r => r.DataCriacao)
+                .Take(itensPorPagina * 2)
+                .Select(r => new ItemAtividadeTimelineDTO
+                {
+                    Id = "act-comm-" + r.Id,
+                    Tipo = "Comentou",
+                    DataAtividade = r.DataCriacao,
+                    UsuarioId = r.UsuarioId!.Value,
+                    UsuarioNome = r.Usuario != null ? r.Usuario.NomeUsuario : "Gamer",
+                    UsuarioFoto = r.Usuario != null ? r.Usuario.FotoDePerfil : null,
+                    JogoId = r.Avaliacao!.Jogo.Id,
+                    JogoTitulo = r.Avaliacao.Jogo.Titulo,
+                    JogoImagem = r.Avaliacao.Jogo.Imagem,
+                    AvaliacaoId = r.AvaliacaoId,
+                    AutorAvaliacaoRespondidaNome = r.Avaliacao.Usuario.NomeUsuario,
+                    ComentarioTexto = r.Comentario,
+                    TextoCurto = !string.IsNullOrEmpty(r.Comentario)
+                        ? (r.Comentario.Length > 80 ? r.Comentario.Substring(0, 80) + "..." : r.Comentario)
+                        : null
+                })
+                .ToListAsync();
+
+            // 4. Criação de Listas
             var listas = await _context.ListasDeJogos
                 .AsNoTracking()
                 .Include(l => l.Usuario)
@@ -1007,9 +1046,36 @@ namespace GameLog_Backend.Services
                 })
                 .ToListAsync();
 
+            // 5. Adições de Jogos a Listas
+            var itensLista = await _context.ItensDeListas
+                .AsNoTracking()
+                .Include(i => i.ListaDeJogos)
+                    .ThenInclude(l => l.Usuario)
+                .Include(i => i.Jogo)
+                .Where(i => i.EstaAtivo && i.ListaDeJogos.EstaPublica && i.ListaDeJogos.EstaAtivo && seguindoIds.Contains(i.ListaDeJogos.UsuarioId))
+                .OrderByDescending(i => i.DataAdicionado)
+                .Take(itensPorPagina * 2)
+                .Select(i => new ItemAtividadeTimelineDTO
+                {
+                    Id = "act-listitem-" + i.Id,
+                    Tipo = "AdicionouJogoLista",
+                    DataAtividade = i.DataAdicionado,
+                    UsuarioId = i.ListaDeJogos.UsuarioId,
+                    UsuarioNome = i.ListaDeJogos.Usuario.NomeUsuario,
+                    UsuarioFoto = i.ListaDeJogos.Usuario.FotoDePerfil,
+                    JogoId = i.Jogo.Id,
+                    JogoTitulo = i.Jogo.Titulo,
+                    JogoImagem = i.Jogo.Imagem,
+                    ListaId = i.ListaDeJogosId,
+                    ListaTitulo = i.ListaDeJogos.Titulo
+                })
+                .ToListAsync();
+
             return avaliacoes
                 .Concat(statusItems)
+                .Concat(comentarios)
                 .Concat(listas)
+                .Concat(itensLista)
                 .OrderByDescending(item => item.DataAtividade)
                 .Skip((pagina - 1) * itensPorPagina)
                 .Take(itensPorPagina)

@@ -1,15 +1,21 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { 
   FaCheckCircle, 
   FaGamepad, 
   FaStar, 
   FaLayerGroup,
+  FaBookmark,
+  FaCommentDots,
+  FaPlusCircle,
   FaArrowRight 
 } from "react-icons/fa";
 import "./ActivityTimelineItem.css";
 
 const ActivityTimelineItem = ({ item }) => {
+  const [avatarError, setAvatarError] = useState(false);
+  const [thumbError, setThumbError] = useState(false);
+
   if (!item) return null;
 
   const {
@@ -22,8 +28,12 @@ const ActivityTimelineItem = ({ item }) => {
     jogoId,
     jogoTitulo,
     jogoImagem,
+    statusBiblioteca,
     nota,
     textoCurto,
+    comentarioTexto,
+    autorAvaliacaoRespondidaNome,
+    avaliacaoId,
     listaId,
     listaTitulo,
     totalJogos
@@ -50,18 +60,74 @@ const ActivityTimelineItem = ({ item }) => {
     }
   };
 
+  const formatarStatusBiblioteca = (status) => {
+    switch (status) {
+      case "QueroJogar":
+        return "Quero Jogar";
+      case "Pausado":
+        return "Pausado";
+      case "Abandonado":
+        return "Abandonado";
+      case "Jogando":
+        return "Jogando";
+      case "Zerado":
+        return "Zerado";
+      default:
+        return "Biblioteca";
+    }
+  };
+
   const renderIconeTipo = () => {
     switch (tipo) {
       case "Zerou":
         return <div className="timeline-icon-badge zerou"><FaCheckCircle /></div>;
       case "Jogando":
         return <div className="timeline-icon-badge jogando"><FaGamepad /></div>;
+      case "AdicionouBiblioteca":
+        return <div className="timeline-icon-badge biblioteca"><FaBookmark /></div>;
       case "Avaliou":
         return <div className="timeline-icon-badge avaliou"><FaStar /></div>;
+      case "Comentou":
+        return <div className="timeline-icon-badge comentou"><FaCommentDots /></div>;
       case "CriouLista":
         return <div className="timeline-icon-badge lista"><FaLayerGroup /></div>;
+      case "AdicionouJogoLista":
+        return <div className="timeline-icon-badge addlista"><FaPlusCircle /></div>;
       default:
         return <div className="timeline-icon-badge padrao"><FaGamepad /></div>;
+    }
+  };
+
+  const renderActionLabel = () => {
+    switch (tipo) {
+      case "Zerou":
+        return <span className="timeline-action-label">marcou como <strong>zerado</strong></span>;
+      case "Jogando":
+        return <span className="timeline-action-label">começou a <strong>jogar</strong></span>;
+      case "AdicionouBiblioteca":
+        return (
+          <span className="timeline-action-label">
+            adicionou à biblioteca ({formatarStatusBiblioteca(statusBiblioteca)})
+          </span>
+        );
+      case "Avaliou":
+        return <span className="timeline-action-label">avaliou com <strong>{nota}/5</strong></span>;
+      case "Comentou":
+        return (
+          <span className="timeline-action-label">
+            comentou na análise de {autorAvaliacaoRespondidaNome ? <strong>@{autorAvaliacaoRespondidaNome}</strong> : "um gamer"}
+          </span>
+        );
+      case "CriouLista":
+        return <span className="timeline-action-label">criou uma nova <strong>coleção</strong></span>;
+      case "AdicionouJogoLista":
+        return (
+          <span className="timeline-action-label">
+            adicionou à coleção {listaTitulo ? <strong>{listaTitulo}</strong> : ""}
+          </span>
+        );
+      default:
+        return <span className="timeline-action-label">realizou uma atividade</span>;
     }
   };
 
@@ -75,15 +141,12 @@ const ActivityTimelineItem = ({ item }) => {
       <div className="timeline-card-content">
         <div className="timeline-header">
           <Link to={`/perfil/${usuarioId}`} className="timeline-user-link">
-            {usuarioFoto ? (
+            {usuarioFoto && !avatarError ? (
               <img 
                 src={usuarioFoto} 
                 alt={usuarioNome} 
                 className="timeline-user-avatar"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80";
-                }}
+                onError={() => setAvatarError(true)}
               />
             ) : (
               <div className="timeline-avatar-fallback">
@@ -93,43 +156,50 @@ const ActivityTimelineItem = ({ item }) => {
             <span className="timeline-user-name">{usuarioNome}</span>
           </Link>
 
-          <span className="timeline-action-label">
-            {tipo === "Zerou" && "marcou como zerado"}
-            {tipo === "Jogando" && "começou a jogar"}
-            {tipo === "Avaliou" && `avaliou (${nota}/5)`}
-            {tipo === "CriouLista" && "criou a coleção"}
-          </span>
+          {renderActionLabel()}
 
           <span className="timeline-time">{formatarTempoRelativo(dataAtividade)}</span>
         </div>
 
-        {/* Detalhes do Alvo (Jogo ou Coleção) */}
-        {(tipo === "Zerou" || tipo === "Jogando" || tipo === "Avaliou") && jogoTitulo && (
+        {/* Detalhes do Alvo: Jogo */}
+        {(tipo === "Zerou" || tipo === "Jogando" || tipo === "AdicionouBiblioteca" || tipo === "Avaliou" || tipo === "Comentou" || tipo === "AdicionouJogoLista") && (
           <div className="timeline-target-game">
-            {jogoImagem && (
+            {jogoImagem && !thumbError ? (
               <Link to={`/jogos/${jogoId}`} className="timeline-game-thumb-link">
                 <img 
                   src={jogoImagem} 
-                  alt={jogoTitulo} 
+                  alt={jogoTitulo || "Jogo"} 
                   className="timeline-game-thumb"
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=150&auto=format&fit=crop&q=80";
-                  }}
+                  onError={() => setThumbError(true)}
                 />
               </Link>
+            ) : (
+              <div className="timeline-game-thumb-fallback">
+                <FaGamepad />
+              </div>
             )}
             <div className="timeline-target-info">
-              <Link to={`/jogos/${jogoId}`} className="timeline-game-title">
-                {jogoTitulo}
-              </Link>
+              {jogoTitulo && (
+                <Link to={`/jogos/${jogoId}`} className="timeline-game-title">
+                  {jogoTitulo}
+                </Link>
+              )}
               {tipo === "Avaliou" && textoCurto && (
                 <p className="timeline-mini-review">"{textoCurto}"</p>
               )}
+              {tipo === "Comentou" && (comentarioTexto || textoCurto) && (
+                <p className="timeline-mini-review">"{comentarioTexto || textoCurto}"</p>
+              )}
             </div>
+            {tipo === "Comentou" && avaliacaoId && (
+              <Link to={`/avaliacoes/${avaliacaoId}`} className="btn-view-timeline-list" aria-label="Ver análise">
+                <FaArrowRight />
+              </Link>
+            )}
           </div>
         )}
 
+        {/* Detalhes do Alvo: Coleção Criada */}
         {tipo === "CriouLista" && listaTitulo && (
           <div className="timeline-target-list">
             <div className="timeline-list-details">
@@ -151,3 +221,4 @@ const ActivityTimelineItem = ({ item }) => {
 };
 
 export default ActivityTimelineItem;
+

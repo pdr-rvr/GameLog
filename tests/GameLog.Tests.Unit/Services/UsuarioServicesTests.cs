@@ -241,5 +241,145 @@ namespace GameLog.Tests.Unit.Services
             act.UsuarioNome.Should().Be("UserB");
             act.JogoTitulo.Should().Be("Timeline Game");
         }
+
+        [Fact]
+        public async Task ObterFeedSocial_DeveRetornarAvaliacoesEDiscussoesEListasDeSeguidos()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var mapper = TestContextHelper.CreateMapper();
+            var jwtOptions = TestContextHelper.CreateJwtSettings();
+            var service = new UsuarioServices(context, mapper, jwtOptions);
+
+            var user1 = await service.CriarUsuario(new CriarUsuarioDTO { NomeUsuario = "UserA", Email = "a@test.com", Senha = "Password123!" });
+            var user2 = await service.CriarUsuario(new CriarUsuarioDTO { NomeUsuario = "UserB", Email = "b@test.com", Senha = "Password123!" });
+
+            await service.AlternarSeguirUsuario(user1.UsuarioId, user2.UsuarioId);
+
+            var empresa = new Empresa { NomeEmpresa = "EpicStudio", EstaAtivo = true };
+            context.Empresa.Add(empresa);
+
+            var jogo = new Jogo { Titulo = "RPG Epic", Imagem = "rpg.jpg", DataLancamento = new DateOnly(2024, 1, 1), Empresa = empresa, EstaAtivo = true };
+            context.Jogos.Add(jogo);
+
+            var user2Entity = await context.Usuarios.FindAsync(user2.UsuarioId);
+
+            var avaliacao = new Avaliacao 
+            { 
+                Jogo = jogo, 
+                Usuario = user2Entity!, 
+                Nota = 5, 
+                TextoAvaliacao = "Jogo fantástico!", 
+                DataPublicacao = DateTime.UtcNow.AddMinutes(-10), 
+                EstaAtivo = true 
+            };
+            context.Avaliacoes.Add(avaliacao);
+
+            var comentario = new RespostaDeAvaliacao
+            {
+                Avaliacao = avaliacao,
+                Usuario = user2Entity!,
+                UsuarioId = user2Entity!.Id,
+                Comentario = "Concordo plenamente com essa análise!",
+                DataCriacao = DateTime.UtcNow.AddMinutes(-5),
+                EstaAtivo = true
+            };
+            context.RespostasDeAvaliacao.Add(comentario);
+
+            await context.SaveChangesAsync();
+
+            // Act
+            var feed = await service.ObterFeedSocial(user1.UsuarioId);
+
+            // Assert
+            feed.Should().HaveCount(2);
+            feed.Should().Contain(f => f.TipoAtividade == "Avaliacao" && f.AutorNome == "UserB" && f.JogoTitulo == "RPG Epic");
+            feed.Should().Contain(f => f.TipoAtividade == "Discussao" && f.ComentarioTexto == "Concordo plenamente com essa análise!");
+        }
+
+        [Fact]
+        public async Task ObterTimelineAtividades_DeveRetornarMultiplasMicroAcoes()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var mapper = TestContextHelper.CreateMapper();
+            var jwtOptions = TestContextHelper.CreateJwtSettings();
+            var service = new UsuarioServices(context, mapper, jwtOptions);
+
+            var user1 = await service.CriarUsuario(new CriarUsuarioDTO { NomeUsuario = "UserFollower", Email = "follower@test.com", Senha = "Password123!" });
+            var user2 = await service.CriarUsuario(new CriarUsuarioDTO { NomeUsuario = "UserPlayer", Email = "player@test.com", Senha = "Password123!" });
+
+            await service.AlternarSeguirUsuario(user1.UsuarioId, user2.UsuarioId);
+
+            var empresa = new Empresa { NomeEmpresa = "Studio X", EstaAtivo = true };
+            context.Empresa.Add(empresa);
+
+            var jogo1 = new Jogo { Titulo = "Game One", Imagem = "one.jpg", DataLancamento = new DateOnly(2024, 1, 1), Empresa = empresa, EstaAtivo = true };
+            var jogo2 = new Jogo { Titulo = "Game Two", Imagem = "two.jpg", DataLancamento = new DateOnly(2024, 1, 1), Empresa = empresa, EstaAtivo = true };
+            context.Jogos.AddRange(jogo1, jogo2);
+
+            var user2Entity = await context.Usuarios.FindAsync(user2.UsuarioId);
+
+            // 1. Zerou
+            context.ItensBiblioteca.Add(new BibliotecaJogo
+            {
+                UsuarioId = user2.UsuarioId,
+                Usuario = user2Entity!,
+                JogoId = jogo1.Id,
+                Jogo = jogo1,
+                Status = StatusJogo.Zerado,
+                DataConclusao = DateTime.UtcNow.AddHours(-3),
+                DataAtualizacao = DateTime.UtcNow.AddHours(-3),
+                EstaAtivo = true
+            });
+
+            // 2. Adicionou à biblioteca (QueroJogar)
+            context.ItensBiblioteca.Add(new BibliotecaJogo
+            {
+                UsuarioId = user2.UsuarioId,
+                Usuario = user2Entity!,
+                JogoId = jogo2.Id,
+                Jogo = jogo2,
+                Status = StatusJogo.QueroJogar,
+                DataAtualizacao = DateTime.UtcNow.AddHours(-2),
+                EstaAtivo = true
+            });
+
+            // 3. Criou Lista
+            var lista = new ListaDeJogos
+            {
+                UsuarioId = user2.UsuarioId,
+                Usuario = user2Entity!,
+                Titulo = "Melhores de 2024",
+                EstaPublica = true,
+                DataCriacao = DateTime.UtcNow.AddHours(-1),
+                EstaAtivo = true
+            };
+            context.ListasDeJogos.Add(lista);
+
+            // 4. Adicionou jogo na lista
+            context.ItensDeListas.Add(new ItemDeLista
+            {
+                ListaDeJogosId = lista.Id,
+                ListaDeJogos = lista,
+                JogoId = jogo1.Id,
+                Jogo = jogo1,
+                Ordem = 1,
+                DataAdicionado = DateTime.UtcNow,
+                EstaAtivo = true
+            });
+
+            await context.SaveChangesAsync();
+
+            // Act
+            var timeline = await service.ObterTimelineAtividades(user1.UsuarioId);
+
+            // Assert
+            timeline.Should().HaveCount(4);
+            timeline.Should().Contain(a => a.Tipo == "Zerou" && a.JogoTitulo == "Game One");
+            timeline.Should().Contain(a => a.Tipo == "AdicionouBiblioteca" && a.StatusBiblioteca == "QueroJogar");
+            timeline.Should().Contain(a => a.Tipo == "CriouLista" && a.ListaTitulo == "Melhores de 2024");
+            timeline.Should().Contain(a => a.Tipo == "AdicionouJogoLista" && a.JogoTitulo == "Game One" && a.ListaTitulo == "Melhores de 2024");
+        }
     }
 }

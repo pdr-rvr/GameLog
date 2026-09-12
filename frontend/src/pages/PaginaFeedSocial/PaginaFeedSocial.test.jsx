@@ -20,6 +20,19 @@ vi.mock("../../services/socialService", () => ({
           totalCurtidas: 3,
           curtidaPorMim: false,
           totalRespostas: 1
+        },
+        {
+          id: "comm-1",
+          tipoAtividade: "Discussao",
+          dataAtividade: "2026-09-10T12:00:00Z",
+          autorId: "u4",
+          autorNome: "ZeldaPrincess",
+          autorAvaliacaoRespondidaNome: "LinkHero",
+          avaliacaoId: "eval-1",
+          comentarioTexto: "Excelente análise, concordo com os pontos sobre a história!",
+          jogoId: "j1",
+          jogoTitulo: "Zelda: Tears of the Kingdom",
+          totalCurtidas: 2
         }
       ],
       amigosJogandoAgora: [
@@ -55,8 +68,10 @@ vi.mock("../TelaHome/actions/TelaHomeActions", () => ({
   criarAvaliacao: vi.fn(() => Promise.resolve({}))
 }));
 
+const mockUser = { id: "u1", nome: "Tester" };
+
 vi.mock("../../context/AuthContext", () => ({
-  useAuth: () => ({ user: { id: "u1", nome: "Tester" }, isAuthenticated: true, token: "token" })
+  useAuth: () => ({ user: mockUser, isAuthenticated: true, token: "token" })
 }));
 
 vi.mock("../../context/ToastContext", () => ({
@@ -68,7 +83,7 @@ describe("PaginaFeedSocial Component", () => {
     vi.clearAllMocks();
   });
 
-  it("deve renderizar o Feed Social com reviews de amigos e sidebar", async () => {
+  it("deve renderizar o Feed Social com reviews, discussões e sidebar", async () => {
     render(
       <BrowserRouter>
         <PaginaFeedSocial />
@@ -77,14 +92,39 @@ describe("PaginaFeedSocial Component", () => {
 
     expect(screen.getByTestId("tab-feed-social")).toBeInTheDocument();
     expect(screen.getByTestId("tab-atividades")).toBeInTheDocument();
+    expect(screen.getByTestId("filter-todos")).toBeInTheDocument();
+    expect(screen.getByTestId("filter-avaliacoes")).toBeInTheDocument();
+    expect(screen.getByTestId("filter-discussoes")).toBeInTheDocument();
+    expect(screen.getByTestId("filter-colecoes")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText("LinkHero")).toBeInTheDocument();
-      expect(screen.getByText("Zelda: Tears of the Kingdom")).toBeInTheDocument();
       expect(screen.getByText('"Incrível demais!"')).toBeInTheDocument();
+      expect(screen.getByText("ZeldaPrincess")).toBeInTheDocument();
+      expect(screen.getByText('"Excelente análise, concordo com os pontos sobre a história!"')).toBeInTheDocument();
       expect(screen.getByText("Amigos Jogando Agora")).toBeInTheDocument();
       expect(screen.getByText("Gamers Sugeridos")).toBeInTheDocument();
     });
+  });
+
+  it("deve filtrar por Discussões ao clicar no filtro", async () => {
+    render(
+      <BrowserRouter>
+        <PaginaFeedSocial />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("ZeldaPrincess")).toBeInTheDocument();
+    });
+
+    const btnFilterDiscussoes = screen.getByTestId("filter-discussoes");
+    fireEvent.click(btnFilterDiscussoes);
+
+    // Deve exibir o card de discussão
+    expect(screen.getByText(/Excelente análise, concordo com os pontos/)).toBeInTheDocument();
+    // E não deve exibir a resenha pura
+    expect(screen.queryByText(/Incrível demais!/)).not.toBeInTheDocument();
   });
 
   it("deve alternar para a aba de Atividades e renderizar a timeline", async () => {
@@ -98,7 +138,8 @@ describe("PaginaFeedSocial Component", () => {
     fireEvent.click(btnTabAtividades);
 
     await waitFor(() => {
-      expect(screen.getByText("marcou como zerado")).toBeInTheDocument();
+      expect(screen.getByText(/marcou como/)).toBeInTheDocument();
+      expect(screen.getByText("zerado")).toBeInTheDocument();
       expect(screen.getByText("Metroid Dread")).toBeInTheDocument();
     });
   });

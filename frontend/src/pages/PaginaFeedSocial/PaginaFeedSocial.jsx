@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import ReviewCardV2 from "../../components/ReviewCardV2/ReviewCardV2";
+import DiscussionFeedCard from "../../components/DiscussionFeedCard/DiscussionFeedCard";
 import ActivityTimelineItem from "../../components/ActivityTimelineItem/ActivityTimelineItem";
 import SocialSidebar from "../../components/SocialSidebar/SocialSidebar";
 import FormAvaliacao from "../../components/FormAvaliacao/FormAvaliacao";
@@ -14,12 +15,11 @@ import {
   FaRss, 
   FaHistory, 
   FaCompass, 
-  FaGamepad, 
-  FaUserFriends, 
-  FaPlus,
-  FaCheckCircle,
+  FaStar,
+  FaCommentDots,
   FaLayerGroup,
-  FaHeart
+  FaPlus,
+  FaUserFriends
 } from "react-icons/fa";
 import "./PaginaFeedSocial.css";
 
@@ -29,6 +29,7 @@ const PaginaFeedSocial = () => {
   const navigate = useNavigate();
 
   const [abaAtiva, setAbaAtiva] = useState("feed"); // "feed" ou "atividades"
+  const [filtroConteudo, setFiltroConteudo] = useState("todos"); // "todos", "avaliacoes", "discussoes", "colecoes"
   const [itensFeed, setItensFeed] = useState([]);
   const [atividadesTimeline, setAtividadesTimeline] = useState([]);
   const [jogos, setJogos] = useState([]);
@@ -73,7 +74,7 @@ const PaginaFeedSocial = () => {
     };
 
     carregarFeedSocial();
-  }, [user]);
+  }, [user?.id]);
 
   // Carrega timeline de atividades ao trocar para a aba "atividades"
   useEffect(() => {
@@ -159,6 +160,20 @@ const PaginaFeedSocial = () => {
     }
   };
 
+  const itensFiltrados = itensFeed.filter((item) => {
+    const tipo = item.tipoAtividade || item.tipo || "Avaliacao";
+    if (filtroConteudo === "avaliacoes") {
+      return tipo === "Avaliacao" || (item.nota && item.textoAvaliacao && !item.comentarioTexto);
+    }
+    if (filtroConteudo === "discussoes") {
+      return tipo === "Discussao" || tipo === "Comentario" || Boolean(item.comentarioTexto);
+    }
+    if (filtroConteudo === "colecoes") {
+      return tipo === "ListaCriada" || tipo === "CriouLista" || tipo === "Lista";
+    }
+    return true; // "todos"
+  });
+
   return (
     <div className="pagina-feed-container">
       <Navbar onPublicarClick={() => setModalAberto(true)} />
@@ -196,17 +211,68 @@ const PaginaFeedSocial = () => {
             {/* ABA 1: FEED SOCIAL RICO */}
             {abaAtiva === "feed" && (
               <>
+                {/* Barra de Filtros de Conteúdo */}
+                <div className="feed-content-filter-bar">
+                  <button
+                    type="button"
+                    className={`feed-filter-pill ${filtroConteudo === "todos" ? "active" : ""}`}
+                    onClick={() => setFiltroConteudo("todos")}
+                    data-testid="filter-todos"
+                  >
+                    <FaRss className="pill-icon" />
+                    <span>Tudo</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`feed-filter-pill ${filtroConteudo === "avaliacoes" ? "active" : ""}`}
+                    onClick={() => setFiltroConteudo("avaliacoes")}
+                    data-testid="filter-avaliacoes"
+                  >
+                    <FaStar className="pill-icon" />
+                    <span>Resenhas</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`feed-filter-pill ${filtroConteudo === "discussoes" ? "active" : ""}`}
+                    onClick={() => setFiltroConteudo("discussoes")}
+                    data-testid="filter-discussoes"
+                  >
+                    <FaCommentDots className="pill-icon" />
+                    <span>Discussões</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`feed-filter-pill ${filtroConteudo === "colecoes" ? "active" : ""}`}
+                    onClick={() => setFiltroConteudo("colecoes")}
+                    data-testid="filter-colecoes"
+                  >
+                    <FaLayerGroup className="pill-icon" />
+                    <span>Coleções</span>
+                  </button>
+                </div>
+
                 {loadingFeed ? (
                   <div className="feed-loading-state">
                     <div className="feed-spinner"></div>
                     <span>Carregando feed de amigos...</span>
                   </div>
-                ) : itensFeed.length > 0 ? (
+                ) : itensFiltrados.length > 0 ? (
                   <div className="feed-cards-stream">
-                    {itensFeed.map((item, index) => {
+                    {itensFiltrados.map((item, index) => {
                       const tipo = item.tipoAtividade || item.tipo || "Avaliacao";
 
-                      // Resenha / Análise
+                      // 1. Discussão / Resposta a uma resenha
+                      if (tipo === "Discussao" || tipo === "Comentario" || item.comentarioTexto) {
+                        return (
+                          <DiscussionFeedCard
+                            key={item.id || index}
+                            item={item}
+                            onToggleCurtir={handleToggleCurtirReview}
+                          />
+                        );
+                      }
+
+                      // 2. Resenha / Análise
                       if (tipo === "Avaliacao" || item.textoAvaliacao || item.nota) {
                         return (
                           <ReviewCardV2
@@ -217,78 +283,60 @@ const PaginaFeedSocial = () => {
                         );
                       }
 
-                      // Jogo Zerado por Amigo
-                      if (tipo === "Zerou" || tipo === "JogoZerado") {
+                      // 3. Coleção Criada por Amigo
+                      if (tipo === "CriouLista" || tipo === "Lista" || tipo === "ListaCriada") {
+                        const autorId = item.autorId || item.usuarioId;
+                        const autorNome = item.autorNome || item.nomeUsuario || item.usuarioNome || "Gamer";
+                        const autorFoto = item.autorFoto || item.fotoPerfilUsuario || item.usuarioFoto;
+                        const listaId = item.listaId || item.id;
+                        const listaTitulo = item.listaTitulo || item.titulo || "Coleção";
+                        const listaDescricao = item.listaDescricao || item.descricao;
+                        const totalJogosLista = item.totalJogosLista || item.totalJogos || 0;
+                        const capasPreview = item.capasPreviewLista || [];
+
                         return (
-                          <article key={item.id || index} className="social-finished-game-card">
+                          <article key={item.id || index} className="social-collection-created-card">
                             <div className="finished-card-header">
-                              <Link to={`/perfil/${item.usuarioId}`} className="finished-author-link">
-                                {item.fotoPerfilUsuario || item.usuarioFoto ? (
+                              <Link to={`/perfil/${autorId}`} className="finished-author-link">
+                                {autorFoto ? (
                                   <img 
-                                    src={item.fotoPerfilUsuario || item.usuarioFoto} 
-                                    alt={item.nomeUsuario || item.usuarioNome} 
+                                    src={autorFoto} 
+                                    alt={autorNome} 
                                     className="finished-author-avatar"
                                   />
                                 ) : (
                                   <div className="finished-avatar-fallback">
-                                    {(item.nomeUsuario || item.usuarioNome || "G").charAt(0).toUpperCase()}
+                                    {autorNome.charAt(0).toUpperCase()}
                                   </div>
                                 )}
                                 <div>
-                                  <span className="finished-author-name">{item.nomeUsuario || item.usuarioNome}</span>
-                                  <span className="finished-action-text">zerou este jogo</span>
-                                </div>
-                              </Link>
-                              <div className="finished-status-badge">
-                                <FaCheckCircle /> Zerado
-                              </div>
-                            </div>
-
-                            <div className="finished-card-body">
-                              {item.imagemJogo || item.jogoImagem ? (
-                                <Link to={`/jogos/${item.jogoId}`}>
-                                  <img 
-                                    src={item.imagemJogo || item.jogoImagem} 
-                                    alt={item.nomeJogo || item.jogoTitulo} 
-                                    className="finished-game-cover"
-                                  />
-                                </Link>
-                              ) : null}
-                              <div className="finished-game-info">
-                                <Link to={`/jogos/${item.jogoId}`} className="finished-game-title">
-                                  {item.nomeJogo || item.jogoTitulo}
-                                </Link>
-                                {item.nomeEmpresa && <span className="finished-game-studio">{item.nomeEmpresa}</span>}
-                              </div>
-                            </div>
-                          </article>
-                        );
-                      }
-
-                      // Coleção Criada por Amigo
-                      if (tipo === "CriouLista" || tipo === "Lista") {
-                        return (
-                          <article key={item.id || index} className="social-collection-created-card">
-                            <div className="finished-card-header">
-                              <Link to={`/perfil/${item.usuarioId}`} className="finished-author-link">
-                                <div className="finished-avatar-fallback">
-                                  {(item.nomeUsuario || item.usuarioNome || "G").charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <span className="finished-author-name">{item.nomeUsuario || item.usuarioNome}</span>
+                                  <span className="finished-author-name">{autorNome}</span>
                                   <span className="finished-action-text">criou uma nova coleção</span>
                                 </div>
                               </Link>
                               <div className="collection-status-badge">
-                                <FaLayerGroup /> Coleção
+                                <FaLayerGroup /> Coleção ({totalJogosLista} {totalJogosLista === 1 ? "jogo" : "jogos"})
                               </div>
                             </div>
 
                             <div className="collection-card-details">
-                              <Link to={`/listas/${item.listaId || item.id}`} className="collection-created-title">
-                                {item.titulo || item.listaTitulo}
+                              <Link to={`/listas/${listaId}`} className="collection-created-title">
+                                {listaTitulo}
                               </Link>
-                              {item.descricao && <p className="collection-created-desc">{item.descricao}</p>}
+                              {listaDescricao && <p className="collection-created-desc">{listaDescricao}</p>}
+
+                              {capasPreview.length > 0 && (
+                                <div className="collection-covers-preview">
+                                  {capasPreview.map((capa, idx) => (
+                                    <img 
+                                      key={idx} 
+                                      src={capa} 
+                                      alt="Capa do Jogo" 
+                                      className="collection-preview-thumb" 
+                                    />
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </article>
                         );
@@ -302,7 +350,7 @@ const PaginaFeedSocial = () => {
                     <FaUserFriends className="feed-empty-icon" />
                     <h3>Seu feed social está calmo por enquanto</h3>
                     <p>
-                      Siga outros jogadores e amigos para acompanhar suas análises, conquistas e jogos finalizados em tempo real!
+                      Siga outros jogadores e amigos para acompanhar suas análises, discussões e coleções em tempo real!
                     </p>
                     <div className="feed-empty-actions">
                       <Link to="/comunidade" className="btn-feed-explore">
