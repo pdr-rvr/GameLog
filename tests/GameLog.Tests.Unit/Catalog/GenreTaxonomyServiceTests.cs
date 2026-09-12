@@ -14,7 +14,8 @@ namespace GameLog.Tests.Unit.Catalog
             GenreTaxonomyService.CategoriasCanonicas.Should().Contain("RPG");
             GenreTaxonomyService.CategoriasCanonicas.Should().Contain("Soulslike");
             GenreTaxonomyService.CategoriasCanonicas.Should().Contain("Metroidvania");
-            GenreTaxonomyService.CategoriasCanonicas.Should().Contain("Tiro (FPS / TPS)");
+            GenreTaxonomyService.CategoriasCanonicas.Should().Contain("Tiro");
+            GenreTaxonomyService.CategoriasCanonicas.Should().Contain("RTS");
             GenreTaxonomyService.CategoriasCanonicas.Should().Contain("Terror & Sobrevivência");
             GenreTaxonomyService.CategoriasCanonicas.Should().Contain("Ficção Científica & Cyberpunk");
         }
@@ -22,7 +23,7 @@ namespace GameLog.Tests.Unit.Catalog
         [Theory]
         [InlineData("action", "Ação")]
         [InlineData("role-playing-games-rpg", "RPG")]
-        [InlineData("shooter", "Tiro (FPS / TPS)")]
+        [InlineData("shooter", "Tiro")]
         [InlineData("strategy", "Estratégia")]
         [InlineData("massively-multiplayer", "MMORPG")]
         public void MapearGenerosETags_GênerosRAWGBasicos_DeveMapearCorretamente(string rawgGenre, string expected)
@@ -38,7 +39,8 @@ namespace GameLog.Tests.Unit.Catalog
         [InlineData("souls-like", "Soulslike")]
         [InlineData("metroidvania", "Metroidvania")]
         [InlineData("jrpg", "JRPG")]
-        [InlineData("fps", "Tiro (FPS / TPS)")]
+        [InlineData("fps", "Tiro")]
+        [InlineData("rts", "RTS")]
         [InlineData("survival-horror", "Survival Horror")]
         [InlineData("sci-fi", "Ficção Científica & Cyberpunk")]
         [InlineData("cyberpunk", "Ficção Científica & Cyberpunk")]

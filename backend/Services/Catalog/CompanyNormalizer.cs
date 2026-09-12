@@ -13,47 +13,56 @@ namespace GameLog_Backend.Services.Catalog
             { "Sony Interactive", "PlayStation Studios" },
             { "PlayStation PC LLC", "PlayStation Studios" },
             { "Sony", "PlayStation Studios" },
-            { "Santa Monica Studio", "PlayStation Studios" },
-            { "Naughty Dog", "PlayStation Studios" },
-            { "Insomniac Games", "PlayStation Studios" },
-            { "Guerrilla Games", "PlayStation Studios" },
-            { "Sucker Punch Productions", "PlayStation Studios" },
-            { "Polyphony Digital", "PlayStation Studios" },
+            { "Santa Monica Studio", "Santa Monica Studio" },
+            { "Naughty Dog", "Naughty Dog" },
+            { "Insomniac Games", "Insomniac Games" },
+            { "Guerrilla Games", "Guerrilla Games" },
+            { "Sucker Punch Productions", "Sucker Punch Productions" },
+            { "Polyphony Digital", "Polyphony Digital" },
+            { "Bend Studio", "Bend Studio" },
+            { "Housemarque", "Housemarque" },
 
             // Xbox / Microsoft
             { "Microsoft Studios", "Xbox Game Studios" },
             { "Xbox Game Studios", "Xbox Game Studios" },
             { "Microsoft Corporation", "Xbox Game Studios" },
-            { "343 Industries", "Xbox Game Studios" },
-            { "Halo Studios", "Xbox Game Studios" },
-            { "The Coalition", "Xbox Game Studios" },
-            { "Turn 10 Studios", "Xbox Game Studios" },
-            { "Playground Games", "Xbox Game Studios" },
-            { "Rare Ltd.", "Xbox Game Studios" },
-            { "Rare", "Xbox Game Studios" },
-            { "Obsidian Entertainment", "Xbox Game Studios" },
-            { "Ninja Theory", "Xbox Game Studios" },
-            { "InXile Entertainment", "Xbox Game Studios" },
+            { "343 Industries", "343 Industries" },
+            { "Halo Studios", "343 Industries" },
+            { "The Coalition", "The Coalition" },
+            { "Turn 10 Studios", "Turn 10 Studios" },
+            { "Playground Games", "Playground Games" },
+            { "Rare Ltd.", "Rare" },
+            { "Rare", "Rare" },
+            { "Obsidian Entertainment", "Obsidian Entertainment" },
+            { "Ninja Theory", "Ninja Theory" },
+            { "InXile Entertainment", "inXile Entertainment" },
+            { "Double Fine Productions", "Double Fine Productions" },
+            { "Undead Labs", "Undead Labs" },
 
             // Nintendo
-            { "Nintendo EPD", "Nintendo" },
+            { "Nintendo EPD", "Nintendo EPD" },
             { "Nintendo of America", "Nintendo" },
             { "Nintendo of Europe", "Nintendo" },
-            { "Monolith Soft", "Nintendo" },
-            { "Game Freak", "Nintendo" },
-            { "Creatures Inc.", "Nintendo" },
-            { "HAL Laboratory", "Nintendo" },
-            { "Intelligent Systems", "Nintendo" },
+            { "Monolith Soft", "Monolith Soft" },
+            { "Game Freak", "Game Freak" },
+            { "Creatures Inc.", "Creatures Inc." },
+            { "HAL Laboratory", "HAL Laboratory" },
+            { "Intelligent Systems", "Intelligent Systems" },
+            { "Retro Studios", "Retro Studios" },
+            { "Next Level Games", "Next Level Games" },
 
             // Electronic Arts
             { "Electronic Arts", "Electronic Arts" },
             { "EA Games", "Electronic Arts" },
             { "EA Sports", "Electronic Arts" },
-            { "BioWare", "Electronic Arts" },
-            { "Respawn Entertainment", "Electronic Arts" },
-            { "DICE", "Electronic Arts" },
-            { "Criterion Games", "Electronic Arts" },
-            { "Maxis", "Electronic Arts" },
+            { "BioWare", "BioWare" },
+            { "Respawn Entertainment", "Respawn Entertainment" },
+            { "DICE", "DICE" },
+            { "EA DICE", "DICE" },
+            { "Criterion Games", "Criterion Games" },
+            { "Maxis", "Maxis" },
+            { "Visceral Games", "Visceral Games" },
+            { "Hazelight Studios", "Hazelight Studios" },
 
             // CD Projekt
             { "CD Projekt Red", "CD Projekt Red" },
@@ -69,6 +78,8 @@ namespace GameLog_Backend.Services.Catalog
             { "Square", "Square Enix" },
             { "Squaresoft", "Square Enix" },
             { "Enix", "Square Enix" },
+            { "Crystal Dynamics", "Crystal Dynamics" },
+            { "Eidos Montreal", "Eidos Montreal" },
 
             // FromSoftware
             { "FromSoftware, Inc.", "FromSoftware" },
@@ -77,22 +88,23 @@ namespace GameLog_Backend.Services.Catalog
 
             // Rockstar
             { "Rockstar Games", "Rockstar Games" },
-            { "Rockstar North", "Rockstar Games" },
-            { "Rockstar San Diego", "Rockstar Games" },
+            { "Rockstar North", "Rockstar North" },
+            { "Rockstar San Diego", "Rockstar San Diego" },
+            { "Rockstar Studios", "Rockstar Studios" },
 
             // Ubisoft
             { "Ubisoft", "Ubisoft" },
             { "Ubisoft Entertainment", "Ubisoft" },
-            { "Ubisoft Montreal", "Ubisoft" },
-            { "Ubisoft Quebec", "Ubisoft" },
+            { "Ubisoft Montreal", "Ubisoft Montreal" },
+            { "Ubisoft Quebec", "Ubisoft Quebec" },
 
             // Bethesda & Zenimax
             { "Bethesda Softworks", "Bethesda Softworks" },
-            { "Bethesda Game Studios", "Bethesda Softworks" },
-            { "id Software", "Bethesda Softworks" },
-            { "Arkane Studios", "Bethesda Softworks" },
-            { "MachineGames", "Bethesda Softworks" },
-            { "Tango Gameworks", "Bethesda Softworks" },
+            { "Bethesda Game Studios", "Bethesda Game Studios" },
+            { "id Software", "id Software" },
+            { "Arkane Studios", "Arkane Studios" },
+            { "MachineGames", "MachineGames" },
+            { "Tango Gameworks", "Tango Gameworks" },
 
             // Bandai Namco
             { "Bandai Namco Entertainment", "Bandai Namco Entertainment" },
@@ -102,9 +114,10 @@ namespace GameLog_Backend.Services.Catalog
 
             // SEGA / Atlus
             { "SEGA", "SEGA" },
-            { "Atlus", "SEGA" },
-            { "Ryu Ga Gotoku Studio", "SEGA" },
-            { "Creative Assembly", "SEGA" },
+            { "Atlus", "Atlus" },
+            { "Ryu Ga Gotoku Studio", "Ryu Ga Gotoku Studio" },
+            { "Creative Assembly", "Creative Assembly" },
+            { "Sonic Team", "Sonic Team" },
 
             // Konami
             { "Konami", "Konami" },
@@ -118,24 +131,26 @@ namespace GameLog_Backend.Services.Catalog
             { "Blizzard Entertainment", "Blizzard Entertainment" },
             { "Activision", "Activision" },
             { "Activision Blizzard", "Activision" },
-            { "Infinity Ward", "Activision" },
-            { "Treyarch", "Activision" },
-            { "Sledgehammer Games", "Activision" },
+            { "Infinity Ward", "Infinity Ward" },
+            { "Treyarch", "Treyarch" },
+            { "Sledgehammer Games", "Sledgehammer Games" },
 
             // Warner Bros
             { "Warner Bros. Games", "Warner Bros. Games" },
             { "Warner Bros. Interactive Entertainment", "Warner Bros. Games" },
-            { "Rocksteady Studios", "Warner Bros. Games" },
-            { "NetherRealm Studios", "Warner Bros. Games" },
-            { "Monolith Productions", "Warner Bros. Games" },
-            { "Avalanche Software", "Warner Bros. Games" },
+            { "Rocksteady Studios", "Rocksteady Studios" },
+            { "NetherRealm Studios", "NetherRealm Studios" },
+            { "Monolith Productions", "Monolith Productions" },
+            { "Avalanche Software", "Avalanche Software" },
+            { "WB Games Montreal", "WB Games Montreal" },
 
             // 2K / Take-Two
             { "2K", "2K Games" },
             { "2K Games", "2K Games" },
-            { "Firaxis Games", "2K Games" },
-            { "Hangar 13", "2K Games" },
-            { "Gearbox Software", "2K Games" }
+            { "Firaxis Games", "Firaxis Games" },
+            { "Hangar 13", "Hangar 13" },
+            { "Gearbox Software", "Gearbox Software" },
+            { "Irrational Games", "Irrational Games" }
         };
 
         public static string NormalizarNomeEmpresa(string? nome)
@@ -148,33 +163,39 @@ namespace GameLog_Backend.Services.Catalog
                 return canonica;
             }
 
-            // Normalização por aproximação
+            // Normalização por aproximação precisa (sem sobrepor desenvolvedoras distintas)
             var lower = trim.ToLowerInvariant();
-            if (lower.Contains("sony") || lower.Contains("playstation") || lower.Contains("naughty dog") || lower.Contains("santa monica"))
+            if (lower == "sony" || lower.Contains("sony interactive") || lower.Contains("playstation studios") || lower.Contains("sony computer"))
                 return "PlayStation Studios";
-            if (lower.Contains("microsoft") || lower.Contains("xbox"))
+            if (lower == "microsoft" || lower.Contains("microsoft studios") || lower.Contains("xbox game studios"))
                 return "Xbox Game Studios";
-            if (lower.Contains("nintendo") || lower.Contains("game freak"))
+            if (lower == "nintendo" || lower.Contains("nintendo of"))
                 return "Nintendo";
-            if (lower.Contains("electronic arts") || lower.Contains("ea sports") || lower.Contains("bioware") || lower.Contains("respawn"))
+            if (lower.StartsWith("electronic arts") || lower.Contains("ea games") || lower.Contains("ea sports"))
                 return "Electronic Arts";
-            if (lower.Contains("cd projekt"))
+            if (lower.StartsWith("rockstar north"))
+                return "Rockstar North";
+            if (lower.StartsWith("rockstar san diego"))
+                return "Rockstar San Diego";
+            if (lower.StartsWith("rockstar studios"))
+                return "Rockstar Studios";
+            if (lower.StartsWith("rockstar games") || lower == "rockstar" || lower.StartsWith("rockstar inc"))
+                return "Rockstar Games";
+            if (lower == "cd projekt" || lower.Contains("cd projekt red"))
                 return "CD Projekt Red";
-            if (lower.Contains("capcom"))
+            if (lower == "capcom" || lower.Contains("capcom co") || lower.StartsWith("capcom "))
                 return "Capcom";
-            if (lower.Contains("square enix") || lower.Contains("squaresoft"))
+            if (lower.Contains("square enix") || lower.Contains("squaresoft") || lower.Contains("square co"))
                 return "Square Enix";
             if (lower.Contains("fromsoftware") || lower.Contains("from software"))
                 return "FromSoftware";
-            if (lower.Contains("rockstar"))
-                return "Rockstar Games";
             if (lower.Contains("ubisoft"))
                 return "Ubisoft";
-            if (lower.Contains("bethesda") || lower.Contains("id software") || lower.Contains("arkane"))
+            if (lower.Contains("bethesda softworks"))
                 return "Bethesda Softworks";
-            if (lower.Contains("bandai namco") || lower.Contains("namco"))
+            if (lower.Contains("bandai namco") || lower.Contains("namco bandai"))
                 return "Bandai Namco Entertainment";
-            if (lower.Contains("sega") || lower.Contains("atlus"))
+            if (lower == "sega" || lower.Contains("sega of") || lower.Contains("sega games"))
                 return "SEGA";
             if (lower.Contains("konami"))
                 return "Konami";
@@ -182,11 +203,11 @@ namespace GameLog_Backend.Services.Catalog
                 return "Valve";
             if (lower.Contains("blizzard"))
                 return "Blizzard Entertainment";
-            if (lower.Contains("activision"))
+            if (lower == "activision" || lower.Contains("activision publishing"))
                 return "Activision";
-            if (lower.Contains("warner bros") || lower.Contains("rocksteady"))
+            if (lower.Contains("warner bros"))
                 return "Warner Bros. Games";
-            if (lower.Contains("2k games") || lower.Contains("firaxis") || lower.Contains("gearbox"))
+            if (lower == "2k" || lower.Contains("2k games") || lower.Contains("take-two"))
                 return "2K Games";
 
             return trim;

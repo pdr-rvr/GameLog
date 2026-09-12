@@ -47,9 +47,13 @@ namespace GameLog_Backend.Seeders
                     { "Role-Playing Games", "RPG" },
                     { "Role Playing", "RPG" },
                     { "Shooter", "Tiro" },
+                    { "Tiro (FPS / TPS)", "Tiro" },
+                    { "Tiro (FPS/TPS)", "Tiro" },
                     { "Strategy", "Estratégia" },
                     { "Estrategia", "Estratégia" },
                     { "Estratgia", "Estratégia" },
+                    { "RTS (Tempo Real)", "RTS" },
+                    { "RTS (Tempo-Real)", "RTS" },
                     { "Racing", "Corrida" },
                     { "Sports", "Esportes" },
                     { "Fighting", "Luta" },
@@ -230,7 +234,7 @@ namespace GameLog_Backend.Seeders
         public async Task CleanAndSeedRealGamesAsync()
         {
             var totalJogosExistentes = await _context.Jogos.CountAsync();
-            if (totalJogosExistentes >= 5800)
+            if (totalJogosExistentes >= 6500)
             {
                 _logger.LogInformation("[Seeder] Catálogo já se encontra totalmente povoado com {Total} jogos oficiais. Pulando re-seed...", totalJogosExistentes);
                 await NormalizarGenerosExistentesAsync();
@@ -238,7 +242,7 @@ namespace GameLog_Backend.Seeders
                 return;
             }
 
-            _logger.LogInformation("[Seeder] Iniciando limpeza completa do banco de dados para ingestão curada de 6.000 jogos oficiais (Recentes 2020-2024: 2.500, Era Dourada 2000-2019: 2.400, Clássicos Pré-2000: 700, Futuros 2025-2027: 400)...");
+            _logger.LogInformation("[Seeder] Iniciando limpeza completa do banco de dados para ingestão curada de 6.600 jogos oficiais (Recentes 2020-2024: 2.750, Era Dourada 2000-2019: 2.650, Clássicos Pré-2000: 700, Futuros 2025-2027: 500)...");
 
             // 1. Limpeza segura e completa do banco de dados
             try
@@ -356,27 +360,27 @@ namespace GameLog_Backend.Seeders
                 }
             }
 
-            // 1. Ingestão Global por Popularidade Real (ordering=-added) com Slices Calibrados para 6.000 jogos
+            // 1. Ingestão Global por Popularidade Real (ordering=-added) com Slices Calibrados para 6.600 jogos
             var slicesPrincipais = new (string Query, int Paginas, bool EhClassico)[]
             {
-                // 1. Jogos Futuros / Aguardados (2025 - 2027+) ordenados por relevância e adições
-                ("dates=2025-01-01,2027-12-31&ordering=-added", 15, false),         // ~600 candidatos futuros
+                // 1. Jogos Futuros / Aguardados (2025 - 2027+) ordenados por relevância e adições (Meta: 500)
+                ("dates=2025-01-01,2027-12-31&ordering=-added", 20, false),         // ~800 candidatos futuros
 
-                // 2. Era Moderna Recente (2020 a 2024) - Top 500 por ano
-                ("dates=2024-01-01,2024-12-31&ordering=-added", 16, false),         // ~640 candidatos de 2024
-                ("dates=2023-01-01,2023-12-31&ordering=-added", 16, false),         // ~640 candidatos de 2023
-                ("dates=2022-01-01,2022-12-31&ordering=-added", 16, false),         // ~640 candidatos de 2022
-                ("dates=2021-01-01,2021-12-31&ordering=-added", 16, false),         // ~640 candidatos de 2021
-                ("dates=2020-01-01,2020-12-31&ordering=-added", 16, false),         // ~640 candidatos de 2020
+                // 2. Era Moderna Recente (2020 a 2024) - Top por ano (Meta: 2.750)
+                ("dates=2024-01-01,2024-12-31&ordering=-added", 18, false),         // ~720 candidatos de 2024
+                ("dates=2023-01-01,2023-12-31&ordering=-added", 18, false),         // ~720 candidatos de 2023
+                ("dates=2022-01-01,2022-12-31&ordering=-added", 18, false),         // ~720 candidatos de 2022
+                ("dates=2021-01-01,2021-12-31&ordering=-added", 18, false),         // ~720 candidatos de 2021
+                ("dates=2020-01-01,2020-12-31&ordering=-added", 18, false),         // ~720 candidatos de 2020
 
-                // 3. Era Dourada Pós-2000 (2000 a 2019) em blocos de 5 anos
-                ("dates=2015-01-01,2019-12-31&ordering=-added", 20, false),         // ~800 candidatos de 2015-2019
-                ("dates=2010-01-01,2014-12-31&ordering=-added", 20, false),         // ~800 candidatos de 2010-2014
-                ("dates=2005-01-01,2009-12-31&ordering=-added", 20, false),         // ~800 candidatos de 2005-2009
-                ("dates=2000-01-01,2004-12-31&ordering=-added", 18, false),         // ~720 candidatos de 2000-2004
+                // 3. Era Dourada Pós-2000 (2000 a 2019) em blocos de 5 anos (Meta: 2.650)
+                ("dates=2015-01-01,2019-12-31&ordering=-added", 22, false),         // ~880 candidatos de 2015-2019
+                ("dates=2010-01-01,2014-12-31&ordering=-added", 22, false),         // ~880 candidatos de 2010-2014
+                ("dates=2005-01-01,2009-12-31&ordering=-added", 22, false),         // ~880 candidatos de 2005-2009
+                ("dates=2000-01-01,2004-12-31&ordering=-added", 20, false),         // ~800 candidatos de 2000-2004
                 ("platforms=7,18,1,186,187&ordering=-added", 25, false),            // ~1.000 maiores sucessos multiplataforma
 
-                // 4. Clássicos Atemporais Pré-2000 (1980 a 1999)
+                // 4. Clássicos Atemporais Pré-2000 (1980 a 1999) - Mantidos (Meta: 700)
                 ("dates=1980-01-01,1999-12-31&ordering=-added", 20, true),          // ~800 clássicos por adições
                 ("dates=1980-01-01,1999-12-31&ordering=-rating", 15, true)          // ~600 clássicos por notas
             };
@@ -414,28 +418,66 @@ namespace GameLog_Backend.Seeders
             // 2. Cobertura Curada das Maiores Franquias Históricas com Limitação Estrita por Título Canônico
             var franquiasIconicas = new (string Nome, int Limite)[]
             {
-                ("The Legend of Zelda", 8), ("Super Mario", 10), ("Metroid", 6), ("Pokemon", 10), 
-                ("Castlevania", 6), ("Final Fantasy", 12), ("Dragon Quest", 8), ("Persona", 8), 
-                ("Silent Hill", 6), ("Resident Evil", 10), ("God of War", 6), ("Dark Souls", 6), 
-                ("Grand Theft Auto", 8), ("Halo", 6), ("Chrono Trigger", 3), ("Kingdom Hearts", 6), 
-                ("Monster Hunter", 6), ("Street Fighter", 6), ("Tekken", 6), ("Donkey Kong", 6), 
-                ("Crash Bandicoot", 6), ("Spyro", 4), ("Sonic the Hedgehog", 8), ("Mega Man", 6), 
-                ("Metal Gear Solid", 6), ("BioShock", 4), ("Half-Life", 4), ("Dead Space", 4),
-                ("The Witcher", 4), ("Red Dead Redemption", 3), ("Mass Effect", 4), ("Dragon Age", 4),
-                ("Fallout", 5), ("The Elder Scrolls", 5), ("Assassin's Creed", 8), ("Far Cry", 6),
-                ("Tomb Raider", 6), ("Uncharted", 5), ("The Last of Us", 3), ("Devil May Cry", 5),
-                ("Yakuza", 8), ("Kingdom Come: Deliverance", 2), ("Hollow Knight", 2), ("Hades", 2),
-                ("DOOM", 5), ("Wolfenstein", 5), ("Borderlands", 5), ("Diablo", 4),
-                ("Portal", 2), ("Dishonored", 3), ("Batman: Arkham", 4), ("Mortal Kombat", 6),
-                ("Need for Speed", 6), ("Gran Turismo", 5), ("Forza", 5), ("Call of Duty", 8),
-                ("Battlefield", 6), ("Hitman", 5), ("Splinter Cell", 4), ("Civilization", 4),
-                ("Age of Empires", 4), ("StarCraft", 3), ("Warcraft", 3), ("Baldur's Gate", 4),
-                ("Alan Wake", 3), ("Life is Strange", 4), ("Max Payne", 3), ("Star Wars Jedi", 3),
-                ("NieR", 3), ("Tales of", 6), ("Xenoblade Chronicles", 4), ("Fire Emblem", 5),
-                ("Kirby", 5), ("Super Smash Bros", 4), ("Rayman", 4), ("Prince of Persia", 4),
-                ("Deus Ex", 4), ("Crysis", 3), ("Metro", 4), ("S.T.A.L.K.E.R.", 4),
-                ("PAYDAY", 2), ("Dying Light", 2), ("Watch Dogs", 3), ("Overwatch", 2),
-                ("Little Nightmares", 2), ("Outlast", 3), ("Danganronpa", 4), ("Guilty Gear", 4)
+                // 1-20: RPGs, JRPGs, Ação e Aventura
+                ("The Legend of Zelda", 12), ("Super Mario", 14), ("Metroid", 8), ("Pokemon", 12), 
+                ("Castlevania", 8), ("Final Fantasy", 16), ("Dragon Quest", 10), ("Persona", 10), 
+                ("Shin Megami Tensei", 6), ("Silent Hill", 8), ("Resident Evil", 14), ("God of War", 8), 
+                ("Dark Souls", 8), ("Demon's Souls", 3), ("Bloodborne", 3), ("Elden Ring", 3), ("Sekiro", 3), ("Armored Core", 6),
+                ("Grand Theft Auto", 10), ("Red Dead Redemption", 4),
+
+                // 21-40: Ação, Luta, Plataforma e FPS
+                ("Halo", 8), ("Chrono Trigger", 3), ("Chrono Cross", 2), ("Kingdom Hearts", 8), ("Monster Hunter", 8), 
+                ("Street Fighter", 8), ("Tekken", 8), ("Mortal Kombat", 8), ("Guilty Gear", 6), ("BlazBlue", 4), 
+                ("The King of Fighters", 6), ("Fatal Fury", 4), ("Samurai Shodown", 4), ("Soulcalibur", 6), ("Virtua Fighter", 4), 
+                ("Dead or Alive", 5), ("Donkey Kong", 8), ("Crash Bandicoot", 8), ("Spyro", 6), ("Sonic the Hedgehog", 12),
+
+                // 41-60: Clássicos e FPS Icônicos
+                ("Mega Man", 10), ("Metal Gear Solid", 10), ("BioShock", 4), ("Half-Life", 6), ("Portal", 3), 
+                ("Left 4 Dead", 3), ("Team Fortress", 2), ("Counter-Strike", 4), ("Dead Space", 5), ("The Witcher", 5), 
+                ("Cyberpunk", 3), ("Mass Effect", 6), ("Dragon Age", 5), ("Fallout", 8), ("The Elder Scrolls", 8), 
+                ("Assassin's Creed", 12), ("Far Cry", 8), ("Watch Dogs", 4), ("Splinter Cell", 6), ("Rainbow Six", 6),
+
+                // 61-80: Ação, Aventura, Hack and Slash, Roguelikes
+                ("Ghost Recon", 5), ("The Division", 3), ("Tomb Raider", 8), ("Uncharted", 6), ("The Last of Us", 4), 
+                ("Devil May Cry", 6), ("Bayonetta", 4), ("Ninja Gaiden", 5), ("Yakuza", 12), ("Like a Dragon", 6), 
+                ("Judgment", 3), ("Kingdom Come", 3), ("Hollow Knight", 3), ("Hades", 3), ("Ori and the", 3), 
+                ("DOOM", 6), ("Wolfenstein", 6), ("Quake", 4), ("Unreal", 4), ("Duke Nukem", 4),
+
+                // 81-100: Blizzard, Heróis, Corrida, FPS Militar
+                ("Borderlands", 6), ("Diablo", 6), ("StarCraft", 4), ("Warcraft", 4), ("Overwatch", 2), 
+                ("World of Warcraft", 4), ("Batman: Arkham", 5), ("Marvel's Spider-Man", 4), ("Need for Speed", 8), ("Gran Turismo", 6), 
+                ("Forza", 6), ("Burnout", 5), ("WipEout", 4), ("Ridge Racer", 4), ("Midnight Club", 4), 
+                ("Call of Duty", 10), ("Battlefield", 8), ("Medal of Honor", 5), ("Hitman", 6), ("Civilization", 6),
+
+                // 101-120: Estratégia, cRPGs e Remedy / Narrativos
+                ("Age of Empires", 6), ("Age of Mythology", 3), ("Total War", 6), ("Command & Conquer", 6), ("Homeworld", 4), 
+                ("Company of Heroes", 4), ("Baldur's Gate", 5), ("Icewind Dale", 3), ("Planescape", 2), ("Neverwinter Nights", 4), 
+                ("Divinity: Original Sin", 3), ("Pillars of Eternity", 3), ("Tyranny", 2), ("Pathfinder", 3), ("Alan Wake", 3), 
+                ("Control", 2), ("Quantum Break", 2), ("Max Payne", 4), ("Life is Strange", 5), ("Star Wars Jedi", 4),
+
+                // 121-140: Star Wars, JRPGs Lendários e Nintendo Classics
+                ("Star Wars: Knights of the Old Republic", 3), ("Star Wars Battlefront", 4), ("NieR", 4), ("Drakengard", 3), ("Tales of", 8), 
+                ("Star Ocean", 5), ("Valkyrie Profile", 3), ("Suikoden", 5), ("Breath of Fire", 4), ("Grandia", 3), 
+                ("Wild Arms", 4), ("Xenogears", 2), ("Xenosaga", 3), ("Xenoblade Chronicles", 5), ("Fire Emblem", 6), 
+                ("Advance Wars", 3), ("Kirby", 6), ("Super Smash Bros", 5), ("Star Fox", 4), ("F-Zero", 3),
+
+                // 141-160: Immersive Sims, Terror e Sobrevivência
+                ("EarthBound", 3), ("Golden Sun", 3), ("Rayman", 5), ("Prince of Persia", 5), ("Deus Ex", 5), 
+                ("Thief", 4), ("Crysis", 4), ("Metro", 4), ("S.T.A.L.K.E.R.", 4), ("PAYDAY", 3), 
+                ("Dying Light", 3), ("Dead Island", 3), ("Little Nightmares", 3), ("Outlast", 3), ("Amnesia", 3), 
+                ("Penumbra", 2), ("SOMA", 2), ("Alien: Isolation", 2), ("Fatal Frame", 4), ("Clock Tower", 3),
+
+                // 161-180: Terror, Visual Novels, Falcom, Immersive Sims & PlayStation Classics
+                ("Siren", 3), ("Danganronpa", 4), ("Ace Attorney", 6), ("Zero Escape", 3), ("Professor Layton", 4), 
+                ("Steins;Gate", 3), ("Ys", 6), ("The Legend of Heroes", 8), ("Dragon's Dogma", 3), ("Mafia", 4), 
+                ("Dishonored", 3), ("Prey", 2), ("Deathloop", 2), ("Infamous", 4), ("Killzone", 4), 
+                ("Resistance", 3), ("Sly Cooper", 4), ("Ratchet & Clank", 6), ("Jak and Daxter", 4), ("System Shock", 3),
+
+                // 181-200: Simulação, Gestão, 4X e Grand Strategy
+                ("Fable", 4), ("Pikmin", 4), ("XCOM", 4), ("SimCity", 4), ("The Sims", 5), 
+                ("Cities: Skylines", 3), ("Anno", 4), ("Tropico", 4), ("RollerCoaster Tycoon", 3), ("Crusader Kings", 3), 
+                ("Europa Universalis", 3), ("Hearts of Iron", 3), ("Stellaris", 3), ("Mount & Blade", 3), ("Gothic", 4), 
+                ("Risen", 3), ("ELEX", 2), ("Subnautica", 2), ("Terraria", 2), ("No Man's Sky", 2)
             };
 
             _logger.LogInformation("[Seeder] Verificando e garantindo presença dos títulos canônicos de {Total} franquias históricas...", franquiasIconicas.Length);
@@ -494,9 +536,9 @@ namespace GameLog_Backend.Seeders
 
             using var detailSemaphore = new SemaphoreSlim(12);
 
-            async Task<List<(RawgGameItemDTO Rawg, string StudioNome)>> ColetarJogosValidosAsync(List<RawgGameItemDTO> candidatos, int metaQtd)
+            async Task<List<(RawgGameItemDTO Rawg, string DevNome, string? PubNome)>> ColetarJogosValidosAsync(List<RawgGameItemDTO> candidatos, int metaQtd)
             {
-                var resultado = new List<(RawgGameItemDTO Rawg, string StudioNome)>();
+                var resultado = new List<(RawgGameItemDTO Rawg, string DevNome, string? PubNome)>();
                 var titulosVistos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 const int loteTamanho = 50;
@@ -506,25 +548,25 @@ namespace GameLog_Backend.Seeders
                     var tarefasLote = lote.Select(async item =>
                     {
                         var titulo = FormatarTituloFinal(item.Name.Trim());
-                        if (string.IsNullOrWhiteSpace(titulo)) return ((RawgGameItemDTO)null!, (string)null!);
+                        if (string.IsNullOrWhiteSpace(titulo)) return ((RawgGameItemDTO)null!, (string)null!, (string?)null);
 
-                        var studio = await ResolverEstudioCompletoAsync(item, detailSemaphore);
-                        if (string.IsNullOrWhiteSpace(studio)) return ((RawgGameItemDTO)null!, (string)null!);
+                        var par = await ResolverEstudioCompletoAsync(item, detailSemaphore);
+                        if (par == null || string.IsNullOrWhiteSpace(par.Value.DevNome)) return ((RawgGameItemDTO)null!, (string)null!, (string?)null);
 
-                        return (item, studio);
+                        return (item, par.Value.DevNome, par.Value.PubNome);
                     });
 
                     var resultadosLote = await Task.WhenAll(tarefasLote);
-                    foreach (var (rawg, studioNome) in resultadosLote)
+                    foreach (var (rawg, devNome, pubNome) in resultadosLote)
                     {
-                        if (rawg == null || string.IsNullOrWhiteSpace(studioNome)) continue;
+                        if (rawg == null || string.IsNullOrWhiteSpace(devNome)) continue;
 
                         var titulo = FormatarTituloFinal(rawg.Name.Trim());
                         if (titulo.Length > 250) titulo = titulo.Substring(0, 250).Trim();
 
                         if (titulosVistos.Add(titulo))
                         {
-                            resultado.Add((rawg, studioNome));
+                            resultado.Add((rawg, devNome, pubNome));
                             if (resultado.Count >= metaQtd) break;
                         }
                     }
@@ -533,35 +575,39 @@ namespace GameLog_Backend.Seeders
                 return resultado;
             }
 
-            var jogosFuturosValidos = await ColetarJogosValidosAsync(candidatosFuturos, 400);
-            var jogosRecentesValidos = await ColetarJogosValidosAsync(candidatosRecentes, 2500);
-            var jogosEraDouradaValidos = await ColetarJogosValidosAsync(candidatosEraDourada, 2400);
+            var jogosFuturosValidos = await ColetarJogosValidosAsync(candidatosFuturos, 500);
+            var jogosRecentesValidos = await ColetarJogosValidosAsync(candidatosRecentes, 2750);
+            var jogosEraDouradaValidos = await ColetarJogosValidosAsync(candidatosEraDourada, 2650);
             var jogosPre2000Validos = await ColetarJogosValidosAsync(candidatosPre2000, 700);
 
-            var jogosComEstudioValido = new List<(RawgGameItemDTO Rawg, string StudioNome)>();
+            var jogosComEstudioValido = new List<(RawgGameItemDTO Rawg, string DevNome, string? PubNome)>();
             jogosComEstudioValido.AddRange(jogosFuturosValidos);
             jogosComEstudioValido.AddRange(jogosRecentesValidos);
             jogosComEstudioValido.AddRange(jogosEraDouradaValidos);
             jogosComEstudioValido.AddRange(jogosPre2000Validos);
 
-            _logger.LogInformation("[Seeder] Total curado selecionado com estúdios 100% autênticos: {Total} jogos (Futuros 2025-2027: {Futuros}, Recentes 2020-2024: {Recentes}, Era Dourada 2000-2019: {Dourada}, Clássicos: {Classicos})!", 
+            _logger.LogInformation("[Seeder] Total curado selecionado com estúdios e publicadoras 100% autênticos: {Total} jogos (Futuros 2025-2027: {Futuros}, Recentes 2020-2024: {Recentes}, Era Dourada 2000-2019: {Dourada}, Clássicos: {Classicos})!", 
                 jogosComEstudioValido.Count, jogosFuturosValidos.Count, jogosRecentesValidos.Count, jogosEraDouradaValidos.Count, jogosPre2000Validos.Count);
 
-            // 5. Inserir novas empresas descobertas dinamicamente
+            // 5. Inserir novas empresas descobertas dinamicamente (Desenvolvedoras e Publicadoras)
             var connectionString = _context.Database.GetConnectionString();
             var novasEmpresas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var (_, studioNome) in jogosComEstudioValido)
+            foreach (var (_, devNome, pubNome) in jogosComEstudioValido)
             {
-                if (!empresaDict.ContainsKey(studioNome))
+                if (!string.IsNullOrWhiteSpace(devNome) && !empresaDict.ContainsKey(devNome))
                 {
-                    novasEmpresas.Add(studioNome);
+                    novasEmpresas.Add(devNome);
+                }
+                if (!string.IsNullOrWhiteSpace(pubNome) && !empresaDict.ContainsKey(pubNome))
+                {
+                    novasEmpresas.Add(pubNome);
                 }
             }
 
             if (novasEmpresas.Any())
             {
-                _logger.LogInformation("[Seeder] Cadastrando {Total} novos estúdios verificados no banco...", novasEmpresas.Count);
+                _logger.LogInformation("[Seeder] Cadastrando {Total} novos estúdios e publicadoras verificados no banco...", novasEmpresas.Count);
                 foreach (var nomeEmp in novasEmpresas)
                 {
                     var emp = new Empresa { NomeEmpresa = nomeEmp.Length > 150 ? nomeEmp.Substring(0, 150) : nomeEmp, EstaAtivo = true };
@@ -583,7 +629,7 @@ namespace GameLog_Backend.Seeders
             var titulosInseridosNaTabela = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var jogosParaInserir = new List<Jogo>();
 
-            foreach (var (rawg, studioNome) in jogosComEstudioValido)
+            foreach (var (rawg, devNome, pubNome) in jogosComEstudioValido)
             {
                 var titulo = FormatarTituloFinal(rawg.Name.Trim());
                 if (titulo.Length > 250) titulo = titulo.Substring(0, 250).Trim();
@@ -594,14 +640,13 @@ namespace GameLog_Backend.Seeders
                     continue;
                 }
 
-                if (!empresaDict.TryGetValue(studioNome, out var empId) || !empresasEntidades.TryGetValue(empId, out var empEntidade))
+                if (!empresaDict.TryGetValue(devNome, out var empId) || !empresasEntidades.TryGetValue(empId, out var empEntidade))
                 {
                     continue;
                 }
 
                 Empresa? pubEntidade = null;
-                var rawgPub = rawg.Publishers?.FirstOrDefault()?.Name;
-                if (!string.IsNullOrWhiteSpace(rawgPub) && empresaDict.TryGetValue(rawgPub, out var foundPubId))
+                if (!string.IsNullOrWhiteSpace(pubNome) && empresaDict.TryGetValue(pubNome, out var foundPubId))
                 {
                     empresasEntidades.TryGetValue(foundPubId, out pubEntidade);
                 }
@@ -629,15 +674,15 @@ namespace GameLog_Backend.Seeders
                 // Resolução dos gêneros
                 var (gensIds, gensNomes) = ResolverGeneros(rawg, generoDict, defaultGeneroId);
 
-                // Geração de Descrição Rica e Narrativa
-                var desc = GerarDescricaoRica(titulo, rawg, studioNome, gensNomes, dtLanc);
+                // Geração de Descricao Rica e Narrativa
+                var desc = GerarDescricaoRica(titulo, rawg, devNome, gensNomes, dtLanc);
 
                 var jogo = new Jogo
                 {
                     Id = UuidV7Helper.NewGuid(),
                     Titulo = titulo,
                     Descricao = desc,
-                    Imagem = rawg.BackgroundImage ?? string.Empty,
+                    Imagem = CatalogSanitizer.ResolverMelhorCapaHd(rawg.BackgroundImage, rawg.Stores, titulo, dtLanc.Year),
                     DataLancamento = DateOnly.FromDateTime(dtLanc),
                     ClassificacaoIndicativa = classif,
                     Empresa = empEntidade,
@@ -804,9 +849,9 @@ namespace GameLog_Backend.Seeders
             if (string.IsNullOrWhiteSpace(title)) return string.Empty;
             var lower = title.ToLowerInvariant().Trim();
 
-            // Limpar sufixos de edições redundantes para evitar entradas duplicadas do mesmo jogo
+            // Limpar sufixos de edições cosméticas e marketing redundantes para evitar duplicatas superficiais do mesmo jogo
             lower = Regex.Replace(lower, @"\(\d{4}\)", "");
-            lower = Regex.Replace(lower, @"\b(game of the year edition|goty edition|definitive edition|enhanced edition|remastered|remake|goodies collection|digital deluxe edition|special edition|anniversary edition|legendary edition|complete edition|directors cut|director's cut|hd remaster|deluxe edition|gold edition|collector's edition|collectors edition|anthology|trilogy|compilation|two-pack|double pack|edition)\b", "");
+            lower = Regex.Replace(lower, @"\b(game of the year edition|goty edition|goodies collection|digital deluxe edition|digital deluxe|special edition|anniversary edition|legendary edition|complete edition|directors cut|director's cut|deluxe edition|gold edition|collector's edition|collectors edition|anthology|two-pack|double pack|launch edition|day one edition|standard edition|founder's pack|founders pack)\b", "");
 
             // Remover caracteres especiais e espaços
             return Regex.Replace(lower, @"[^a-z0-9]", "");
@@ -1580,43 +1625,55 @@ namespace GameLog_Backend.Seeders
             return null;
         }
 
-        private async Task<string?> ResolverEstudioCompletoAsync(RawgGameItemDTO rawg, SemaphoreSlim detailSemaphore)
+        private async Task<(string DevNome, string? PubNome)?> ResolverEstudioCompletoAsync(RawgGameItemDTO rawg, SemaphoreSlim detailSemaphore)
         {
-            var studio = ResolverEstudio(rawg);
-            if (!string.IsNullOrWhiteSpace(studio))
-            {
-                return studio;
-            }
+            var studioCurado = ResolverEstudio(rawg);
+            string? devEncontrado = studioCurado;
+            string? pubEncontrado = null;
 
-            await detailSemaphore.WaitAsync();
-            try
+            if (string.IsNullOrWhiteSpace(devEncontrado))
             {
-                var detail = await _rawgService.ObterDetalhesJogoExterno(rawg.Id);
-                if (detail != null)
+                await detailSemaphore.WaitAsync();
+                try
                 {
-                    var pub = detail.Publishers?.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.Name))?.Name?.Trim();
-                    if (!string.IsNullOrWhiteSpace(pub) && pub.Length > 1 && !pub.Contains("Independente", StringComparison.OrdinalIgnoreCase))
+                    var detail = await _rawgService.ObterDetalhesJogoExterno(rawg.Id);
+                    if (detail != null)
                     {
-                        return pub.Length > 150 ? pub.Substring(0, 150).Trim() : pub;
-                    }
+                        var dev = detail.Developers?.FirstOrDefault(d => !string.IsNullOrWhiteSpace(d.Name))?.Name?.Trim();
+                        if (!string.IsNullOrWhiteSpace(dev) && dev.Length > 1 && !dev.Contains("Independente", StringComparison.OrdinalIgnoreCase))
+                        {
+                            devEncontrado = dev.Length > 150 ? dev.Substring(0, 150).Trim() : dev;
+                        }
 
-                    var dev = detail.Developers?.FirstOrDefault(d => !string.IsNullOrWhiteSpace(d.Name))?.Name?.Trim();
-                    if (!string.IsNullOrWhiteSpace(dev) && dev.Length > 1 && !dev.Contains("Independente", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return dev.Length > 150 ? dev.Substring(0, 150).Trim() : dev;
+                        var pub = detail.Publishers?.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.Name))?.Name?.Trim();
+                        if (!string.IsNullOrWhiteSpace(pub) && pub.Length > 1 && !pub.Contains("Independente", StringComparison.OrdinalIgnoreCase))
+                        {
+                            pubEncontrado = pub.Length > 150 ? pub.Substring(0, 150).Trim() : pub;
+                        }
+
+                        if (string.IsNullOrWhiteSpace(devEncontrado) && !string.IsNullOrWhiteSpace(pubEncontrado))
+                        {
+                            devEncontrado = pubEncontrado;
+                        }
                     }
                 }
-            }
-            catch
-            {
-                // Ignorar falha assíncrona
-            }
-            finally
-            {
-                detailSemaphore.Release();
+                catch
+                {
+                    // Ignorar falha assíncrona
+                }
+                finally
+                {
+                    detailSemaphore.Release();
+                }
             }
 
-            return null;
+            if (string.IsNullOrWhiteSpace(devEncontrado))
+            {
+                return null;
+            }
+
+            var (devFinal, pubFinal) = CompanyNormalizer.ResolverParDesenvolvedoraPublicadora(rawg.Name, devEncontrado, pubEncontrado);
+            return (devFinal, pubFinal);
         }
 
         private static string MapearGeneroInglesParaPortugues(string generoIngles)

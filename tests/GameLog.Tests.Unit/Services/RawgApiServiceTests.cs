@@ -58,7 +58,7 @@ namespace GameLog.Tests.Unit.Services
         [InlineData("action", "Ação")]
         [InlineData("role-playing-games-rpg", "RPG")]
         [InlineData("adventure", "Aventura")]
-        [InlineData("shooter", "Tiro (FPS / TPS)")]
+        [InlineData("shooter", "Tiro")]
         [InlineData("strategy", "Estratégia")]
         [InlineData("racing", "Corrida")]
         [InlineData("sports", "Esportes")]

@@ -6,7 +6,7 @@ namespace GameLog_Backend.Services.Catalog
 {
     public static class GenreTaxonomyService
     {
-        // Lista consolidada e expandida de Categorias Canônicas (Gêneros e Subgêneros unificados)
+        // Lista consolidada e expandida de Categorias Canônicas (Gêneros e Subgêneros unificados sem parênteses)
         public static readonly string[] CategoriasCanonicas = new[]
         {
             "Ação",
@@ -22,10 +22,10 @@ namespace GameLog_Backend.Services.Catalog
             "Mundo Aberto",
             "Hack and Slash",
             "Plataforma",
-            "Tiro (FPS / TPS)",
+            "Tiro",
             "Estratégia",
             "Estratégia em Turnos",
-            "RTS (Tempo Real)",
+            "RTS",
             "Ficção Científica & Cyberpunk",
             "Fantasia Medieval",
             "Stealth",
@@ -49,7 +49,7 @@ namespace GameLog_Backend.Services.Catalog
             { "adventure", "Aventura" },
             { "role-playing-games-rpg", "RPG" },
             { "strategy", "Estratégia" },
-            { "shooter", "Tiro (FPS / TPS)" },
+            { "shooter", "Tiro" },
             { "racing", "Corrida" },
             { "sports", "Esportes" },
             { "fighting", "Luta" },
@@ -68,6 +68,8 @@ namespace GameLog_Backend.Services.Catalog
             { "souls-like", "Soulslike" },
             { "soulslike", "Soulslike" },
             { "dark-souls", "Soulslike" },
+            { "bloodborne", "Soulslike" },
+            { "elden-ring", "Soulslike" },
             { "metroidvania", "Metroidvania" },
             { "roguelike", "Roguelike / Roguelite" },
             { "rogue-like", "Roguelike / Roguelite" },
@@ -77,18 +79,25 @@ namespace GameLog_Backend.Services.Catalog
             { "arpg", "RPG de Ação" },
             { "jrpg", "JRPG" },
             { "japanese-rpg", "JRPG" },
+            { "crpg", "RPG" },
+            { "computer-rpg", "RPG" },
             { "open-world", "Mundo Aberto" },
             { "open-world-2", "Mundo Aberto" },
             { "hack-and-slash", "Hack and Slash" },
             { "hack-slash", "Hack and Slash" },
             { "spectacle-fighter", "Hack and Slash" },
+            { "character-action", "Hack and Slash" },
             { "survival-horror", "Survival Horror" },
             { "horror", "Terror & Sobrevivência" },
             { "psychological-horror", "Terror & Sobrevivência" },
-            { "fps", "Tiro (FPS / TPS)" },
-            { "first-person-shooter", "Tiro (FPS / TPS)" },
-            { "third-person-shooter", "Tiro (FPS / TPS)" },
-            { "tps", "Tiro (FPS / TPS)" },
+            { "fps", "Tiro" },
+            { "first-person-shooter", "Tiro" },
+            { "third-person-shooter", "Tiro" },
+            { "tps", "Tiro" },
+            { "hero-shooter", "Tiro" },
+            { "boomer-shooter", "Tiro" },
+            { "looter-shooter", "Tiro" },
+            { "arena-shooter", "Tiro" },
             { "cyberpunk", "Ficção Científica & Cyberpunk" },
             { "sci-fi", "Ficção Científica & Cyberpunk" },
             { "science-fiction", "Ficção Científica & Cyberpunk" },
@@ -101,8 +110,13 @@ namespace GameLog_Backend.Services.Catalog
             { "turn-based-strategy", "Estratégia em Turnos" },
             { "tactical-rpg", "Estratégia em Turnos" },
             { "tactical", "Estratégia em Turnos" },
-            { "rts", "RTS (Tempo Real)" },
-            { "real-time-strategy", "RTS (Tempo Real)" },
+            { "rts", "RTS" },
+            { "real-time-strategy", "RTS" },
+            { "deckbuilder", "Estratégia" },
+            { "deck-building", "Estratégia" },
+            { "card-game", "Estratégia" },
+            { "city-builder", "Estratégia" },
+            { "tower-defense", "Estratégia" },
             { "point-click", "Point & Click" },
             { "point-and-click", "Point & Click" },
             { "visual-novel", "Visual Novel" },
@@ -223,7 +237,8 @@ namespace GameLog_Backend.Services.Catalog
             if (lower.Contains("action") || lower.Contains("acao") || lower.Contains("aao")) return "Ação";
             if (lower.Contains("adventure") || lower.Contains("aventura")) return "Aventura";
             if (lower.Contains("role-playing") || lower.Contains("rpg")) return "RPG";
-            if (lower.Contains("shooter") || lower.Contains("tiro") || lower.Contains("fps")) return "Tiro (FPS / TPS)";
+            if (lower.Contains("shooter") || lower.Contains("tiro") || lower.Contains("fps") || lower.Contains("tps")) return "Tiro";
+            if (lower.Contains("rts") || lower.Contains("real-time strategy")) return "RTS";
             if (lower.Contains("strategy") || lower.Contains("estrategia")) return "Estratégia";
             if (lower.Contains("racing") || lower.Contains("corrida")) return "Corrida";
             if (lower.Contains("sports") || lower.Contains("esportes")) return "Esportes";

@@ -43,6 +43,18 @@ namespace GameLog_Backend.DTOs
         public string? Slug { get; set; }
     }
 
+    public class RawgStoreItemDTO
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("url")]
+        public string? Url { get; set; }
+
+        [JsonPropertyName("store")]
+        public RawgNamedEntityDTO? Store { get; set; }
+    }
+
     public class RawgGameItemDTO
     {
         [JsonPropertyName("id")]
@@ -80,6 +92,9 @@ namespace GameLog_Backend.DTOs
 
         [JsonPropertyName("developers")]
         public List<RawgNamedEntityDTO> Developers { get; set; } = new();
+
+        [JsonPropertyName("stores")]
+        public List<RawgStoreItemDTO> Stores { get; set; } = new();
 
         [JsonPropertyName("esrb_rating")]
         public RawgEsrbRatingDTO? EsrbRating { get; set; }

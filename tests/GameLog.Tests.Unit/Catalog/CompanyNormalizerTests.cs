@@ -12,7 +12,10 @@ namespace GameLog.Tests.Unit.Catalog
         [InlineData("Square Enix Co., Ltd.", "Square Enix")]
         [InlineData("Electronic Arts Inc.", "Electronic Arts")]
         [InlineData("Sony Interactive Entertainment LLC", "PlayStation Studios")]
-        [InlineData("Nintendo EPD", "Nintendo")]
+        [InlineData("Nintendo of America", "Nintendo")]
+        [InlineData("Santa Monica Studio", "Santa Monica Studio")]
+        [InlineData("Naughty Dog", "Naughty Dog")]
+        [InlineData("BioWare", "BioWare")]
         [InlineData("Capcom Co., Ltd.", "Capcom")]
         [InlineData("Rockstar Games Inc", "Rockstar Games")]
         public void NormalizarNomeEmpresa_DeveRetornarNomeCanonico(string nomeBruto, string esperado)
