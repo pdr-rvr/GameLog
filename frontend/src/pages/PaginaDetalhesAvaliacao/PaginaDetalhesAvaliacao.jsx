@@ -246,8 +246,8 @@ const PaginaDetalhesAvaliacao = () => {
           <FaComments className="empty-icon" />
           <h2>Avaliação não encontrada</h2>
           <p>Esta avaliação pode ter sido removida ou não está disponível.</p>
-          <button type="button" className="btn-voltar-link" onClick={() => navigate("/avaliacoes")}>
-            <FaArrowLeft /> Voltar para Avaliações
+          <button type="button" className="btn-voltar-link" onClick={() => navigate("/comunidade")}>
+            <FaArrowLeft /> Voltar para Comunidade
           </button>
         </div>
       </div>
@@ -268,7 +268,7 @@ const PaginaDetalhesAvaliacao = () => {
             <FaArrowLeft /> Voltar
           </button>
           <span className="nav-separator">/</span>
-          <Link to="/avaliacoes" className="nav-link">Avaliações</Link>
+          <Link to="/comunidade" className="nav-link">Comunidade</Link>
           <span className="nav-separator">/</span>
           <span className="nav-current">{avaliacao.nomeJogo}</span>
         </div>

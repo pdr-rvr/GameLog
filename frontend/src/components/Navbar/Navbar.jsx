@@ -11,7 +11,9 @@ import {
   FaHome,
   FaThLarge,
   FaComments,
-  FaCog
+  FaCog,
+  FaUsers,
+  FaRss
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -89,9 +91,14 @@ const Navbar = ({ onPublicarClick }) => {
           <Link to="/jogos" className={`nav-item ${isActive("/jogos") ? "active" : ""}`}>
             <FaThLarge className="nav-icon" /> Catálogo
           </Link>
-          <Link to="/avaliacoes" className={`nav-item ${isActive("/avaliacoes") ? "active" : ""}`}>
-            <FaComments className="nav-icon" /> Avaliações
+          <Link to="/comunidade" className={`nav-item ${isActive("/comunidade") || isActive("/avaliacoes") ? "active" : ""}`}>
+            <FaUsers className="nav-icon" /> Comunidade
           </Link>
+          {isAuthenticated && (
+            <Link to="/feed" className={`nav-item ${isActive("/feed") ? "active" : ""}`}>
+              <FaRss className="nav-icon" /> Feed Social
+            </Link>
+          )}
         </nav>
 
         {/* Ações da Direita */}
@@ -203,12 +210,21 @@ const Navbar = ({ onPublicarClick }) => {
             <FaThLarge /> Catálogo
           </Link>
           <Link 
-            to="/avaliacoes" 
-            className={`mobile-nav-link ${isActive("/avaliacoes") ? "active" : ""}`}
+            to="/comunidade" 
+            className={`mobile-nav-link ${isActive("/comunidade") || isActive("/avaliacoes") ? "active" : ""}`}
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            <FaComments /> Avaliações
+            <FaUsers /> Comunidade
           </Link>
+          {isAuthenticated && (
+            <Link 
+              to="/feed" 
+              className={`mobile-nav-link ${isActive("/feed") ? "active" : ""}`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <FaRss /> Feed Social
+            </Link>
+          )}
 
           {isAuthenticated ? (
             <>

@@ -40,7 +40,7 @@ namespace GameLog_Backend.Controllers
                 })
                 .OrderByDescending(g => g.TotalAvaliacoes)
                 .ThenByDescending(g => g.Media)
-                .Take(6)
+                .Take(5)
                 .ToListAsync();
 
             var topJogoIds = jogosStats.Select(s => s.JogoId).ToList();
