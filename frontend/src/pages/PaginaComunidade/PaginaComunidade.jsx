@@ -87,6 +87,36 @@ const PaginaComunidade = () => {
     carregarAvaliacoesFiltradas();
   }, [filtroNota]);
 
+  const handleToggleCurtir = async (avaliacaoId) => {
+    if (!user) {
+      toast.info("Faça login para curtir avaliações da comunidade!");
+      return;
+    }
+
+    try {
+      await AvaliacaoService.toggleCurtir(avaliacaoId);
+      setAvaliacoes((prev) =>
+        prev.map((av) => {
+          const avId = av.avaliacaoId || av.id;
+          if (avId === avaliacaoId) {
+            const jaCurtido = av.curtidaPorMim;
+            return {
+              ...av,
+              curtidaPorMim: !jaCurtido,
+              totalCurtidas: jaCurtido
+                ? Math.max(0, (av.totalCurtidas || 1) - 1)
+                : (av.totalCurtidas || 0) + 1
+            };
+          }
+          return av;
+        })
+      );
+    } catch (error) {
+      console.error("Erro ao curtir avaliação:", error);
+      toast.error("Não foi possível registrar a curtida.");
+    }
+  };
+
   const handleSalvarAvaliacao = async (avaliacaoData) => {
     setSalvandoAvaliacao(true);
     try {
@@ -302,6 +332,7 @@ const PaginaComunidade = () => {
                     <ReviewCardV2 
                       key={avaliacao.avaliacaoId || avaliacao.id} 
                       avaliacao={avaliacao} 
+                      onToggleCurtir={handleToggleCurtir}
                     />
                   ))}
                 </div>
