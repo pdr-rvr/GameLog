@@ -229,6 +229,84 @@
     color: #ffffff;
 }
 
+/* Chips de Gêneros */
+.generos-chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border-glass, rgba(255, 255, 255, 0.08));
+}
+
+.chips-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.generos-chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.genero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(109, 40, 217, 0.25);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    color: #c4b5fd;
+    padding: 4px 10px 4px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.genero-chip:hover {
+    border-color: #a78bfa;
+    background: rgba(109, 40, 217, 0.35);
+}
+
+.btn-remove-chip {
+    background: none;
+    border: none;
+    color: #a78bfa;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    font-size: 0.75rem;
+    border-radius: 50%;
+    transition: all 0.15s ease;
+}
+
+.btn-remove-chip:hover {
+    color: #ffffff;
+    background: rgba(239, 68, 68, 0.5);
+}
+
+.btn-limpar-chips {
+    background: none;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.78rem;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.15s ease;
+}
+
+.btn-limpar-chips:hover {
+    color: #f87171;
+}
+
 .filtros-actions-bar {
     display: flex;
     justify-content: flex-end;

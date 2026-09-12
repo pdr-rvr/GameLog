@@ -51,4 +51,27 @@ describe('JogoCard Component', () => {
 
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('deve renderizar badge de lançamento futuro e ocultar nota para jogos ainda não lançados', () => {
+    const futureYear = new Date().getFullYear() + 2;
+    const jogoFuturo = {
+      jogoId: '0191e7a4-312c-7b00-8802-b2586a76059e',
+      titulo: 'Grand Theft Auto VI',
+      imagem: 'https://media.rawg.io/gta6.jpg',
+      nomeDesenvolvedora: 'Rockstar Games',
+      genero: 'Ação',
+      dataLancamento: `${futureYear}-11-20`,
+      mediaAvaliacoes: 0,
+      totalAvaliacoes: 0
+    };
+
+    render(
+      <MemoryRouter>
+        <JogoCard jogo={jogoFuturo} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(`Lançamento em 20/11/${futureYear}`)).toBeInTheDocument();
+    expect(screen.queryByText('★')).not.toBeInTheDocument();
+  });
 });

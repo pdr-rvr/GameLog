@@ -149,5 +149,52 @@ namespace GameLog.Tests.Unit.Services
             destaques.Should().NotBeEmpty();
             destaques.First().Titulo.Should().Be("The Witcher 3: Wild Hunt");
         }
+
+        [Fact]
+        public async Task ListarJogosPaginados_ComMultiplosGeneros_DeveFiltrarCorretamente()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var rawgService = CreateMockRawgService(context);
+            var service = new JogoServices(context, rawgService);
+
+            var empresa = new Empresa { NomeEmpresa = "Bandai Namco", EstaAtivo = true };
+            context.Empresa.Add(empresa);
+
+            var genSoulslike = new Genero { TituloGenero = "Soulslike", EstaAtivo = true };
+            var genRpg = new Genero { TituloGenero = "RPG", EstaAtivo = true };
+            var genCorrida = new Genero { TituloGenero = "Corrida", EstaAtivo = true };
+            context.Generos.AddRange(genSoulslike, genRpg, genCorrida);
+
+            var eldenRing = new Jogo
+            {
+                Titulo = "Elden Ring",
+                Descricao = "RPG Soulslike",
+                Imagem = "er.jpg",
+                Empresa = empresa,
+                EstaAtivo = true,
+                Generos = new List<Genero> { genSoulslike, genRpg }
+            };
+
+            var granTurismo = new Jogo
+            {
+                Titulo = "Gran Turismo 7",
+                Descricao = "Corrida",
+                Imagem = "gt7.jpg",
+                Empresa = empresa,
+                EstaAtivo = true,
+                Generos = new List<Genero> { genCorrida }
+            };
+
+            context.Jogos.AddRange(eldenRing, granTurismo);
+            await context.SaveChangesAsync();
+
+            // Act: Filtrar por Soulslike ou RPG
+            var res = await service.ListarJogosPaginados(generos: new[] { "Soulslike", "RPG" });
+
+            // Assert
+            res.Itens.Should().ContainSingle(j => j.Titulo == "Elden Ring");
+            res.Itens.Should().NotContain(j => j.Titulo == "Gran Turismo 7");
+        }
     }
 }

@@ -73,7 +73,7 @@ namespace GameLog_Backend.Services
             int pagina = 1,
             int itensPorPagina = 12,
             string? busca = null,
-            string? genero = null,
+            IEnumerable<string>? generos = null,
             int? ano = null,
             string? empresa = null,
             double? notaMinima = null,
@@ -89,19 +89,30 @@ namespace GameLog_Backend.Services
                 .Include(j => j.Publicadora)
                 .Where(j => j.EstaAtivo);
 
-            // Filtros com sanitização
+            // Filtro textual por termo de busca
             if (!string.IsNullOrWhiteSpace(busca))
             {
                 var termo = busca.Trim().ToLower();
                 query = query.Where(j => j.Titulo.ToLower().Contains(termo)
                                       || (j.Empresa != null && j.Empresa.NomeEmpresa.ToLower().Contains(termo))
-                                      || (j.Publicadora != null && j.Publicadora.NomeEmpresa.ToLower().Contains(termo)));
+                                      || (j.Publicadora != null && j.Publicadora.NomeEmpresa.ToLower().Contains(termo))
+                                      || j.Generos.Any(g => g.TituloGenero.ToLower().Contains(termo)));
             }
 
-            if (!string.IsNullOrWhiteSpace(genero))
+            // Filtro composto por múltiplos gêneros/subgêneros (AND logic)
+            if (generos != null)
             {
-                var generoTerm = genero.Trim().ToLower();
-                query = query.Where(j => j.Generos.Any(g => g.TituloGenero.ToLower() == generoTerm));
+                var listaGeneros = generos
+                    .Where(g => !string.IsNullOrWhiteSpace(g))
+                    .Select(g => g.Trim().ToLower())
+                    .Distinct()
+                    .ToList();
+
+                foreach (var gTerm in listaGeneros)
+                {
+                    var termoG = gTerm;
+                    query = query.Where(j => j.Generos.Any(g => g.TituloGenero.ToLower() == termoG || g.TituloGenero.ToLower().Contains(termoG)));
+                }
             }
 
             if (ano.HasValue)
@@ -112,117 +123,11 @@ namespace GameLog_Backend.Services
             if (!string.IsNullOrWhiteSpace(empresa))
             {
                 var empresaTerm = empresa.Trim().ToLower();
-                query = query.Where(j => (j.Empresa != null && j.Empresa.NomeEmpresa.ToLower() == empresaTerm)
-                                      || (j.Publicadora != null && j.Publicadora.NomeEmpresa.ToLower() == empresaTerm));
+                query = query.Where(j => (j.Empresa != null && j.Empresa.NomeEmpresa.ToLower().Contains(empresaTerm))
+                                      || (j.Publicadora != null && j.Publicadora.NomeEmpresa.ToLower().Contains(empresaTerm)));
             }
 
-            // A consulta externa à RAWG é acionada EXCLUSIVAMENTE para complementar a barra de pesquisa textual ('busca')
-            var temBuscaTextual = !string.IsNullOrWhiteSpace(busca) && busca.Trim().Length >= 2;
-
-            if (temBuscaTextual)
-            {
-                var jogosLocais = await query.ToListAsync();
-                var locaisIds = jogosLocais.Select(j => j.Id).ToList();
-
-                var stats = await _context.Avaliacoes
-                    .AsNoTracking()
-                    .Where(a => a.EstaAtivo && locaisIds.Contains(a.Jogo.Id))
-                    .GroupBy(a => a.Jogo.Id)
-                    .Select(g => new
-                    {
-                        JogoId = g.Key,
-                        Media = g.Average(x => (double)x.Nota),
-                        Total = g.Count()
-                    })
-                    .ToDictionaryAsync(x => x.JogoId);
-
-                var listaLocaisDTO = jogosLocais.Select(j =>
-                {
-                    stats.TryGetValue(j.Id, out var s);
-                    return new JogoDTO
-                    {
-                        JogoId = j.Id,
-                        Titulo = j.Titulo,
-                        Descricao = j.Descricao,
-                        Imagem = j.Imagem,
-                        DataLancamento = j.DataLancamento,
-                        ClassificacaoIndicativa = j.ClassificacaoIndicativa,
-                        EmpresaId = j.Empresa?.Id ?? Guid.Empty,
-                        NomeEmpresa = j.Empresa?.NomeEmpresa ?? string.Empty,
-                        PublicadoraId = j.Publicadora?.Id,
-                        NomePublicadora = j.Publicadora?.NomeEmpresa,
-                        EstaAtivo = j.EstaAtivo,
-                        Generos = j.Generos.Select(g => g.TituloGenero).ToList(),
-                        MediaAvaliacoes = s != null ? s.Media : null,
-                        TotalAvaliacoes = s?.Total ?? 0,
-                        EhExterno = false
-                    };
-                }).ToList();
-
-                List<JogoDTO> externos = new();
-                try
-                {
-                    // Busca externa com fallback automático embutido
-                    externos = await _rawgApiService.BuscarJogosExternosFormatados(busca, ano, genero, empresa, 60);
-                }
-                catch
-                {
-                    // Fallback transparente para o banco local
-                    externos = new List<JogoDTO>();
-                }
-
-                var titulosLocais = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                var listaFinal = new List<JogoDTO>();
-
-                foreach (var local in listaLocaisDTO)
-                {
-                    if (RelevanciaBuscaHelper.CorrespondeBusca(local.Titulo, local.NomeEmpresa, local.NomePublicadora, busca))
-                    {
-                        if (notaMinima.HasValue && (local.MediaAvaliacoes == null || local.MediaAvaliacoes < notaMinima.Value))
-                        {
-                            continue;
-                        }
-
-                        titulosLocais.Add(local.Titulo.Trim().ToLower());
-                        listaFinal.Add(local);
-                    }
-                }
-
-                foreach (var ext in externos)
-                {
-                    var tLower = ext.Titulo.Trim().ToLower();
-                    if (!titulosLocais.Contains(tLower) && RelevanciaBuscaHelper.CorrespondeBusca(ext.Titulo, ext.NomeEmpresa, ext.NomePublicadora, busca))
-                    {
-                        if (notaMinima.HasValue && (ext.MediaAvaliacoes == null || ext.MediaAvaliacoes < notaMinima.Value))
-                        {
-                            continue;
-                        }
-
-                        titulosLocais.Add(tLower);
-                        listaFinal.Add(ext);
-                    }
-                }
-
-                // Ordenação em memória com prioridade de relevância textual
-                IEnumerable<JogoDTO> ordenados = (ordenacao ?? "melhores").ToLower() switch
-                {
-                    "recentes" => listaFinal.OrderByDescending(j => j.DataLancamento).ThenByDescending(j => j.MediaAvaliacoes ?? 0),
-                    "antigos" => listaFinal.OrderBy(j => j.DataLancamento).ThenByDescending(j => j.MediaAvaliacoes ?? 0),
-                    "az" => listaFinal.OrderBy(j => j.Titulo),
-                    "za" => listaFinal.OrderByDescending(j => j.Titulo),
-                    _ => listaFinal
-                        .OrderByDescending(j => RelevanciaBuscaHelper.CalcularScoreRelevancia(j.Titulo, busca))
-                        .ThenByDescending(j => j.MediaAvaliacoes ?? 0)
-                        .ThenByDescending(j => j.DataLancamento)
-                };
-
-                var total = listaFinal.Count;
-                var itens = ordenados.Skip((pagina - 1) * itensPorPagina).Take(itensPorPagina).ToList();
-
-                return new PagedResult<JogoDTO>(itens, total, pagina, itensPorPagina);
-            }
-
-            // Caso padrão (Navegação geral do catálogo no banco local)
+            // Projeção dos jogos com médias de avaliação diretamente do banco local
             var jogosQuery = query.Select(j => new JogoDTO
             {
                 JogoId = j.Id,
@@ -254,11 +159,12 @@ namespace GameLog_Backend.Services
 
             jogosQuery = (ordenacao ?? "melhores").ToLower() switch
             {
-                "recentes" => jogosQuery.OrderByDescending(j => j.DataLancamento),
-                "antigos" => jogosQuery.OrderBy(j => j.DataLancamento),
+                "recentes" => jogosQuery.OrderByDescending(j => j.DataLancamento).ThenByDescending(j => j.MediaAvaliacoes ?? 0),
+                "antigos" => jogosQuery.OrderBy(j => j.DataLancamento).ThenByDescending(j => j.MediaAvaliacoes ?? 0),
                 "az" => jogosQuery.OrderBy(j => j.Titulo),
                 "za" => jogosQuery.OrderByDescending(j => j.Titulo),
-                _ => jogosQuery.OrderByDescending(j => j.MediaAvaliacoes ?? 0).ThenByDescending(j => j.DataLancamento)
+                "populares" => jogosQuery.OrderByDescending(j => j.TotalAvaliacoes).ThenByDescending(j => j.MediaAvaliacoes ?? 0),
+                _ => jogosQuery.OrderByDescending(j => j.MediaAvaliacoes ?? 0).ThenByDescending(j => j.TotalAvaliacoes).ThenByDescending(j => j.DataLancamento)
             };
 
             var itensPaginados = await jogosQuery

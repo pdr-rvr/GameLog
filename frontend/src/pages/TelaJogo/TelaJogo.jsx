@@ -131,6 +131,29 @@ function TelaJogo() {
 
     const idJogoReal = jogo.jogoId ?? jogo.id ?? jogoId;
 
+    let ehFuturo = false;
+    let mensagemLancamento = "";
+
+    if (jogo.dataLancamento) {
+        try {
+            const dtLanc = new Date(jogo.dataLancamento);
+            const hoje = new Date();
+            if (!isNaN(dtLanc.getTime()) && dtLanc > hoje) {
+                ehFuturo = true;
+                const dia = String(dtLanc.getUTCDate()).padStart(2, "0");
+                const mes = String(dtLanc.getUTCMonth() + 1).padStart(2, "0");
+                const ano = dtLanc.getUTCFullYear();
+                if (String(jogo.dataLancamento).substring(5, 10) === "01-01" && String(jogo.dataLancamento).length <= 10) {
+                    mensagemLancamento = `Lançamento em ${ano}`;
+                } else {
+                    mensagemLancamento = `Lançamento em ${dia}/${mes}/${ano}`;
+                }
+            }
+        } catch {
+            // Data fallback
+        }
+    }
+
     return (
         <div className="tela-jogo-container">
             <Navbar />
@@ -150,7 +173,7 @@ function TelaJogo() {
                         <p className="jogo-detalhes-descricao">{jogo.descricao}</p>
                         
                         <div className="jogo-detalhes-info">
-                            <p><strong>Lançamento:</strong> {formatarData(jogo.dataLancamento)}</p>
+                            <p><strong>Lançamento:</strong> {ehFuturo ? (mensagemLancamento || "Disponível em breve") : formatarData(jogo.dataLancamento)}</p>
                             <div className="classificacao-info-row">
                                 <strong>Classificação Indicativa:</strong>
                                 <ClassificacaoBadge classificacao={jogo.classificacaoIndicativa} size="md" showLabel={true} />
@@ -221,9 +244,14 @@ function TelaJogo() {
                                 <SeletorStatusBiblioteca jogoId={idJogoReal} />
                             </div>
 
-                            {/* 2. Botão de Avaliar Jogo */}
+                            {/* 2. Botão de Avaliar Jogo ou Alerta de Não Lançado */}
                             <div className="jogo-avaliar-btn-wrapper">
-                                {minhaAvaliacao ? (
+                                {ehFuturo ? (
+                                    <div className="jogo-futuro-aviso-box">
+                                        <span className="jogo-futuro-badge">{mensagemLancamento || "Disponível em breve"}</span>
+                                        <p className="jogo-futuro-texto">Adicione à sua biblioteca como <strong>Quero Jogar</strong>. Análises e notas estarão disponíveis após o lançamento oficial.</p>
+                                    </div>
+                                ) : minhaAvaliacao ? (
                                     <div className="minha-avaliacao-status-card">
                                         <div className="minha-nota-tag">
                                             <FaStar className="star-inline" />
@@ -268,21 +296,27 @@ function TelaJogo() {
                     />
                     {avaliacoes.length === 0 && (
                         <div className="no-avaliations-wrapper">
-                            <p className="no-avaliations-message">Nenhuma avaliação encontrada para este jogo ainda.</p>
-                            <button
-                                type="button"
-                                className="btn-seja-o-primeiro-avaliar"
-                                onClick={() => {
-                                    if (!user) {
-                                        toast.info("Faça login para avaliar este jogo.");
-                                        navigate("/login");
-                                        return;
-                                    }
-                                    setModalAvaliacaoAberto(true);
-                                }}
-                            >
-                                <FaPlus /> Seja o primeiro a avaliar!
-                            </button>
+                            <p className="no-avaliations-message">
+                                {ehFuturo 
+                                    ? "Este jogo ainda não foi lançado. Análises e notas da comunidade estarão disponíveis após o lançamento oficial."
+                                    : "Nenhuma avaliação encontrada para este jogo ainda."}
+                            </p>
+                            {!ehFuturo && (
+                                <button
+                                    type="button"
+                                    className="btn-seja-o-primeiro-avaliar"
+                                    onClick={() => {
+                                        if (!user) {
+                                            toast.info("Faça login para avaliar este jogo.");
+                                            navigate("/login");
+                                            return;
+                                        }
+                                        setModalAvaliacaoAberto(true);
+                                    }}
+                                >
+                                    <FaPlus /> Seja o primeiro a avaliar!
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>

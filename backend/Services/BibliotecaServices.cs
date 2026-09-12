@@ -39,6 +39,11 @@ namespace GameLog_Backend.Services
                 throw new KeyNotFoundException("Jogo não encontrado.");
             }
 
+            if (jogo.DataLancamento > DateOnly.FromDateTime(DateTime.UtcNow) && dto.Status != StatusJogo.QueroJogar)
+            {
+                throw new InvalidOperationException("Jogos ainda não lançados só podem ser adicionados à biblioteca com o status 'Quero Jogar'.");
+            }
+
             var item = await _context.ItensBiblioteca
                 .Include(b => b.Jogo)
                 .ThenInclude(j => j.Empresa)

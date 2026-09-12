@@ -10,21 +10,28 @@ import {
   FaRocket, 
   FaGamepad, 
   FaSkullCrossbones,
-  FaHatWizard
+  FaCrosshairs,
+  FaBolt,
+  FaDiceD20,
+  FaLayerGroup,
+  FaHeart
 } from "react-icons/fa";
 import "./CategoryPills.css";
 
 const CATEGORIAS_PADRAO = [
   { nome: "RPG", icone: FaDragon, cor: "#8b5cf6" },
+  { nome: "Soulslike", icone: FaGhost, cor: "#6366f1" },
   { nome: "Ação", icone: FaFistRaised, cor: "#ef4444" },
   { nome: "Aventura", icone: FaCompass, cor: "#3b82f6" },
-  { nome: "Fantasia Sombria", icone: FaGhost, cor: "#6366f1" },
   { nome: "Mundo Aberto", icone: FaGlobeAmericas, cor: "#10b981" },
+  { nome: "Metroidvania", icone: FaLayerGroup, cor: "#06b6d4" },
+  { nome: "Roguelike / Roguelite", icone: FaDiceD20, cor: "#d946ef" },
+  { nome: "Terror & Sobrevivência", icone: FaSkullCrossbones, cor: "#ec4899" },
+  { nome: "Hack and Slash", icone: FaBolt, cor: "#f97316" },
+  { nome: "Tiro (FPS / TPS)", icone: FaCrosshairs, cor: "#eab308" },
   { nome: "Estratégia", icone: FaChess, cor: "#f59e0b" },
-  { nome: "Sci-Fi", icone: FaRocket, cor: "#06b6d4" },
-  { nome: "Terror", icone: FaSkullCrossbones, cor: "#ec4899" },
-  { nome: "Fantasia", icone: FaHatWizard, cor: "#a855f7" },
-  { nome: "Indie", icone: FaGamepad, cor: "#14b8a6" }
+  { nome: "Ficção Científica & Cyberpunk", icone: FaRocket, cor: "#14b8a6" },
+  { nome: "Indie", icone: FaHeart, cor: "#ec4899" }
 ];
 
 const CategoryPills = ({ categorias = CATEGORIAS_PADRAO, titulo = "Explorar por Gêneros e Categorias" }) => {

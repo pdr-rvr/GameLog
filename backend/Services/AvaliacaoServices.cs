@@ -48,6 +48,12 @@ namespace GameLog_Backend.Services
             }
 
             var jogo = await VerificarJogoExiste(avaliacaoDTO.JogoId);
+
+            if (jogo.DataLancamento > DateOnly.FromDateTime(DateTime.UtcNow))
+            {
+                throw new InvalidOperationException("Não é permitido avaliar ou dar nota a um jogo que ainda não foi lançado.");
+            }
+
             await VerificarAvaliacaoDuplicada(usuarioId, avaliacaoDTO.JogoId);
 
             var usuario = await _context.Usuarios.FindAsync(usuarioId);
