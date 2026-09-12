@@ -6,6 +6,7 @@ import Home from './pages/TelaHome/TelaHome';
 import PaginaJogos from './pages/PaginaJogos/PaginaJogos'; 
 import TelaJogo from './pages/TelaJogo/TelaJogo';
 import PaginaComunidade from './pages/PaginaComunidade/PaginaComunidade';
+import PaginaFeedSocial from './pages/PaginaFeedSocial/PaginaFeedSocial';
 import PaginaAvaliacoes from './pages/PaginaAvaliacoes/PaginaAvaliacoes';
 import PerfilUsuario from './pages/PerfilUsuario/PerfilUsuario';
 import PaginaEmpresa from './pages/PaginaEmpresa/PaginaEmpresa';
@@ -42,6 +43,14 @@ function App() {
             <Route path="/listas/:id" element={<PaginaDetalhesLista />} />
 
             {/* Rotas Protegidas (exigem autenticação) */}
+            <Route 
+              path="/feed" 
+              element={
+                <ProtectedRoute>
+                  <PaginaFeedSocial />
+                </ProtectedRoute>
+              } 
+            />
             <Route 
               path="/configuracoes" 
               element={

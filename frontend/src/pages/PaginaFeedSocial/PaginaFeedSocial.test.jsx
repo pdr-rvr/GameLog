@@ -1,0 +1,105 @@
+import React from "react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import PaginaFeedSocial from "./PaginaFeedSocial";
+import { SocialService } from "../../services/socialService";
+import { AvaliacaoService } from "../../services/avaliacaoService";
+
+vi.mock("../../services/socialService", () => ({
+  SocialService: {
+    obterFeedSocial: vi.fn(() => Promise.resolve({
+      itens: [
+        {
+          avaliacaoId: "eval-1",
+          tipoAtividade: "Avaliacao",
+          nota: 5,
+          textoAvaliacao: "Incrível demais!",
+          nomeJogo: "Zelda: Tears of the Kingdom",
+          nomeUsuario: "LinkHero",
+          totalCurtidas: 3,
+          curtidaPorMim: false,
+          totalRespostas: 1
+        }
+      ],
+      amigosJogandoAgora: [
+        { usuarioId: "u2", usuarioNome: "Mario", jogoId: "j1", jogoTitulo: "Super Mario Wonder" }
+      ],
+      gamersSugeridos: [
+        { usuarioId: "u3", nomeUsuario: "Samus", bio: "Bounty Hunter", seguidoPorMim: false }
+      ]
+    })),
+    obterAtividadesTimeline: vi.fn(() => Promise.resolve([
+      {
+        id: "act-1",
+        tipo: "Zerou",
+        dataAtividade: "2026-09-10T12:00:00Z",
+        usuarioId: "u2",
+        usuarioNome: "Mario",
+        jogoId: "j2",
+        jogoTitulo: "Metroid Dread"
+      }
+    ])),
+    alternarSeguir: vi.fn(() => Promise.resolve({ mensagem: "Seguindo com sucesso!" }))
+  }
+}));
+
+vi.mock("../../services/avaliacaoService", () => ({
+  AvaliacaoService: {
+    toggleCurtir: vi.fn(() => Promise.resolve({}))
+  }
+}));
+
+vi.mock("../TelaHome/actions/TelaHomeActions", () => ({
+  buscarJogos: vi.fn(() => Promise.resolve([])),
+  criarAvaliacao: vi.fn(() => Promise.resolve({}))
+}));
+
+vi.mock("../../context/AuthContext", () => ({
+  useAuth: () => ({ user: { id: "u1", nome: "Tester" }, isAuthenticated: true, token: "token" })
+}));
+
+vi.mock("../../context/ToastContext", () => ({
+  useToast: () => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() })
+}));
+
+describe("PaginaFeedSocial Component", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("deve renderizar o Feed Social com reviews de amigos e sidebar", async () => {
+    render(
+      <BrowserRouter>
+        <PaginaFeedSocial />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByTestId("tab-feed-social")).toBeInTheDocument();
+    expect(screen.getByTestId("tab-atividades")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText("LinkHero")).toBeInTheDocument();
+      expect(screen.getByText("Zelda: Tears of the Kingdom")).toBeInTheDocument();
+      expect(screen.getByText('"Incrível demais!"')).toBeInTheDocument();
+      expect(screen.getByText("Amigos Jogando Agora")).toBeInTheDocument();
+      expect(screen.getByText("Gamers Sugeridos")).toBeInTheDocument();
+    });
+  });
+
+  it("deve alternar para a aba de Atividades e renderizar a timeline", async () => {
+    render(
+      <BrowserRouter>
+        <PaginaFeedSocial />
+      </BrowserRouter>
+    );
+
+    const btnTabAtividades = screen.getByTestId("tab-atividades");
+    fireEvent.click(btnTabAtividades);
+
+    await waitFor(() => {
+      expect(screen.getByText("marcou como zerado")).toBeInTheDocument();
+      expect(screen.getByText("Metroid Dread")).toBeInTheDocument();
+    });
+  });
+});
