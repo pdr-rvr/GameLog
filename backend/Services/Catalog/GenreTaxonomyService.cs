@@ -236,5 +236,19 @@ namespace GameLog_Backend.Services.Catalog
 
             return char.ToUpper(texto[0]) + texto.Substring(1);
         }
+
+        public static string MapearGenero(string? rawgGenre)
+        {
+            if (string.IsNullOrWhiteSpace(rawgGenre)) return "Ação";
+            var slug = rawgGenre.Trim().ToLowerInvariant().Replace(" ", "-");
+            if (RawgGenreMap.TryGetValue(slug, out var cat)) return cat;
+            if (TagToCategoryMap.TryGetValue(slug, out var tagCat)) return tagCat;
+            return NormalizarTextoSimples(rawgGenre);
+        }
+
+        public static List<string> MapearGeneros(IEnumerable<string>? rawgGenres)
+        {
+            return MapearGenerosETags(rawgGenres, null);
+        }
     }
 }

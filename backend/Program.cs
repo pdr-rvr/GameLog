@@ -133,11 +133,6 @@ builder.Services.AddHttpClient<RawgApiService>();
 builder.Services.AddScoped<RawgApiService>();
 builder.Services.AddScoped<MassiveCatalogSeeder>();
 
-builder.Services.AddScoped<EmpresaSeeder>();
-builder.Services.AddScoped<GeneroSeeder>();
-builder.Services.AddScoped<JogoSeeder>();
-builder.Services.AddScoped<JogoGeneroSeeder>();
-
 builder.Services.AddScoped<JogoServices>();
 builder.Services.AddAutoMapper(typeof(UsuarioProfile));
 builder.Services.AddScoped<UsuarioServices>();

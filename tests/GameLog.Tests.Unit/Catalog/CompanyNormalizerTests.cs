@@ -32,7 +32,7 @@ namespace GameLog.Tests.Unit.Catalog
 
             // Assert
             dev.Should().Be("FromSoftware");
-            pub.Should().Be("Bandai Namco");
+            pub.Should().Be("Bandai Namco Entertainment");
         }
 
         [Fact]

@@ -11,6 +11,7 @@ using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
 using GameLog_Backend.Helpers;
 using GameLog_Backend.Services;
+using GameLog_Backend.Services.Catalog;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -142,7 +143,7 @@ namespace GameLog_Backend.Seeders
 
                 foreach (var emp in todasEmpresas)
                 {
-                    var nomeCan = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(emp.NomeEmpresa);
+                    var nomeCan = CompanyNormalizer.NormalizarNomeEmpresa(emp.NomeEmpresa);
                     if (string.Equals(emp.NomeEmpresa, nomeCan, StringComparison.OrdinalIgnoreCase))
                     {
                         if (!empresasPorNome.ContainsKey(nomeCan))
@@ -154,7 +155,7 @@ namespace GameLog_Backend.Seeders
 
                 foreach (var emp in todasEmpresas)
                 {
-                    var nomeCan = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(emp.NomeEmpresa);
+                    var nomeCan = CompanyNormalizer.NormalizarNomeEmpresa(emp.NomeEmpresa);
                     if (!empresasPorNome.TryGetValue(nomeCan, out var empCan))
                     {
                         empCan = todasEmpresas.FirstOrDefault(e => string.Equals(e.NomeEmpresa, nomeCan, StringComparison.OrdinalIgnoreCase));
@@ -173,9 +174,9 @@ namespace GameLog_Backend.Seeders
                     var devAtual = jogo.Empresa?.NomeEmpresa;
                     var pubAtual = jogo.Publicadora?.NomeEmpresa;
 
-                    var (devResolvido, pubResolvido) = NormalizadorEmpresaHelper.ResolverParDesenvolvedoraPublicadora(jogo.Titulo, devAtual, pubAtual);
+                    var (devResolvido, pubResolvido) = CompanyNormalizer.ResolverParDesenvolvedoraPublicadora(jogo.Titulo, devAtual, pubAtual);
 
-                    var devCan = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(devResolvido);
+                    var devCan = CompanyNormalizer.NormalizarNomeEmpresa(devResolvido);
                     if (!empresasPorNome.TryGetValue(devCan, out var targetDev))
                     {
                         targetDev = new Empresa { NomeEmpresa = devCan, EstaAtivo = true };
@@ -187,7 +188,7 @@ namespace GameLog_Backend.Seeders
 
                     if (!string.IsNullOrWhiteSpace(pubResolvido))
                     {
-                        var pubCan = NormalizadorEmpresaHelper.NormalizarNomeEmpresa(pubResolvido);
+                        var pubCan = CompanyNormalizer.NormalizarNomeEmpresa(pubResolvido);
                         if (!empresasPorNome.TryGetValue(pubCan, out var targetPub))
                         {
                             targetPub = new Empresa { NomeEmpresa = pubCan, EstaAtivo = true };
@@ -229,7 +230,7 @@ namespace GameLog_Backend.Seeders
         public async Task CleanAndSeedRealGamesAsync()
         {
             var totalJogosExistentes = await _context.Jogos.CountAsync();
-            if (totalJogosExistentes >= 2400)
+            if (totalJogosExistentes >= 5800)
             {
                 _logger.LogInformation("[Seeder] Catálogo já se encontra totalmente povoado com {Total} jogos oficiais. Pulando re-seed...", totalJogosExistentes);
                 await NormalizarGenerosExistentesAsync();
@@ -237,30 +238,13 @@ namespace GameLog_Backend.Seeders
                 return;
             }
 
-            _logger.LogInformation("[Seeder] Iniciando limpeza completa do banco de dados para ingestão curada de 2.500 jogos oficiais (Recentes 2022-2026: 700, Era 2000-2021: 1.700, Clássicos Pré-2000: 100)...");
+            _logger.LogInformation("[Seeder] Iniciando limpeza completa do banco de dados para ingestão curada de 6.000 jogos oficiais (Recentes 2020-2024: 2.500, Era Dourada 2000-2019: 2.400, Clássicos Pré-2000: 700, Futuros 2025-2027: 400)...");
 
             // 1. Limpeza segura e completa do banco de dados
             try
             {
                 await _context.Database.ExecuteSqlRawAsync(@"
-                    DELETE FROM SegueUsuarios;
-                    DELETE FROM ItensDeListas;
-                    DELETE FROM ListasDeJogos;
-                    DELETE FROM JogosFavoritosUsuarios;
-                    DELETE FROM ItensBiblioteca;
-                    DELETE FROM CurtidasDeRespostas;
-                    DELETE FROM RespostasDeAvaliacao;
-                    DELETE FROM CurtidasDeAvaliacoes;
-                    DELETE FROM Avaliacoes;
-                    DELETE FROM JogoGenero;
-                    DELETE FROM Jogos;
-                    DELETE FROM Empresa;
-                    DELETE FROM Generos;
-                    DELETE FROM Usuarios;
-                    DBCC CHECKIDENT ('Jogos', RESEED, 0);
-                    DBCC CHECKIDENT ('Empresa', RESEED, 0);
-                    DBCC CHECKIDENT ('Generos', RESEED, 0);
-                    DBCC CHECKIDENT ('Usuarios', RESEED, 0);
+                    TRUNCATE TABLE ""SegueUsuarios"", ""ItensDeListas"", ""ListasDeJogos"", ""JogosFavoritosUsuarios"", ""ItensBiblioteca"", ""CurtidasDeRespostas"", ""RespostasDeAvaliacao"", ""CurtidasDeAvaliacoes"", ""Avaliacoes"", ""JogoGenero"", ""Jogos"", ""Empresa"", ""Generos"", ""Usuarios"" RESTART IDENTITY CASCADE;
                 ");
             }
             catch (Exception ex)
@@ -284,24 +268,15 @@ namespace GameLog_Backend.Seeders
 
             _logger.LogInformation("[Seeder] Banco de dados resetado com sucesso.");
 
-            // 2. Criar Gêneros Oficiais Fundamentais
-            var generosNomes = new[]
-            {
-                "Ação", "RPG", "Aventura", "Tiro", "Estratégia",
-                "Terror & Sobrevivência", "Plataforma", "Corrida", "Luta",
-                "Metroidvania", "Roguelike", "Hack and Slash", "Simulação",
-                "Mundo Aberto", "Quebra-Cabeça", "Indie",
-                "Esportes", "Stealth", "Cyberpunk", "Fantasia Sombria", "Casual"
-            };
-
-            foreach (var nome in generosNomes)
+            // 2. Criar Gêneros / Categorias Canônicas Oficiais Fundamentais
+            foreach (var nome in GenreTaxonomyService.CategoriasCanonicas)
             {
                 _context.Generos.Add(new Genero { TituloGenero = nome, EstaAtivo = true });
             }
             await _context.SaveChangesAsync();
             var generosDb = await _context.Generos.AsNoTracking().ToListAsync();
             var generoDict = generosDb.ToDictionary(g => g.TituloGenero, g => g.Id, StringComparer.OrdinalIgnoreCase);
-            var defaultGeneroId = generoDict["Ação"];
+            var defaultGeneroId = generoDict.TryGetValue("Ação", out var defId) ? defId : generosDb.First().Id;
 
             // 3. Criar Empresas / Estúdios Fundamentais no Banco
             var empresasIniciais = ObterListaEstudiosFundamentais();
@@ -317,11 +292,12 @@ namespace GameLog_Backend.Seeders
                 StringComparer.OrdinalIgnoreCase
             );
 
-            // 4. Ingestão Curada: Top All-Time + Sucessos Recentes (2023-2026) + Clássicos Pré-2000 + Busca Ativa de Franquias
-            _logger.LogInformation("[Seeder] Iniciando download curado da RAWG API com ordenação global de popularidade...");
+            // 4. Ingestão Curada Calibrada por Popularidade e Fatiamento de Eras
+            _logger.LogInformation("[Seeder] Iniciando download curado da RAWG API com ordenação global de popularidade e relevância (~5.000 jogos)...");
 
-            var jogosRecentes2022a2026 = new ConcurrentBag<RawgGameItemDTO>();
-            var jogosGerais2000a2021 = new ConcurrentBag<RawgGameItemDTO>();
+            var jogosFuturos2025a2027 = new ConcurrentBag<RawgGameItemDTO>();
+            var jogosRecentes2020a2024 = new ConcurrentBag<RawgGameItemDTO>();
+            var jogosEraDourada2000a2019 = new ConcurrentBag<RawgGameItemDTO>();
             var jogosClassicosPre2000 = new ConcurrentBag<RawgGameItemDTO>();
             var chavesNormalizadasVistas = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
             var slugsVistos = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
@@ -332,18 +308,18 @@ namespace GameLog_Backend.Seeders
                     string.IsNullOrWhiteSpace(item.Name) ||
                     string.IsNullOrWhiteSpace(item.BackgroundImage) ||
                     !item.BackgroundImage.StartsWith("http") ||
-                    !RawgApiService.EhJogoValido(item.Name))
+                    !CatalogSanitizer.EhJogoValido(item.Name))
                 {
                     return;
                 }
 
                 // Filtro Rígido de Relevância Comercial: Descartar projetos amadores, protótipos de game jams e clones
-                if ((item.Added ?? 0) < 30 && !item.Metacritic.HasValue)
+                if ((item.Added ?? 0) < 25 && !item.Metacritic.HasValue)
                 {
                     return;
                 }
 
-                var chaveNorm = NormalizarTituloParaDeduplicacao(item.Name);
+                var chaveNorm = CatalogSanitizer.NormalizarTituloParaDeduplicacao(item.Name);
                 if (string.IsNullOrWhiteSpace(chaveNorm)) return;
 
                 var slugNorm = (item.Slug ?? string.Empty).Trim().ToLowerInvariant();
@@ -365,34 +341,44 @@ namespace GameLog_Backend.Seeders
                     {
                         jogosClassicosPre2000.Add(item);
                     }
-                    else if (ano >= 2022)
+                    else if (ano >= 2025)
                     {
-                        jogosRecentes2022a2026.Add(item);
+                        jogosFuturos2025a2027.Add(item);
+                    }
+                    else if (ano >= 2020)
+                    {
+                        jogosRecentes2020a2024.Add(item);
                     }
                     else
                     {
-                        jogosGerais2000a2021.Add(item);
+                        jogosEraDourada2000a2019.Add(item);
                     }
                 }
             }
 
-            // 1. Ingestão Global por Popularidade Real (ordering=-added) com Slices Recentes e Clássicos
+            // 1. Ingestão Global por Popularidade Real (ordering=-added) com Slices Calibrados para 6.000 jogos
             var slicesPrincipais = new (string Query, int Paginas, bool EhClassico)[]
             {
-                // Slices de Anos Recentes (2022 a 2026) com ordenação por popularidade
-                ("dates=2022-01-01,2022-12-31&ordering=-added", 15, false),         // ~600 sucessos de 2022
-                ("dates=2023-01-01,2023-12-31&ordering=-added", 15, false),         // ~600 sucessos de 2023
-                ("dates=2024-01-01,2024-12-31&ordering=-added", 15, false),         // ~600 sucessos de 2024
-                ("dates=2025-01-01,2026-12-31&ordering=-added", 15, false),         // ~600 lançamentos de 2025/2026
+                // 1. Jogos Futuros / Aguardados (2025 - 2027+) ordenados por relevância e adições
+                ("dates=2025-01-01,2027-12-31&ordering=-added", 15, false),         // ~600 candidatos futuros
 
-                // Sucessos All-Time e Era Dourada Pós-2000
-                ("ordering=-added", 70, false),                                     // ~2.800 maiores sucessos mundiais de todos os tempos
-                ("dates=2000-01-01,2021-12-31&ordering=-added", 30, false),         // ~1.200 grandes sucessos de 2000 a 2021
-                ("platforms=7,18,1,186,187&ordering=-added", 25, false),            // ~1.000 sucessos aclamados de consoles e PC
+                // 2. Era Moderna Recente (2020 a 2024) - Top 500 por ano
+                ("dates=2024-01-01,2024-12-31&ordering=-added", 16, false),         // ~640 candidatos de 2024
+                ("dates=2023-01-01,2023-12-31&ordering=-added", 16, false),         // ~640 candidatos de 2023
+                ("dates=2022-01-01,2022-12-31&ordering=-added", 16, false),         // ~640 candidatos de 2022
+                ("dates=2021-01-01,2021-12-31&ordering=-added", 16, false),         // ~640 candidatos de 2021
+                ("dates=2020-01-01,2020-12-31&ordering=-added", 16, false),         // ~640 candidatos de 2020
 
-                // Clássicos Atemporais Pré-2000
-                ("dates=1980-01-01,1999-12-31&ordering=-added", 25, true),          // ~1.000 clássicos atemporais pré-2000
-                ("dates=1980-01-01,1999-12-31&ordering=-rating", 10, true)          // ~400 clássicos com maiores avaliações
+                // 3. Era Dourada Pós-2000 (2000 a 2019) em blocos de 5 anos
+                ("dates=2015-01-01,2019-12-31&ordering=-added", 20, false),         // ~800 candidatos de 2015-2019
+                ("dates=2010-01-01,2014-12-31&ordering=-added", 20, false),         // ~800 candidatos de 2010-2014
+                ("dates=2005-01-01,2009-12-31&ordering=-added", 20, false),         // ~800 candidatos de 2005-2009
+                ("dates=2000-01-01,2004-12-31&ordering=-added", 18, false),         // ~720 candidatos de 2000-2004
+                ("platforms=7,18,1,186,187&ordering=-added", 25, false),            // ~1.000 maiores sucessos multiplataforma
+
+                // 4. Clássicos Atemporais Pré-2000 (1980 a 1999)
+                ("dates=1980-01-01,1999-12-31&ordering=-added", 20, true),          // ~800 clássicos por adições
+                ("dates=1980-01-01,1999-12-31&ordering=-rating", 15, true)          // ~600 clássicos por notas
             };
 
             using var semaphore = new SemaphoreSlim(8);
@@ -482,13 +468,18 @@ namespace GameLog_Backend.Seeders
 
             await Task.WhenAll(tarefasFranquias);
 
-            // 3. Montar Catálogo Final Estratificado: Recentes (2022-2026: 700) + Geral (2000-2021: 1.700) + Clássicos Pré-2000 (100) = 2.500 Jogos
-            var candidatosRecentes = jogosRecentes2022a2026
+            // 3. Montar Catálogo Final Estratificado: Futuros (300) + Recentes 2020-2024 (2.000) + Era Dourada 2000-2019 (2.000) + Clássicos (500) = ~4.800 a 5.000 Jogos
+            var candidatosFuturos = jogosFuturos2025a2027
                 .OrderByDescending(j => j.Added ?? 0)
                 .ThenByDescending(j => j.Rating ?? 0)
                 .ToList();
 
-            var candidatosGerais = jogosGerais2000a2021
+            var candidatosRecentes = jogosRecentes2020a2024
+                .OrderByDescending(j => j.Added ?? 0)
+                .ThenByDescending(j => j.Rating ?? 0)
+                .ToList();
+
+            var candidatosEraDourada = jogosEraDourada2000a2019
                 .OrderByDescending(j => j.Added ?? 0)
                 .ThenByDescending(j => j.Rating ?? 0)
                 .ToList();
@@ -498,8 +489,8 @@ namespace GameLog_Backend.Seeders
                 .ThenByDescending(j => j.Rating ?? 0)
                 .ToList();
 
-            _logger.LogInformation("[Seeder] Resolvendo estúdios para candidatos (Recentes 2022-2026: {TotalRec}, Gerais 2000-2021: {TotalGer}, Pré-2000: {TotalPre})...", 
-                candidatosRecentes.Count, candidatosGerais.Count, candidatosPre2000.Count);
+            _logger.LogInformation("[Seeder] Resolvendo estúdios para candidatos (Futuros: {TotalFut}, Recentes 2020-2024: {TotalRec}, Era Dourada 2000-2019: {TotalDou}, Clássicos: {TotalPre})...", 
+                candidatosFuturos.Count, candidatosRecentes.Count, candidatosEraDourada.Count, candidatosPre2000.Count);
 
             using var detailSemaphore = new SemaphoreSlim(12);
 
@@ -542,17 +533,19 @@ namespace GameLog_Backend.Seeders
                 return resultado;
             }
 
-            var jogosRecentesValidos = await ColetarJogosValidosAsync(candidatosRecentes, 700);
-            var jogosGeraisValidos = await ColetarJogosValidosAsync(candidatosGerais, 1700);
-            var jogosPre2000Validos = await ColetarJogosValidosAsync(candidatosPre2000, 100);
+            var jogosFuturosValidos = await ColetarJogosValidosAsync(candidatosFuturos, 400);
+            var jogosRecentesValidos = await ColetarJogosValidosAsync(candidatosRecentes, 2500);
+            var jogosEraDouradaValidos = await ColetarJogosValidosAsync(candidatosEraDourada, 2400);
+            var jogosPre2000Validos = await ColetarJogosValidosAsync(candidatosPre2000, 700);
 
             var jogosComEstudioValido = new List<(RawgGameItemDTO Rawg, string StudioNome)>();
+            jogosComEstudioValido.AddRange(jogosFuturosValidos);
             jogosComEstudioValido.AddRange(jogosRecentesValidos);
-            jogosComEstudioValido.AddRange(jogosGeraisValidos);
+            jogosComEstudioValido.AddRange(jogosEraDouradaValidos);
             jogosComEstudioValido.AddRange(jogosPre2000Validos);
 
-            _logger.LogInformation("[Seeder] Total curado selecionado com estúdios 100% autênticos: {Total} jogos (Recentes 2022-2026: {Recentes}, Gerais 2000-2021: {Gerais}, Clássicos Pré-2000: {Classicos})!", 
-                jogosComEstudioValido.Count, jogosRecentesValidos.Count, jogosGeraisValidos.Count, jogosPre2000Validos.Count);
+            _logger.LogInformation("[Seeder] Total curado selecionado com estúdios 100% autênticos: {Total} jogos (Futuros 2025-2027: {Futuros}, Recentes 2020-2024: {Recentes}, Era Dourada 2000-2019: {Dourada}, Clássicos: {Classicos})!", 
+                jogosComEstudioValido.Count, jogosFuturosValidos.Count, jogosRecentesValidos.Count, jogosEraDouradaValidos.Count, jogosPre2000Validos.Count);
 
             // 5. Inserir novas empresas descobertas dinamicamente
             var connectionString = _context.Database.GetConnectionString();
@@ -831,68 +824,29 @@ namespace GameLog_Backend.Seeders
 
         private static (List<Guid> Ids, List<string> Nomes) ResolverGeneros(RawgGameItemDTO rawg, Dictionary<string, Guid> generoDict, Guid defaultGeneroId)
         {
+            var rawgGens = rawg.Genres?.Select(g => g.Name);
+            var rawgTags = rawg.Tags?.Select(t => t.Slug ?? t.Name);
+            var categoriasCanonicais = GenreTaxonomyService.MapearGenerosETags(rawgGens, rawgTags, rawg.Name);
+
             var gensIds = new List<Guid>();
             var gensNomes = new List<string>();
 
-            if (rawg.Genres != null && rawg.Genres.Any())
+            foreach (var cat in categoriasCanonicais)
             {
-                foreach (var g in rawg.Genres)
+                if (generoDict.TryGetValue(cat, out var gId))
                 {
-                    var ptName = MapearGeneroInglesParaPortugues(g.Name);
-                    if (generoDict.TryGetValue(ptName, out var gId))
-                    {
-                        gensIds.Add(gId);
-                        gensNomes.Add(ptName);
-                    }
+                    gensIds.Add(gId);
+                    gensNomes.Add(cat);
                 }
             }
 
-            // Mapeamento enriquecido baseado no título e slug
-            var lower = (rawg.Name + " " + rawg.Slug).ToLowerInvariant();
-            if (lower.Contains("souls") || lower.Contains("elden ring") || lower.Contains("bloodborne") || lower.Contains("witcher"))
+            if (!gensIds.Any())
             {
-                if (generoDict.TryGetValue("Fantasia Sombria", out var gId)) { gensIds.Add(gId); gensNomes.Add("Fantasia Sombria"); }
-                if (generoDict.TryGetValue("RPG", out var rpgId)) { gensIds.Add(rpgId); gensNomes.Add("RPG"); }
-            }
-            if (lower.Contains("cyberpunk") || lower.Contains("deus ex"))
-            {
-                if (generoDict.TryGetValue("Cyberpunk", out var gId)) { gensIds.Add(gId); gensNomes.Add("Cyberpunk"); }
-            }
-            if (lower.Contains("metroid") || lower.Contains("castlevania") || lower.Contains("hollow knight") || lower.Contains("blasphemous") || lower.Contains("ori and"))
-            {
-                if (generoDict.TryGetValue("Metroidvania", out var gId)) { gensIds.Add(gId); gensNomes.Add("Metroidvania"); }
-            }
-            if (lower.Contains("resident evil") || lower.Contains("silent hill") || lower.Contains("dead space") || lower.Contains("outlast") || lower.Contains("amnesia") || lower.Contains("survival horror"))
-            {
-                if (generoDict.TryGetValue("Terror & Sobrevivência", out var gId)) { gensIds.Add(gId); gensNomes.Add("Terror & Sobrevivência"); }
-            }
-            if (lower.Contains("rogue") || lower.Contains("hades") || lower.Contains("dead cells") || lower.Contains("binding of isaac") || lower.Contains("slay the spire"))
-            {
-                if (generoDict.TryGetValue("Roguelike", out var gId)) { gensIds.Add(gId); gensNomes.Add("Roguelike"); }
-            }
-            if (lower.Contains("devil may cry") || lower.Contains("bayonetta") || lower.Contains("god of war") || lower.Contains("ninja gaiden"))
-            {
-                if (generoDict.TryGetValue("Hack and Slash", out var gId)) { gensIds.Add(gId); gensNomes.Add("Hack and Slash"); }
-            }
-            if (lower.Contains("gta") || lower.Contains("grand theft auto") || lower.Contains("red dead") || lower.Contains("assassin's creed") || lower.Contains("horizon") || lower.Contains("spider-man") || lower.Contains("zelda"))
-            {
-                if (generoDict.TryGetValue("Mundo Aberto", out var gId)) { gensIds.Add(gId); gensNomes.Add("Mundo Aberto"); }
-            }
-            if (lower.Contains("metal gear") || lower.Contains("hitman") || lower.Contains("splinter cell") || lower.Contains("dishonored") || lower.Contains("thief"))
-            {
-                if (generoDict.TryGetValue("Stealth", out var gId)) { gensIds.Add(gId); gensNomes.Add("Stealth"); }
+                gensIds.Add(defaultGeneroId);
+                gensNomes.Add("Ação");
             }
 
-            var distinctIds = gensIds.Distinct().ToList();
-            var distinctNomes = gensNomes.Distinct().ToList();
-
-            if (!distinctIds.Any())
-            {
-                distinctIds.Add(defaultGeneroId);
-                distinctNomes.Add("Ação");
-            }
-
-            return (distinctIds, distinctNomes);
+            return (gensIds.Distinct().ToList(), gensNomes.Distinct().ToList());
         }
 
         private static string GerarDescricaoRica(string titulo, RawgGameItemDTO rawg, string studioNome, List<string> generosNomes, DateTime dtLanc)
