@@ -51,6 +51,10 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+coverage.cobertura.xml
+coverage.json
+coverage.opencover.xml
+*.cobertura.xml
 .vs/
 *.user
 *.userosscache
