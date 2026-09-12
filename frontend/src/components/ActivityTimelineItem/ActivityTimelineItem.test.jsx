@@ -79,5 +79,85 @@ describe("ActivityTimelineItem Component", () => {
     expect(screen.getByText("God of War")).toBeInTheDocument();
     expect(screen.getByText('"Excelente análise, concordo com os pontos sobre o combate!"')).toBeInTheDocument();
   });
+
+  it("deve renderizar atividade de avaliação com nota e minianálise", () => {
+    const mockAvaliouItem = {
+      id: "act-4",
+      tipo: "Avaliou",
+      dataAtividade: new Date(Date.now() - 3600000 * 2).toISOString(), // há 2 horas
+      usuarioId: "user-4",
+      usuarioNome: "maria",
+      jogoId: "jogo-3",
+      jogoTitulo: "Hollow Knight",
+      nota: 5,
+      textoCurto: "Obra-prima dos metroidvanias!"
+    };
+
+    render(
+      <BrowserRouter>
+        <ActivityTimelineItem item={mockAvaliouItem} />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByText("maria")).toBeInTheDocument();
+    expect(screen.getByText(/avaliou com/)).toBeInTheDocument();
+    expect(screen.getByText("5/5")).toBeInTheDocument();
+    expect(screen.getByText("Hollow Knight")).toBeInTheDocument();
+    expect(screen.getByText('"Obra-prima dos metroidvanias!"')).toBeInTheDocument();
+  });
+
+  it("deve renderizar atividade de biblioteca com status Quero Jogar", () => {
+    const mockBibItem = {
+      id: "act-5",
+      tipo: "AdicionouBiblioteca",
+      dataAtividade: new Date(Date.now() - 3600000 * 25).toISOString(), // ontem
+      usuarioId: "user-5",
+      usuarioNome: "lucas",
+      statusBiblioteca: "QueroJogar",
+      jogoId: "jogo-4",
+      jogoTitulo: "Cyberpunk 2077"
+    };
+
+    render(
+      <BrowserRouter>
+        <ActivityTimelineItem item={mockBibItem} />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByText("lucas")).toBeInTheDocument();
+    expect(screen.getByText(/adicionou à biblioteca \(Quero Jogar\)/)).toBeInTheDocument();
+  });
+
+  it("deve renderizar atividade de adição de jogo à coleção", () => {
+    const mockAddListaItem = {
+      id: "act-6",
+      tipo: "AdicionouJogoLista",
+      dataAtividade: new Date(Date.now() - 3600000 * 50).toISOString(), // há 2 dias
+      usuarioId: "user-6",
+      usuarioNome: "joao",
+      listaTitulo: "Meus Favoritos",
+      jogoId: "jogo-5",
+      jogoTitulo: "Zelda BotW"
+    };
+
+    render(
+      <BrowserRouter>
+        <ActivityTimelineItem item={mockAddListaItem} />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByText("joao")).toBeInTheDocument();
+    expect(screen.getByText(/adicionou à coleção/)).toBeInTheDocument();
+    expect(screen.getByText("Meus Favoritos")).toBeInTheDocument();
+  });
+
+  it("deve retornar null se item for nulo", () => {
+    const { container } = render(
+      <BrowserRouter>
+        <ActivityTimelineItem item={null} />
+      </BrowserRouter>
+    );
+    expect(container.firstChild).toBeNull();
+  });
 });
 
