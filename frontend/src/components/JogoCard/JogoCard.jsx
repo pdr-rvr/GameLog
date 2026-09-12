@@ -27,10 +27,32 @@ const JogoCard = ({ jogo, onClick }) => {
   const genero = jogo.genero || jogo.generoFavorito || (Array.isArray(jogo.generos) && jogo.generos[0]) || "";
   
   let anoLancamento = null;
+  let ehFuturo = false;
+  let mensagemLancamento = "";
+
   if (jogo.dataLancamento) {
-    const ano = String(jogo.dataLancamento).substring(0, 4);
-    if (!isNaN(parseInt(ano, 10))) {
-      anoLancamento = ano;
+    const anoStr = String(jogo.dataLancamento).substring(0, 4);
+    if (!isNaN(parseInt(anoStr, 10))) {
+      anoLancamento = anoStr;
+    }
+
+    try {
+      const dtLanc = new Date(jogo.dataLancamento);
+      const hoje = new Date();
+      if (!isNaN(dtLanc.getTime()) && dtLanc > hoje) {
+        ehFuturo = true;
+        const dia = String(dtLanc.getUTCDate()).padStart(2, "0");
+        const mes = String(dtLanc.getUTCMonth() + 1).padStart(2, "0");
+        const ano = dtLanc.getUTCFullYear();
+        
+        if (String(jogo.dataLancamento).substring(5, 10) === "01-01" && String(jogo.dataLancamento).length <= 10) {
+          mensagemLancamento = `Lançamento em ${ano}`;
+        } else {
+          mensagemLancamento = `Lançamento em ${dia}/${mes}/${ano}`;
+        }
+      }
+    } catch {
+      // Data inválida fallback
     }
   }
 
@@ -39,7 +61,7 @@ const JogoCard = ({ jogo, onClick }) => {
   const isGuid = typeof jogoId === "string" && jogoId.length === 36 && jogoId !== "00000000-0000-0000-0000-000000000000";
   const ehExterno = Boolean(jogo.ehExterno || (jogo.rawgId && !isGuid));
 
-  const media = !ehExterno &&
+  const media = !ehExterno && !ehFuturo &&
     jogo.mediaAvaliacoes !== null && 
     jogo.mediaAvaliacoes !== undefined && 
     !isNaN(mediaNum) && 
@@ -77,13 +99,17 @@ const JogoCard = ({ jogo, onClick }) => {
           />
           <div className="jogo-card-overlay-gradient" />
 
-          {/* Badge de Nota Média */}
-          {media && (
+          {/* Badge de Nota Média ou Em Breve */}
+          {media ? (
             <div className="jogo-card-rating-badge">
               <FaStar className="star-icon" />
               <span>{media}</span>
             </div>
-          )}
+          ) : ehFuturo ? (
+            <div className="jogo-card-future-badge">
+              <span>{mensagemLancamento || "Em breve"}</span>
+            </div>
+          ) : null}
 
           {/* Badge de Gênero */}
           {genero && (

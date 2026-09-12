@@ -44,7 +44,13 @@ export const buscarJogosPaginados = async ({
         params.append("pagina", pagina);
         params.append("itensPorPagina", itensPorPagina);
         if (busca && busca.trim()) params.append("busca", busca.trim());
-        if (genero) params.append("genero", genero);
+        if (Array.isArray(genero)) {
+            genero.forEach(g => {
+                if (g && g.trim()) params.append("genero", g.trim());
+            });
+        } else if (genero && genero.trim()) {
+            params.append("genero", genero.trim());
+        }
         if (ano) params.append("ano", ano);
         if (empresa) params.append("empresa", empresa);
         if (nota) params.append("notaMinima", nota);

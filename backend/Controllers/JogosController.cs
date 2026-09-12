@@ -25,19 +25,40 @@ namespace GameLog_Backend.Controllers
             [FromQuery] int? pagina,
             [FromQuery] int? itensPorPagina,
             [FromQuery] string? busca,
-            [FromQuery] string? genero,
+            [FromQuery(Name = "genero")] string[]? generos,
+            [FromQuery(Name = "generos")] string? generosComma,
             [FromQuery] int? ano,
             [FromQuery] string? empresa,
             [FromQuery] double? notaMinima,
             [FromQuery] string? ordenacao)
         {
+            var listaGeneros = new List<string>();
+            if (generos != null && generos.Length > 0)
+            {
+                foreach (var g in generos)
+                {
+                    if (!string.IsNullOrWhiteSpace(g))
+                    {
+                        var parts = g.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        listaGeneros.AddRange(parts);
+                    }
+                }
+            }
+            if (!string.IsNullOrWhiteSpace(generosComma))
+            {
+                var parts = generosComma.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                listaGeneros.AddRange(parts);
+            }
+
+            var filtroGeneros = listaGeneros.Distinct().ToList();
+
             if (pagina.HasValue)
             {
                 var paged = await _jogoServices.ListarJogosPaginados(
                     pagina.Value,
                     itensPorPagina ?? 12,
                     busca,
-                    genero,
+                    filtroGeneros.Any() ? filtroGeneros : null,
                     ano,
                     empresa,
                     notaMinima,

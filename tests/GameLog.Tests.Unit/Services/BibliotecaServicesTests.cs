@@ -100,5 +100,72 @@ namespace GameLog.Tests.Unit.Services
             result.Should().Contain(f => f.Posicao == 1 && f.TituloJogo == "Game 1");
             result.Should().Contain(f => f.Posicao == 2 && f.TituloJogo == "Game 2");
         }
+
+        [Fact]
+        public async Task SalvarItemBiblioteca_JogoNaoLancado_ComStatusDiferenteDeQueroJogar_DeveLancarInvalidOperationException()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var service = new BibliotecaServices(context);
+
+            var usuario = new Usuario { NomeUsuario = "FutureGamer", Email = "future@gamelog.com", Senha = "hash", EstaAtivo = true };
+            var jogoFuturo = new Jogo
+            {
+                Titulo = "Wolverine",
+                Descricao = "Marvel's Wolverine",
+                Imagem = "wolverine.jpg",
+                DataLancamento = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+                EstaAtivo = true
+            };
+            context.Usuarios.Add(usuario);
+            context.Jogos.Add(jogoFuturo);
+            await context.SaveChangesAsync();
+
+            var dto = new SalvarItemBibliotecaDTO
+            {
+                JogoId = jogoFuturo.Id,
+                Status = StatusJogo.Jogando // Inválido para jogos não lançados
+            };
+
+            // Act & Assert
+            var act = async () => await service.SalvarItemBiblioteca(usuario.Id, dto);
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("*Jogos ainda não lançados só podem ser adicionados à biblioteca com o status 'Quero Jogar'*");
+        }
+
+        [Fact]
+        public async Task SalvarItemBiblioteca_JogoNaoLancado_ComStatusQueroJogar_DeveSalvarComSucesso()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var service = new BibliotecaServices(context);
+
+            var usuario = new Usuario { NomeUsuario = "FutureGamer2", Email = "future2@gamelog.com", Senha = "hash", EstaAtivo = true };
+            var jogoFuturo = new Jogo
+            {
+                Titulo = "The Witcher 4",
+                Descricao = "Polaris",
+                Imagem = "tw4.jpg",
+                DataLancamento = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(2)),
+                EstaAtivo = true
+            };
+            context.Usuarios.Add(usuario);
+            context.Jogos.Add(jogoFuturo);
+            await context.SaveChangesAsync();
+
+            var dto = new SalvarItemBibliotecaDTO
+            {
+                JogoId = jogoFuturo.Id,
+                Status = StatusJogo.QueroJogar
+            };
+
+            // Act
+            var result = await service.SalvarItemBiblioteca(usuario.Id, dto);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Status.Should().Be((int)StatusJogo.QueroJogar);
+            result.StatusNome.Should().Be("Quero Jogar");
+        }
     }
 }

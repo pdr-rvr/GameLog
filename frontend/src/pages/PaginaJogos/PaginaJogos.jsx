@@ -37,9 +37,22 @@ function PaginaJogos() {
     const [totalPaginas, setTotalPaginas] = useState(1);
     const [totalItens, setTotalItens] = useState(0);
 
+    const parseGenerosFromUrl = () => {
+        const todos = searchParams.getAll("genero");
+        const generosComma = searchParams.get("generos");
+        const res = new Set();
+        todos.forEach(t => {
+            if (t) t.split(",").forEach(g => { if (g.trim()) res.add(g.trim()); });
+        });
+        if (generosComma) {
+            generosComma.split(",").forEach(g => { if (g.trim()) res.add(g.trim()); });
+        }
+        return Array.from(res);
+    };
+
     const [termoPesquisa, setTermoPesquisa] = useState(initialQuery);
     const [buscaAtiva, setBuscaAtiva] = useState(initialQuery);
-    const [generoSelecionado, setGeneroSelecionado] = useState(searchParams.get("genero") || "");
+    const [generosSelecionados, setGenerosSelecionados] = useState(parseGenerosFromUrl());
     const [anoSelecionado, setAnoSelecionado] = useState(searchParams.get("ano") || "");
     const [anoInput, setAnoInput] = useState(searchParams.get("ano") || "");
     const [notaSelecionada, setNotaSelecionada] = useState(searchParams.get("nota") || "");
@@ -55,14 +68,16 @@ function PaginaJogos() {
     const filterSubject$ = useRef(null);
 
     // Sync state with URL params
-    const atualizarUrl = useCallback((novaPagina, busca, genero, ano, nota, ordem) => {
-        const params = {};
-        if (novaPagina > 1) params.page = novaPagina;
-        if (busca && busca.trim()) params.busca = busca.trim();
-        if (genero) params.genero = genero;
-        if (ano) params.ano = ano;
-        if (nota) params.nota = nota;
-        if (ordem && ordem !== "melhores") params.ordem = ordem;
+    const atualizarUrl = useCallback((novaPagina, busca, generos, ano, nota, ordem) => {
+        const params = new URLSearchParams();
+        if (novaPagina > 1) params.set("page", novaPagina);
+        if (busca && busca.trim()) params.set("busca", busca.trim());
+        if (generos && generos.length > 0) {
+            generos.forEach(g => params.append("genero", g));
+        }
+        if (ano) params.set("ano", ano);
+        if (nota) params.set("nota", nota);
+        if (ordem && ordem !== "melhores") params.set("ordem", ordem);
         setSearchParams(params);
     }, [setSearchParams]);
 
@@ -76,12 +91,17 @@ function PaginaJogos() {
             .catch(err => console.error("Erro ao carregar metadados dos filtros:", err));
     }, []);
 
-    // Sincronizar se a URL mudar externamente (ex: busca na navbar)
+    // Sincronizar se a URL mudar externamente (ex: busca na navbar ou navegação por gênero)
     useEffect(() => {
         const qUrl = searchParams.get("busca") || searchParams.get("q") || "";
+        const gensUrl = parseGenerosFromUrl();
         if (qUrl !== buscaAtiva) {
             setTermoPesquisa(qUrl);
             setBuscaAtiva(qUrl);
+            setPaginaAtual(1);
+        }
+        if (JSON.stringify(gensUrl) !== JSON.stringify(generosSelecionados)) {
+            setGenerosSelecionados(gensUrl);
             setPaginaAtual(1);
         }
     }, [searchParams]);
@@ -126,33 +146,44 @@ function PaginaJogos() {
                 pagina: paginaAtual,
                 itensPorPagina: ITENS_POR_PAGINA,
                 busca: buscaAtiva,
-                genero: generoSelecionado,
+                genero: generosSelecionados,
                 ano: anoSelecionado ? parseInt(anoSelecionado, 10) : null,
                 nota: notaSelecionada ? parseFloat(notaSelecionada) : null,
                 ordenacao
             });
         }
-    }, [paginaAtual, buscaAtiva, generoSelecionado, anoSelecionado, notaSelecionada, ordenacao]);
+    }, [paginaAtual, buscaAtiva, generosSelecionados, anoSelecionado, notaSelecionada, ordenacao]);
 
     const handleSearchChange = (e) => {
         const val = e.target.value;
         setTermoPesquisa(val);
         setBuscaAtiva(val);
         setPaginaAtual(1);
-        atualizarUrl(1, val, generoSelecionado, anoSelecionado, notaSelecionada, ordenacao);
+        atualizarUrl(1, val, generosSelecionados, anoSelecionado, notaSelecionada, ordenacao);
     };
 
     const handleLimparBusca = () => {
         setTermoPesquisa("");
         setBuscaAtiva("");
         setPaginaAtual(1);
-        atualizarUrl(1, "", generoSelecionado, anoSelecionado, notaSelecionada, ordenacao);
+        atualizarUrl(1, "", generosSelecionados, anoSelecionado, notaSelecionada, ordenacao);
     };
 
-    const handleGeneroChange = (val) => {
-        setGeneroSelecionado(val);
+    const handleToggleGenero = (gen) => {
+        if (!gen) return;
+        const novo = generosSelecionados.includes(gen)
+            ? generosSelecionados.filter(g => g !== gen)
+            : [...generosSelecionados, gen];
+        setGenerosSelecionados(novo);
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, val, anoSelecionado, notaSelecionada, ordenacao);
+        atualizarUrl(1, buscaAtiva, novo, anoSelecionado, notaSelecionada, ordenacao);
+    };
+
+    const handleRemoverGenero = (gen) => {
+        const novo = generosSelecionados.filter(g => g !== gen);
+        setGenerosSelecionados(novo);
+        setPaginaAtual(1);
+        atualizarUrl(1, buscaAtiva, novo, anoSelecionado, notaSelecionada, ordenacao);
     };
 
     const handleAnoChange = (e) => {
@@ -161,7 +192,7 @@ function PaginaJogos() {
         if (val === "" || val.length === 4) {
             setAnoSelecionado(val);
             setPaginaAtual(1);
-            atualizarUrl(1, buscaAtiva, generoSelecionado, val, notaSelecionada, ordenacao);
+            atualizarUrl(1, buscaAtiva, generosSelecionados, val, notaSelecionada, ordenacao);
         }
     };
 
@@ -169,37 +200,37 @@ function PaginaJogos() {
         setAnoInput("");
         setAnoSelecionado("");
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, generoSelecionado, "", notaSelecionada, ordenacao);
+        atualizarUrl(1, buscaAtiva, generosSelecionados, "", notaSelecionada, ordenacao);
     };
 
     const handleNotaChange = (val) => {
         setNotaSelecionada(val);
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, generoSelecionado, anoSelecionado, val, ordenacao);
+        atualizarUrl(1, buscaAtiva, generosSelecionados, anoSelecionado, val, ordenacao);
     };
 
     const handleOrdenacaoChange = (val) => {
         setOrdenacao(val);
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, generoSelecionado, anoSelecionado, notaSelecionada, val);
+        atualizarUrl(1, buscaAtiva, generosSelecionados, anoSelecionado, notaSelecionada, val);
     };
 
     const limparFiltros = () => {
         setTermoPesquisa("");
         setBuscaAtiva("");
-        setGeneroSelecionado("");
+        setGenerosSelecionados([]);
         setAnoInput("");
         setAnoSelecionado("");
         setNotaSelecionada("");
         setOrdenacao("melhores");
         setPaginaAtual(1);
-        atualizarUrl(1, "", "", "", "", "melhores");
+        atualizarUrl(1, "", [], "", "", "melhores");
     };
 
     const handleMudarPagina = (novaPagina) => {
         if (novaPagina < 1 || novaPagina > totalPaginas || novaPagina === paginaAtual) return;
         setPaginaAtual(novaPagina);
-        atualizarUrl(novaPagina, buscaAtiva, generoSelecionado, anoSelecionado, notaSelecionada, ordenacao);
+        atualizarUrl(novaPagina, buscaAtiva, generosSelecionados, anoSelecionado, notaSelecionada, ordenacao);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
@@ -225,7 +256,7 @@ function PaginaJogos() {
 
     const temFiltrosAtivos = Boolean(
         buscaAtiva || 
-        generoSelecionado || 
+        generosSelecionados.length > 0 || 
         anoSelecionado || 
         notaSelecionada || 
         (ordenacao && ordenacao !== "melhores")
@@ -325,15 +356,21 @@ function PaginaJogos() {
                     {/* Grid de Seletores e Filtros */}
                     <div className="filtros-seletores-grid">
                         <div className="filtro-select-group">
-                            <label><FaGamepad /> Gênero</label>
+                            <label><FaGamepad /> Gêneros / Categorias</label>
                             <select
-                                value={generoSelecionado}
-                                onChange={(e) => handleGeneroChange(e.target.value)}
+                                value=""
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        handleToggleGenero(e.target.value);
+                                    }
+                                }}
                                 className="filtro-select-modern"
                             >
-                                <option value="">Todos os Gêneros</option>
+                                <option value="">+ Adicionar Gênero...</option>
                                 {generosDisponiveis.map(genero => (
-                                    <option key={genero} value={genero}>{genero}</option>
+                                    <option key={genero} value={genero} disabled={generosSelecionados.includes(genero)}>
+                                        {genero} {generosSelecionados.includes(genero) ? "✓" : ""}
+                                    </option>
                                 ))}
                             </select>
                         </div>
@@ -396,6 +433,40 @@ function PaginaJogos() {
                             </select>
                         </div>
                     </div>
+
+                    {/* Chips de Gêneros Selecionados */}
+                    {generosSelecionados.length > 0 && (
+                        <div className="generos-chips-container">
+                            <span className="chips-label">Gêneros selecionados:</span>
+                            <div className="generos-chips-list">
+                                {generosSelecionados.map(g => (
+                                    <span key={g} className="genero-chip">
+                                        <span>{g}</span>
+                                        <button
+                                            type="button"
+                                            className="btn-remove-chip"
+                                            onClick={() => handleRemoverGenero(g)}
+                                            title={`Remover ${g}`}
+                                            aria-label={`Remover ${g}`}
+                                        >
+                                            <FaTimes />
+                                        </button>
+                                    </span>
+                                ))}
+                                <button
+                                    type="button"
+                                    className="btn-limpar-chips"
+                                    onClick={() => {
+                                        setGenerosSelecionados([]);
+                                        setPaginaAtual(1);
+                                        atualizarUrl(1, buscaAtiva, [], anoSelecionado, notaSelecionada, ordenacao);
+                                    }}
+                                >
+                                    Limpar Gêneros
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Botão de Limpar Filtros */}
                     {temFiltrosAtivos && (

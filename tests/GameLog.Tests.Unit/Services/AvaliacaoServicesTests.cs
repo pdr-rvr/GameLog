@@ -214,5 +214,50 @@ namespace GameLog.Tests.Unit.Services
             var respostas = await service.ListarRespostasPorAvaliacao(avaliacao.AvaliacaoId);
             respostas.Should().ContainSingle(r => r.Comentario == "Concordo plenamente!");
         }
+
+        [Fact]
+        public async Task CriarAvaliacao_JogoNaoLancado_DeveLancarInvalidOperationException()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var mapper = TestContextHelper.CreateMapper();
+            var service = new AvaliacaoServices(context, mapper);
+
+            var empresa = new Empresa { NomeEmpresa = "Rockstar Games", EstaAtivo = true };
+            context.Empresa.Add(empresa);
+
+            var jogoFuturo = new Jogo
+            {
+                Titulo = "Grand Theft Auto VI",
+                Descricao = "Próximo grande título",
+                Imagem = "gta6.jpg",
+                DataLancamento = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+                Empresa = empresa,
+                EstaAtivo = true
+            };
+            context.Jogos.Add(jogoFuturo);
+
+            var usuario = new Usuario
+            {
+                NomeUsuario = "HypedGamer",
+                Email = "hyped@gamelog.com",
+                Senha = "hash",
+                EstaAtivo = true
+            };
+            context.Usuarios.Add(usuario);
+            await context.SaveChangesAsync();
+
+            var dto = new CriarAvaliacaoDTO
+            {
+                JogoId = jogoFuturo.Id,
+                Nota = 5,
+                TextoAvaliacao = "Já sei que vai ser 10/10!"
+            };
+
+            // Act & Assert
+            var act = async () => await service.CriarAvaliacao(dto, usuario.Id);
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("*Não é permitido avaliar ou dar nota a um jogo que ainda não foi lançado*");
+        }
     }
 }
