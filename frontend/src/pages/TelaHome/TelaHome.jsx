@@ -155,7 +155,7 @@ const TelaHome = () => {
                   <FaCompass className="discovery-icon" />
                 </div>
                 <div className="discovery-text">
-                  <h3>Descubra Mais de 2.500 Jogos Autênticos</h3>
+                  <h3>Descubra Mais de 1.000 Jogos Autênticos</h3>
                   <p>Filtre por estúdios lendários, anos de lançamento e notas consolidadas da comunidade.</p>
                 </div>
                 <Link to="/jogos" className="btn-discovery-cta">

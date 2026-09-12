@@ -241,7 +241,7 @@ function TelaJogo() {
                         <div className="jogo-acoes-container">
                             {/* 1. Adicionar / Status na Biblioteca */}
                             <div className="jogo-biblioteca-seletor-wrapper">
-                                <SeletorStatusBiblioteca jogoId={idJogoReal} />
+                                <SeletorStatusBiblioteca jogoId={idJogoReal} ehFuturo={ehFuturo} />
                             </div>
 
                             {/* 2. Botão de Avaliar Jogo ou Alerta de Não Lançado */}

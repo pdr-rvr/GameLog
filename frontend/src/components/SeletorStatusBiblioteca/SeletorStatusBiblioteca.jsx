@@ -18,7 +18,7 @@ const STATUS_OPCOES = [
   { id: STATUS_JOGO.ABANDONADO, label: STATUS_LABELS[STATUS_JOGO.ABANDONADO], colorClass: "opt-abandonado" },
 ];
 
-const SeletorStatusBiblioteca = ({ jogoId, onAtualizado }) => {
+const SeletorStatusBiblioteca = ({ jogoId, onAtualizado, ehFuturo = false }) => {
   const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -28,6 +28,10 @@ const SeletorStatusBiblioteca = ({ jogoId, onAtualizado }) => {
   const [naBiblioteca, setNaBiblioteca] = useState(false);
   const [statusAtual, setStatusAtual] = useState(null);
   const [painelAberto, setPainelAberto] = useState(false);
+
+  const opcoesDisponiveis = ehFuturo
+    ? STATUS_OPCOES.filter((opt) => opt.id === STATUS_JOGO.QUERO_JOGAR)
+    : STATUS_OPCOES;
 
   // Load current library status for this game
   useEffect(() => {
@@ -156,7 +160,7 @@ const SeletorStatusBiblioteca = ({ jogoId, onAtualizado }) => {
           <div className="painel-section">
             <label className="painel-label">Escolha o Status:</label>
             <div className="painel-status-grid">
-              {STATUS_OPCOES.map((opt) => {
+              {opcoesDisponiveis.map((opt) => {
                 const isSelected = statusAtual === opt.id;
                 return (
                   <button

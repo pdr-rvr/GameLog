@@ -485,7 +485,7 @@ function PaginaJogos() {
                             {temFiltrosAtivos ? (
                                 <>Mostrando <strong>{jogos.length}</strong> de <strong>{totalItens.toLocaleString('pt-BR')}</strong> {totalItens === 1 ? "jogo encontrado" : "jogos encontrados"}</>
                             ) : (
-                                <>Catálogo com <strong>{totalItens.toLocaleString('pt-BR')} Jogos</strong> disponíveis para você avaliar e colecionar</>
+                                <>Catálogo com <strong>mais de 1.000 Jogos</strong> disponíveis para você avaliar e colecionar</>
                             )}
                             {totalPaginas > 1 && ` • Página ${paginaAtual} de ${totalPaginas}`}
                         </span>

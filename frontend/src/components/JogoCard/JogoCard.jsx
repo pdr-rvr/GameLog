@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { FaStar, FaCalendarAlt, FaBuilding } from "react-icons/fa";
+import { FaStar, FaCalendarAlt, FaBuilding, FaClock } from "react-icons/fa";
 import ClassificacaoBadge from "../ClassificacaoBadge/ClassificacaoBadge";
 import "./JogoCard.css";
 
@@ -83,7 +83,7 @@ const JogoCard = ({ jogo, onClick }) => {
 
   return (
     <Link to={targetUrl} onClick={handleLinkClick} className="jogo-card-link">
-      <article className="jogo-card">
+      <article className={`jogo-card ${ehFuturo ? "is-future-game" : ""}`}>
         {/* Container da Capa */}
         <div className="jogo-card-image-container">
           <img
@@ -99,23 +99,28 @@ const JogoCard = ({ jogo, onClick }) => {
           />
           <div className="jogo-card-overlay-gradient" />
 
-          {/* Badge de Nota Média ou Em Breve */}
-          {media ? (
-            <div className="jogo-card-rating-badge">
-              <FaStar className="star-icon" />
-              <span>{media}</span>
-            </div>
-          ) : ehFuturo ? (
-            <div className="jogo-card-future-badge">
-              <span>{mensagemLancamento || "Em breve"}</span>
-            </div>
-          ) : null}
+          {/* Top Badges Row (Gênero e Nota) */}
+          <div className="jogo-card-top-badges">
+            {genero ? (
+              <span className="jogo-card-genre-badge" title={genero}>
+                {genero}
+              </span>
+            ) : <span />}
 
-          {/* Badge de Gênero */}
-          {genero && (
-            <span className="jogo-card-genre-badge">
-              {genero}
-            </span>
+            {media && (
+              <div className="jogo-card-rating-badge">
+                <FaStar className="star-icon" />
+                <span>{media}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Badge para Jogos Futuros (Data de Lançamento / Em Breve) */}
+          {ehFuturo && (
+            <div className="jogo-card-future-badge">
+              <FaClock className="future-clock-icon" />
+              <span>{mensagemLancamento || "Disponível em breve"}</span>
+            </div>
           )}
         </div>
 

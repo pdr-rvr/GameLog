@@ -28,4 +28,15 @@ describe("CategoryPills Component", () => {
     const rpgLink = screen.getByTestId("category-pill-RPG");
     expect(rpgLink).toHaveAttribute("href", "/jogos?genero=RPG");
   });
+
+  it("deve renderizar os botões de navegação do carrossel", () => {
+    render(
+      <BrowserRouter>
+        <CategoryPills />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByTestId("category-pills-prev")).toBeInTheDocument();
+    expect(screen.getByTestId("category-pills-next")).toBeInTheDocument();
+  });
 });
