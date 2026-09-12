@@ -121,6 +121,12 @@ namespace GameLog_Backend.Services.Catalog
                 lower.Contains("ennard edition") ||
                 lower.Contains("daughters of ash") ||
                 (lower.Contains("nightfall") && lower.Contains("dark souls")) ||
+                lower.Contains("tomb raider: catalyst") ||
+                lower.Contains("osiris reborn") ||
+                lower.Contains("resynced") ||
+                lower.Contains("scars of kosmora") ||
+                lower.Contains("children of the leaf") ||
+                lower.Contains("pocket waifu") ||
                 Regex.IsMatch(lower, @"\b(mod tools|multiplayer mod|biohazard mod|cs:go mod|queue simulator|texturing)\b") ||
                 (Regex.IsMatch(lower, @"\b(clone|clones)\b") && !lower.Contains("clone wars")) ||
                 (Regex.IsMatch(lower, @"\b(mod|mods)\b") && !lower.Contains("garry's mod")) ||
@@ -178,9 +184,9 @@ namespace GameLog_Backend.Services.Catalog
             if (string.IsNullOrWhiteSpace(title)) return string.Empty;
             var lower = title.ToLowerInvariant().Trim();
 
-            // Limpar sufixos de edições redundantes para evitar entradas duplicadas do mesmo jogo
+            // Limpar sufixos de edições cosméticas e marketing redundantes para evitar duplicatas superficiais do mesmo jogo
             lower = Regex.Replace(lower, @"\(\d{4}\)", "");
-            lower = Regex.Replace(lower, @"\b(game of the year edition|goty edition|definitive edition|enhanced edition|remastered|remake|goodies collection|digital deluxe edition|special edition|anniversary edition|legendary edition|complete edition|directors cut|director's cut|hd remaster|deluxe edition|gold edition|collector's edition|collectors edition|anthology|trilogy|compilation|two-pack|double pack|edition)\b", "");
+            lower = Regex.Replace(lower, @"\b(game of the year edition|goty edition|goodies collection|digital deluxe edition|digital deluxe|special edition|anniversary edition|legendary edition|complete edition|directors cut|director's cut|deluxe edition|gold edition|collector's edition|collectors edition|anthology|two-pack|double pack|launch edition|day one edition|standard edition|founder's pack|founders pack)\b", "");
 
             // Remover caracteres especiais e espaços
             return Regex.Replace(lower, @"[^a-z0-9]", "");
@@ -189,6 +195,128 @@ namespace GameLog_Backend.Services.Catalog
         public static string SanitizarTextoDescricaoHtml(string? html, string? tituloJogo = null, string? nomeEmpresa = null, int? anoLancamento = null)
         {
             return LimparDescricaoHtml(html, tituloJogo, nomeEmpresa, anoLancamento);
+        }
+
+        public static string? ExtrairSteamAppId(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return null;
+            var match = Regex.Match(url, @"store\.steampowered\.com/app/(\d+)", RegexOptions.IgnoreCase);
+            if (match.Success && match.Groups.Count > 1)
+            {
+                return match.Groups[1].Value;
+            }
+            return null;
+        }
+
+        public static string SanitizarUrlCapa(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return "/game-images/default_game_cover.png";
+            var clean = url.Trim();
+
+            // Se for URL da RAWG com crop forçado de baixa resolução, restaurar para resolução original
+            if (clean.Contains("media.rawg.io/media/crop/"))
+            {
+                clean = Regex.Replace(clean, @"media\.rawg\.io/media/crop/\d+/\d+/", "media.rawg.io/media/");
+            }
+
+            return clean;
+        }
+
+        private static readonly Dictionary<string, string> CuratedMasterpieceCovers = new(StringComparer.OrdinalIgnoreCase)
+        {
+            // Top PC & Multiplatform Masterpieces (Steam 600x900 2x HD Boxarts Verificados)
+            { "the witcher 3: wild hunt", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/292030/library_600x900_2x.jpg" },
+            { "the witcher 3", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/292030/library_600x900_2x.jpg" },
+            { "cyberpunk 2077", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/library_600x900_2x.jpg" },
+            { "elden ring", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/library_600x900_2x.jpg" },
+            { "dark souls: remastered", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570940/library_600x900_2x.jpg" },
+            { "dark souls ii: scholar of the first sin", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/335300/library_600x900_2x.jpg" },
+            { "dark souls iii", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/374320/library_600x900_2x.jpg" },
+            { "sekiro: shadows die twice", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/814380/library_600x900_2x.jpg" },
+            { "grand theft auto v", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/271590/library_600x900_2x.jpg" },
+            { "gta v", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/271590/library_600x900_2x.jpg" },
+            { "grand theft auto: san andreas", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12120/library_600x900_2x.jpg" },
+            { "grand theft auto: vice city", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12110/library_600x900_2x.jpg" },
+            { "grand theft auto iii", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12100/library_600x900_2x.jpg" },
+            { "red dead redemption 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/library_600x900_2x.jpg" },
+            { "baldur's gate 3", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/library_600x900_2x.jpg" },
+            { "god of war (2018)", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1593500/library_600x900_2x.jpg" },
+            { "half-life 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/220/library_600x900_2x.jpg" },
+            { "half-life", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/70/library_600x900_2x.jpg" },
+            { "portal 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/library_600x900_2x.jpg" },
+            { "monster hunter: world", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/582010/library_600x900_2x.jpg" },
+            { "hollow knight", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/library_600x900_2x.jpg" },
+            { "hades", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145360/library_600x900_2x.jpg" },
+            { "persona 5 royal", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1687950/library_600x900_2x.jpg" },
+            { "resident evil 4", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2050650/library_600x900_2x.jpg" },
+            { "resident evil 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/883710/library_600x900_2x.jpg" },
+            { "resident evil village", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1196590/library_600x900_2x.jpg" },
+            { "resident evil 7 biohazard", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/418370/library_600x900_2x.jpg" },
+            { "doom eternal", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/782330/library_600x900_2x.jpg" },
+            { "nier:automata", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/524220/library_600x900_2x.jpg" },
+            { "marvel's spider-man remastered", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1817070/library_600x900_2x.jpg" },
+            { "street fighter 6", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1364780/library_600x900_2x.jpg" },
+            { "tekken 8", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1778820/library_600x900_2x.jpg" },
+            { "the elder scrolls v: skyrim", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/489830/library_600x900_2x.jpg" },
+            { "the elder scrolls iv: oblivion", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/22330/library_600x900_2x.jpg" },
+            { "the elder scrolls iii: morrowind", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/22320/library_600x900_2x.jpg" },
+            { "fallout 4", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/377160/library_600x900_2x.jpg" },
+            { "fallout: new vegas", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/22380/library_600x900_2x.jpg" },
+            { "fallout 3", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/22370/library_600x900_2x.jpg" },
+            { "mass effect legendary edition", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1328670/library_600x900_2x.jpg" },
+            { "max payne", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12140/library_600x900_2x.jpg" },
+            { "max payne 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12150/library_600x900_2x.jpg" },
+            { "final fantasy vii remake intergrade", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1462040/library_600x900_2x.jpg" },
+            { "chrono trigger", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/613830/library_600x900_2x.jpg" },
+            { "slay the spire 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2868840/library_600x900_2x.jpg" },
+            { "wreckfest 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2011830/library_600x900_2x.jpg" }
+        };
+
+        public static string ResolverMelhorCapaHd(
+            string? rawgImageUrl, 
+            IEnumerable<DTOs.RawgStoreItemDTO>? stores = null, 
+            string? titulo = null, 
+            int? anoLancamento = null,
+            string? platformSlug = null)
+        {
+            // 1. Camada 1: Steam CDN Oficial Direta (600x900 2x Vertical)
+            if (stores != null)
+            {
+                foreach (var store in stores)
+                {
+                    if (store == null) continue;
+                    var slug = store.Store?.Slug?.ToLowerInvariant();
+                    if (slug == "steam" || (!string.IsNullOrWhiteSpace(store.Url) && store.Url.Contains("steampowered.com")))
+                    {
+                        var appId = ExtrairSteamAppId(store.Url);
+                        if (!string.IsNullOrWhiteSpace(appId))
+                        {
+                            return $"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appId}/library_600x900_2x.jpg";
+                        }
+                    }
+                }
+            }
+
+            // 2. Camada 2: Tabela Curada de Clássicos, Exclusivos e Obras-Primas (600x900 HD)
+            if (!string.IsNullOrWhiteSpace(titulo))
+            {
+                var titLower = titulo.Trim().ToLowerInvariant();
+                if (CuratedMasterpieceCovers.TryGetValue(titLower, out var curatedUrl))
+                {
+                    return curatedUrl;
+                }
+
+                foreach (var kvp in CuratedMasterpieceCovers)
+                {
+                    if (titLower.Contains(kvp.Key) || kvp.Key.Contains(titLower))
+                    {
+                        return kvp.Value;
+                    }
+                }
+            }
+
+            // 3. Camada 3: RAWG CDN Full-Res Sanitizada (sem crop de baixa resolução)
+            return SanitizarUrlCapa(rawgImageUrl);
         }
 
         private static string GerarSinopsePadrao(string? titulo, string? empresa, int? ano)

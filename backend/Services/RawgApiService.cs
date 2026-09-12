@@ -356,10 +356,8 @@ namespace GameLog_Backend.Services
                         }
 
                         var devRaw = detail?.Developers?.FirstOrDefault()?.Name ?? r.Developers?.FirstOrDefault()?.Name;
-                        var pubRaw = detail?.Publishers?.FirstOrDefault()?.Name ?? r.Publishers?.FirstOrDefault()?.Name ?? ResolverEmpresaPorFranquia(r.Name);
-
-                        var nomeDev = CompanyNormalizer.NormalizarNomeEmpresa(devRaw ?? pubRaw);
-                        var nomePub = !string.IsNullOrWhiteSpace(pubRaw) ? CompanyNormalizer.NormalizarNomeEmpresa(pubRaw) : null;
+                        var pubRaw = detail?.Publishers?.FirstOrDefault()?.Name ?? r.Publishers?.FirstOrDefault()?.Name;
+                        var (nomeDev, nomePub) = CompanyNormalizer.ResolverParDesenvolvedoraPublicadora(r.Name, devRaw, pubRaw);
 
                         var generosSource = (detail?.Genres != null && detail.Genres.Any()) ? detail.Genres : r.Genres;
                         var generosNormalizados = generosSource?
@@ -380,7 +378,7 @@ namespace GameLog_Backend.Services
                             RawgId = r.Id,
                             Titulo = r.Name.Trim(),
                             Descricao = detail?.DescriptionRaw ?? string.Empty,
-                            Imagem = detail?.BackgroundImage ?? r.BackgroundImage ?? "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80",
+                            Imagem = CatalogSanitizer.ResolverMelhorCapaHd(detail?.BackgroundImage ?? r.BackgroundImage, detail?.Stores ?? r.Stores, r.Name.Trim(), dataLanc.Year),
                             DataLancamento = dataLanc,
                             ClassificacaoIndicativa = classificacao,
                             EmpresaId = Guid.Empty,
@@ -461,11 +459,9 @@ namespace GameLog_Backend.Services
             }
 
             // 1. Obter ou Criar Desenvolvedora e Publicadora Canônicas
-            var devRaw = detail.Developers.FirstOrDefault()?.Name ?? detail.Publishers.FirstOrDefault()?.Name;
-            var pubRaw = detail.Publishers.FirstOrDefault()?.Name ?? ResolverEmpresaPorFranquia(detail.Name);
-
-            var nomeDev = CompanyNormalizer.NormalizarNomeEmpresa(devRaw ?? pubRaw);
-            var nomePub = !string.IsNullOrWhiteSpace(pubRaw) ? CompanyNormalizer.NormalizarNomeEmpresa(pubRaw) : null;
+            var devRaw = detail.Developers.FirstOrDefault()?.Name;
+            var pubRaw = detail.Publishers.FirstOrDefault()?.Name;
+            var (nomeDev, nomePub) = CompanyNormalizer.ResolverParDesenvolvedoraPublicadora(detail.Name, devRaw, pubRaw);
 
             if (string.IsNullOrWhiteSpace(nomeDev))
             {
@@ -565,8 +561,8 @@ namespace GameLog_Backend.Services
             }
 
             // 6. Criar Jogo com Capa Oficial
-            var imagemOficial = detail.BackgroundImage;
-            if (string.IsNullOrWhiteSpace(imagemOficial))
+            var imagemOficial = CatalogSanitizer.ResolverMelhorCapaHd(detail.BackgroundImage, detail.Stores, tituloLimpo, dataLancamento.Year);
+            if (string.IsNullOrWhiteSpace(imagemOficial) || imagemOficial == "/game-images/default_game_cover.png")
             {
                 imagemOficial = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80";
             }

@@ -9,6 +9,7 @@ using GameLog_Backend.Middlewares;
 using GameLog_Backend.Profiles;
 using GameLog_Backend.Seeders;
 using GameLog_Backend.Services;
+using GameLog_Backend.Services.Catalog;
 using GameLog_Backend.Validators;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -131,6 +132,8 @@ builder.Services.AddDbContext<GameLogContext>(options =>
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<RawgApiService>();
 builder.Services.AddScoped<RawgApiService>();
+builder.Services.AddHttpClient<SteamGridDbService>();
+builder.Services.AddScoped<SteamGridDbService>();
 builder.Services.AddScoped<MassiveCatalogSeeder>();
 
 builder.Services.AddScoped<JogoServices>();
