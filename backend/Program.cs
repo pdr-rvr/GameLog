@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -193,8 +194,25 @@ builder.Services.AddDbContext<GameLogContext>(options =>
     }));
 
 builder.Services.AddMemoryCache();
-builder.Services.AddHttpClient<IRawgApiService, RawgApiService>();
-builder.Services.AddHttpClient<SteamGridDbService>();
+builder.Services.AddHttpClient<IRawgApiService, RawgApiService>()
+    .AddStandardResilienceHandler(options =>
+    {
+        options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(5);
+        options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(10);
+        options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+        options.CircuitBreaker.FailureRatio = 0.5;
+        options.CircuitBreaker.MinimumThroughput = 5;
+    });
+
+builder.Services.AddHttpClient<SteamGridDbService>()
+    .AddStandardResilienceHandler(options =>
+    {
+        options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(5);
+        options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(10);
+        options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+        options.CircuitBreaker.FailureRatio = 0.5;
+        options.CircuitBreaker.MinimumThroughput = 5;
+    });
 builder.Services.AddScoped<MassiveCatalogSeeder>();
 
 builder.Services.AddAutoMapper(typeof(UsuarioProfile).Assembly);
