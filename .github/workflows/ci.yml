@@ -71,5 +71,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Setup environment for Docker verification
+        run: cp .env.example .env
+
       - name: Build all Docker images
-        run: docker compose build
+        env:
+          DB_PASSWORD: ci_build_validation_password_123!
+          JWT_SECRET: ci_build_validation_jwt_secret_with_32_chars_long!
+        run: docker compose --env-file .env.example build
