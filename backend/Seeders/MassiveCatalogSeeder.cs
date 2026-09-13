@@ -12,6 +12,7 @@ using GameLog_Backend.Entities;
 using GameLog_Backend.Helpers;
 using GameLog_Backend.Services;
 using GameLog_Backend.Services.Catalog;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -20,12 +21,12 @@ namespace GameLog_Backend.Seeders
     public class MassiveCatalogSeeder
     {
         private readonly GameLogContext _context;
-        private readonly RawgApiService _rawgService;
+        private readonly IRawgApiService _rawgService;
         private readonly ILogger<MassiveCatalogSeeder> _logger;
 
         public MassiveCatalogSeeder(
             GameLogContext context, 
-            RawgApiService rawgService,
+            IRawgApiService rawgService,
             ILogger<MassiveCatalogSeeder> logger)
         {
             _context = context;

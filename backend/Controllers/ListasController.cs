@@ -54,11 +54,18 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> EditarLista(Guid id, [FromBody] EditarListaDTO dto)
         {
             var usuarioId = User.GetUserId();
-            var lista = await _listaServices.EditarLista(id, usuarioId, dto);
-            if (lista == null)
+            var listaExistente = await _listaServices.ObterListaPorId(id, usuarioId);
+            if (listaExistente == null)
             {
-                return NotFound(new { message = "Lista não encontrada ou sem permissão de edição." });
+                return NotFound(new { message = "Lista não encontrada." });
             }
+
+            if (listaExistente.UsuarioId != usuarioId)
+            {
+                return Forbid();
+            }
+
+            var lista = await _listaServices.EditarLista(id, usuarioId, dto);
             return Ok(lista);
         }
 
@@ -67,11 +74,18 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> DeletarLista(Guid id)
         {
             var usuarioId = User.GetUserId();
-            var sucesso = await _listaServices.DeletarLista(id, usuarioId);
-            if (!sucesso)
+            var listaExistente = await _listaServices.ObterListaPorId(id, usuarioId);
+            if (listaExistente == null)
             {
-                return NotFound(new { message = "Lista não encontrada ou sem permissão de exclusão." });
+                return NotFound(new { message = "Lista não encontrada." });
             }
+
+            if (listaExistente.UsuarioId != usuarioId)
+            {
+                return Forbid();
+            }
+
+            await _listaServices.DeletarLista(id, usuarioId);
             return NoContent();
         }
 

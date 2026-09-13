@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using GameLog_Backend.DTOs;
 using GameLog_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,48 +25,21 @@ namespace GameLog_Backend.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> ListarTodosJogos(
-            [FromQuery] int? pagina,
-            [FromQuery] int? itensPorPagina,
-            [FromQuery] string? busca,
-            [FromQuery(Name = "genero")] string[]? generos,
-            [FromQuery(Name = "generos")] string? generosComma,
-            [FromQuery] int? ano,
-            [FromQuery] string? empresa,
-            [FromQuery] double? notaMinima,
-            [FromQuery] string? ordenacao)
+        public async Task<IActionResult> ListarTodosJogos([FromQuery] FiltroJogosQueryDTO filtro)
         {
-            var listaGeneros = new List<string>();
-            if (generos != null && generos.Length > 0)
-            {
-                foreach (var g in generos)
-                {
-                    if (!string.IsNullOrWhiteSpace(g))
-                    {
-                        var parts = g.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                        listaGeneros.AddRange(parts);
-                    }
-                }
-            }
-            if (!string.IsNullOrWhiteSpace(generosComma))
-            {
-                var parts = generosComma.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                listaGeneros.AddRange(parts);
-            }
+            var filtroGeneros = filtro.ObterListaGenerosNormalizada();
 
-            var filtroGeneros = listaGeneros.Distinct().ToList();
-
-            if (pagina.HasValue)
+            if (filtro.Pagina.HasValue)
             {
                 var paged = await _jogoServices.ListarJogosPaginados(
-                    pagina.Value,
-                    itensPorPagina ?? 12,
-                    busca,
-                    filtroGeneros.Any() ? filtroGeneros : null,
-                    ano,
-                    empresa,
-                    notaMinima,
-                    ordenacao ?? "melhores"
+                    filtro.Pagina.Value,
+                    filtro.ItensPorPagina ?? 12,
+                    filtro.Busca,
+                    filtroGeneros,
+                    filtro.Ano,
+                    filtro.Empresa,
+                    filtro.NotaMinima,
+                    filtro.Ordenacao ?? "melhores"
                 );
                 return Ok(paged);
             }

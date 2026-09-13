@@ -76,13 +76,18 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> EditarAvaliacao(Guid id, [FromBody] EditarAvaliacaoDTO avaliacaoDTO)
         {
             var usuarioId = User.GetUserId();
-            var avaliacaoAtualizada = await _avaliacaoServices.EditarAvaliacao(id, avaliacaoDTO, usuarioId);
-
-            if (avaliacaoAtualizada == null)
+            var avaliacaoExistente = await _avaliacaoServices.ObterAvaliacaoPorId(id, usuarioId);
+            if (avaliacaoExistente == null)
             {
-                return NotFound(new { message = "Avaliação não encontrada ou você não tem permissão para editá-la" });
+                return NotFound(new { message = "Avaliação não encontrada" });
             }
 
+            if (avaliacaoExistente.UsuarioId != usuarioId)
+            {
+                return Forbid();
+            }
+
+            var avaliacaoAtualizada = await _avaliacaoServices.EditarAvaliacao(id, avaliacaoDTO, usuarioId);
             return Ok(avaliacaoAtualizada);
         }
 
@@ -91,13 +96,18 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> DeletarAvaliacao(Guid id)
         {
             var usuarioId = User.GetUserId();
-            var sucesso = await _avaliacaoServices.DeletarAvaliacao(id, usuarioId);
-
-            if (!sucesso)
+            var avaliacaoExistente = await _avaliacaoServices.ObterAvaliacaoPorId(id, usuarioId);
+            if (avaliacaoExistente == null)
             {
-                return NotFound(new { message = "Avaliação não encontrada ou você não tem permissão para excluí-la" });
+                return NotFound(new { message = "Avaliação não encontrada" });
             }
 
+            if (avaliacaoExistente.UsuarioId != usuarioId)
+            {
+                return Forbid();
+            }
+
+            await _avaliacaoServices.DeletarAvaliacao(id, usuarioId);
             return NoContent();
         }
 
