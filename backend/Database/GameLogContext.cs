@@ -25,6 +25,7 @@ namespace GameLog_Backend.Database
         public DbSet<JogoFavoritoUsuario> JogosFavoritosUsuarios { get; set; }
         public DbSet<ListaDeJogos> ListasDeJogos { get; set; }
         public DbSet<ItemDeLista> ItensDeListas { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -72,6 +73,7 @@ namespace GameLog_Backend.Database
             modelBuilder.ApplyConfiguration(new JogoFavoritoConfigurations());
             modelBuilder.ApplyConfiguration(new ListaDeJogosConfigurations());
             modelBuilder.ApplyConfiguration(new ItemDeListaConfigurations());
+            modelBuilder.ApplyConfiguration(new RefreshTokenConfigurations());
         }
     }
 }

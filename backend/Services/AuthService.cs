@@ -1,6 +1,7 @@
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -29,11 +30,11 @@ namespace GameLog_Backend.Services
             _jwtSettings = jwtOptions.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
         }
 
-        public async Task<(UsuarioDTO? usuario, string? token, DateTime expiraEm)> AutenticarUsuario(UsuarioLoginDTO loginDTO)
+        public async Task<(UsuarioDTO? usuario, string? token, string? refreshToken, DateTime expiraEm)> AutenticarUsuario(UsuarioLoginDTO loginDTO, string? ipAddress = null)
         {
             if (string.IsNullOrWhiteSpace(loginDTO.Email) || string.IsNullOrWhiteSpace(loginDTO.Senha))
             {
-                return (null, null, DateTime.MinValue);
+                return (null, null, null, DateTime.MinValue);
             }
 
             var email = loginDTO.Email.Trim().ToLower();
@@ -41,11 +42,11 @@ namespace GameLog_Backend.Services
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == email && u.EstaAtivo);
 
             if (usuario == null)
-                return (null, null, DateTime.MinValue);
+                return (null, null, null, DateTime.MinValue);
 
             var (valida, precisaMigrar) = VerificarEMigrarSenha(loginDTO.Senha, usuario.Senha);
             if (!valida)
-                return (null, null, DateTime.MinValue);
+                return (null, null, null, DateTime.MinValue);
 
             // Migração transparente de hash legado SHA-256 para BCrypt
             if (precisaMigrar)
@@ -56,9 +57,14 @@ namespace GameLog_Backend.Services
 
             var usuarioDTO = _mapper.Map<UsuarioDTO>(usuario);
             var token = GerarTokenJwt(usuario);
-            var expiraEm = DateTime.UtcNow.AddHours(_jwtSettings.ExpireHours);
+            var expireMinutes = _jwtSettings.ExpireMinutes > 0 ? _jwtSettings.ExpireMinutes : (_jwtSettings.ExpireHours > 0 ? _jwtSettings.ExpireHours * 60 : 15);
+            var expiraEm = DateTime.UtcNow.AddMinutes(expireMinutes);
 
-            return (usuarioDTO, token, expiraEm);
+            var novoRefreshToken = GerarRefreshToken(usuario.Id, ipAddress);
+            _context.RefreshTokens.Add(novoRefreshToken);
+            await _context.SaveChangesAsync();
+
+            return (usuarioDTO, token, novoRefreshToken.Token, expiraEm);
         }
 
         public async Task<UsuarioDTO> RegistrarUsuario(CriarUsuarioDTO usuarioDTO)
@@ -108,15 +114,109 @@ namespace GameLog_Backend.Services
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
+            var expireMinutes = _jwtSettings.ExpireMinutes > 0 ? _jwtSettings.ExpireMinutes : (_jwtSettings.ExpireHours > 0 ? _jwtSettings.ExpireHours * 60 : 15);
+
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(_jwtSettings.ExpireHours), 
+                expires: DateTime.UtcNow.AddMinutes(expireMinutes), 
                 signingCredentials: credentials
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public async Task<(UsuarioDTO usuario, string token, string novoRefreshToken, DateTime expiraEm)> RenovarTokenAsync(string refreshToken, string? ipAddress = null)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                throw new SecurityTokenException("Token de atualização inválido.");
+
+            var tokenExistente = await _context.RefreshTokens
+                .Include(rt => rt.Usuario)
+                .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+
+            if (tokenExistente == null)
+                throw new SecurityTokenException("Token de atualização não encontrado.");
+
+            // Detecção de Reuso de Token (Compromise Detection)
+            if (tokenExistente.EstaRevogado)
+            {
+                // Se um token revogado for reutilizado, revogar todos os tokens do usuário por suspeita de comprometimento
+                var tokensUsuario = await _context.RefreshTokens
+                    .Where(rt => rt.UsuarioId == tokenExistente.UsuarioId && rt.RevogadoEm == null)
+                    .ToListAsync();
+
+                foreach (var t in tokensUsuario)
+                {
+                    t.RevogadoEm = DateTime.UtcNow;
+                    t.RevogadoPorIp = ipAddress;
+                }
+                await _context.SaveChangesAsync();
+
+                throw new SecurityTokenException("Alerta de segurança: Tentativa de reuso de token de atualização detectada. As sessões foram invalidadas.");
+            }
+
+            if (tokenExistente.EstaExpirado || !tokenExistente.EstaAtivo)
+                throw new SecurityTokenException("Token de atualização expirado ou inativo.");
+
+            if (tokenExistente.Usuario == null || !tokenExistente.Usuario.EstaAtivo)
+                throw new SecurityTokenException("Usuário inativo ou não encontrado.");
+
+            // Revogar token atual marcando substituição
+            tokenExistente.RevogadoEm = DateTime.UtcNow;
+            tokenExistente.RevogadoPorIp = ipAddress;
+
+            // Gerar novo par rotativo
+            var novoRefreshToken = GerarRefreshToken(tokenExistente.UsuarioId, ipAddress);
+            tokenExistente.SubstituidoPorToken = novoRefreshToken.Token;
+
+            _context.RefreshTokens.Add(novoRefreshToken);
+            await _context.SaveChangesAsync();
+
+            var novoJwt = GerarTokenJwt(tokenExistente.Usuario);
+            var expireMinutes = _jwtSettings.ExpireMinutes > 0 ? _jwtSettings.ExpireMinutes : (_jwtSettings.ExpireHours > 0 ? _jwtSettings.ExpireHours * 60 : 15);
+            var expiraEm = DateTime.UtcNow.AddMinutes(expireMinutes);
+            var usuarioDTO = _mapper.Map<UsuarioDTO>(tokenExistente.Usuario);
+
+            return (usuarioDTO, novoJwt, novoRefreshToken.Token, expiraEm);
+        }
+
+        public async Task<bool> RevogarTokenAsync(string refreshToken, string? ipAddress = null)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                return false;
+
+            var tokenExistente = await _context.RefreshTokens
+                .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+
+            if (tokenExistente == null || tokenExistente.EstaRevogado)
+                return false;
+
+            tokenExistente.RevogadoEm = DateTime.UtcNow;
+            tokenExistente.RevogadoPorIp = ipAddress;
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        private RefreshToken GerarRefreshToken(Guid usuarioId, string? ipAddress = null)
+        {
+            var randomBytes = new byte[64];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomBytes);
+
+            var expireDays = _jwtSettings.RefreshTokenExpireDays > 0 ? _jwtSettings.RefreshTokenExpireDays : 7;
+
+            return new RefreshToken
+            {
+                Token = Convert.ToBase64String(randomBytes),
+                UsuarioId = usuarioId,
+                DataCriacao = DateTime.UtcNow,
+                DataExpiracao = DateTime.UtcNow.AddDays(expireDays),
+                CriadoPorIp = ipAddress,
+                EstaAtivo = true
+            };
         }
 
         public string HashSenha(string senha)

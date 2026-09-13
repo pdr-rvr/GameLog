@@ -21,6 +21,7 @@ namespace GameLog_Backend.Services
         private readonly ISocialService _socialService;
         private readonly IFeedService _feedService;
 
+        [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
         public UsuarioServices(
             GameLogContext context,
             IMapper mapper,
@@ -37,9 +38,24 @@ namespace GameLog_Backend.Services
             _feedService = feedService;
         }
 
+        public UsuarioServices(
+            GameLogContext context,
+            IMapper mapper,
+            Microsoft.Extensions.Options.IOptions<GameLog_Backend.Configurations.JwtSettings> jwtOptions)
+            : this(
+                context,
+                mapper,
+                new AuthService(context, mapper, jwtOptions),
+                new RecomendacaoService(context, new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions())),
+                new SocialService(context),
+                new FeedService(context))
+        {
+        }
+
         public async Task<(UsuarioDTO? usuario, string? token, DateTime expiraEm)> AutenticarUsuario(UsuarioLoginDTO loginDTO)
         {
-            return await _authService.AutenticarUsuario(loginDTO);
+            var (usuario, token, _, expiraEm) = await _authService.AutenticarUsuario(loginDTO);
+            return (usuario, token, expiraEm);
         }
 
         public async Task<IEnumerable<UsuarioDTO>> ListarUsuarios()

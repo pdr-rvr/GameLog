@@ -50,7 +50,7 @@ namespace GameLog.Tests.Integration
 
         public string GenerateJwtToken(Guid userId, string nomeUsuario = "TestUser", string email = "test@gamelog.com")
         {
-            var keyString = Environment.GetEnvironmentVariable("JWT_SECRET") ?? "***REDACTED_JWT_SECRET***";
+            var keyString = Environment.GetEnvironmentVariable("JWT_SECRET") ?? "TestingSecretKeyMustBeAtLeast32CharactersLong123456!";
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 

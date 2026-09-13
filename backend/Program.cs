@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using AutoMapper;
 using DotNetEnv;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -152,7 +153,8 @@ builder.Services.Configure<JwtSettings>(options =>
     options.Key = jwtSecret;
     options.Issuer = builder.Configuration["Jwt:Issuer"] ?? "GameLogAPI";
     options.Audience = builder.Configuration["Jwt:Audience"] ?? "GameLogClient";
-    options.ExpireHours = 24;
+    options.ExpireMinutes = 15;
+    options.RefreshTokenExpireDays = 7;
 });
 
 builder.Services.AddAuthentication(options =>
@@ -195,7 +197,13 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRecomendacaoService, RecomendacaoService>();
 builder.Services.AddScoped<ISocialService, SocialService>();
 builder.Services.AddScoped<IFeedService, FeedService>();
-builder.Services.AddScoped<IUsuarioService, UsuarioServices>();
+builder.Services.AddScoped<IUsuarioService>(sp => new UsuarioServices(
+    sp.GetRequiredService<GameLogContext>(),
+    sp.GetRequiredService<IMapper>(),
+    sp.GetRequiredService<IAuthService>(),
+    sp.GetRequiredService<IRecomendacaoService>(),
+    sp.GetRequiredService<ISocialService>(),
+    sp.GetRequiredService<IFeedService>()));
 builder.Services.AddScoped<IJogoService, JogoServices>();
 builder.Services.AddScoped<IAvaliacaoService, AvaliacaoServices>();
 builder.Services.AddScoped<IEmpresaService, EmpresaServices>();

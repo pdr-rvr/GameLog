@@ -44,8 +44,8 @@ namespace GameLog_Backend.Services
                 .Select(g => new { EmpresaId = g.Key, Total = g.Count() })
                 .ToDictionaryAsync(x => x.EmpresaId, x => x.Total);
 
-            // 2. Média de notas agregada no banco
-            var mediasPorEmpresa = await _context.Avaliacoes
+            // 2. Média de notas agregada no banco (desenvolvedoras e publicadoras)
+            var mediasDev = await _context.Avaliacoes
                 .AsNoTracking()
                 .Where(a => a.EstaAtivo && a.Jogo != null && a.Jogo.EstaAtivo && a.Jogo.Empresa != null)
                 .GroupBy(a => a.Jogo.Empresa!.Id)
@@ -56,10 +56,23 @@ namespace GameLog_Backend.Services
                 })
                 .ToDictionaryAsync(x => x.EmpresaId, x => x.Media);
 
+            var mediasPub = await _context.Avaliacoes
+                .AsNoTracking()
+                .Where(a => a.EstaAtivo && a.Jogo != null && a.Jogo.EstaAtivo && a.Jogo.Publicadora != null)
+                .GroupBy(a => a.Jogo.Publicadora!.Id)
+                .Select(g => new
+                {
+                    EmpresaId = g.Key,
+                    Media = g.Average(x => (double)x.Nota)
+                })
+                .ToDictionaryAsync(x => x.EmpresaId, x => x.Media);
+
             return empresas.Select(e =>
             {
                 var total = statsDev.GetValueOrDefault(e.Id, 0) + statsPub.GetValueOrDefault(e.Id, 0);
-                mediasPorEmpresa.TryGetValue(e.Id, out var media);
+                var media = mediasDev.ContainsKey(e.Id) 
+                    ? mediasDev[e.Id] 
+                    : (mediasPub.ContainsKey(e.Id) ? mediasPub[e.Id] : 0.0);
 
                 return new EmpresaDTO
                 {

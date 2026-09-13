@@ -17,11 +17,17 @@ namespace GameLog_Backend.Services
         protected readonly IRawgApiService _rawgApiService;
         protected readonly IConfiguration _configuration;
 
+        [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
         public JogoServices(GameLogContext context, IRawgApiService rawgApiService, IConfiguration configuration)
         {
             _context = context;
             _rawgApiService = rawgApiService;
             _configuration = configuration;
+        }
+
+        public JogoServices(GameLogContext context, IRawgApiService rawgApiService)
+            : this(context, rawgApiService, new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build())
+        {
         }
 
         public async Task<IEnumerable<JogoDTO>> ListarJogos()

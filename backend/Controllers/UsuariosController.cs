@@ -3,8 +3,10 @@ using GameLog_Backend.DTOs;
 using GameLog_Backend.Extensions;
 using GameLog_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.IdentityModel.Tokens;
 
 namespace GameLog_Backend.Controllers
 {
@@ -14,10 +16,12 @@ namespace GameLog_Backend.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly IUsuarioService _usuarioServices;
+        private readonly IAuthService _authService;
 
-        public UsuariosController(IUsuarioService usuarioServices)
+        public UsuariosController(IUsuarioService usuarioServices, IAuthService authService)
         {
             _usuarioServices = usuarioServices;
+            _authService = authService;
         }
 
         [HttpGet]
@@ -63,18 +67,104 @@ namespace GameLog_Backend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UsuarioLoginDTO loginDTO)
         {
-            var result = await _usuarioServices.AutenticarUsuario(loginDTO);
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var (usuario, token, refreshToken, expiraEm) = await _authService.AutenticarUsuario(loginDTO, ipAddress);
 
-            if (result.usuario == null || result.token == null)
+            if (usuario == null || token == null)
             {
                 return Unauthorized(new { message = "Credenciais inválidas ou usuário desativado" });
             }
 
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                DefinirCookieRefreshToken(refreshToken);
+            }
+
             return Ok(new
             {
-                Usuario = result.usuario,
-                Token = result.token,
-                ExpiraEm = result.expiraEm
+                Usuario = usuario,
+                Token = token,
+                ExpiraEm = expiraEm
+            });
+        }
+
+        [AllowAnonymous]
+        [EnableRateLimiting("AuthLimiter")]
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDTO? request)
+        {
+            var refreshToken = Request.Cookies["refreshToken"] ?? request?.RefreshToken;
+
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return BadRequest(new { message = "Token de atualização não informado." });
+            }
+
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            try
+            {
+                var (usuario, novoToken, novoRefreshToken, expiraEm) = await _authService.RenovarTokenAsync(refreshToken, ipAddress);
+                DefinirCookieRefreshToken(novoRefreshToken);
+
+                return Ok(new
+                {
+                    Usuario = usuario,
+                    Token = novoToken,
+                    ExpiraEm = expiraEm
+                });
+            }
+            catch (SecurityTokenException ex)
+            {
+                RemoverCookieRefreshToken();
+                return Unauthorized(new { message = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpPost("revogar")]
+        public async Task<IActionResult> RevogarToken([FromBody] RefreshTokenRequestDTO? request)
+        {
+            var refreshToken = Request.Cookies["refreshToken"] ?? request?.RefreshToken;
+
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return BadRequest(new { message = "Token de atualização não informado." });
+            }
+
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var sucesso = await _authService.RevogarTokenAsync(refreshToken, ipAddress);
+            RemoverCookieRefreshToken();
+
+            if (!sucesso)
+            {
+                return NotFound(new { message = "Token não encontrado ou já revogado." });
+            }
+
+            return Ok(new { message = "Token de atualização revogado com sucesso." });
+        }
+
+        private void DefinirCookieRefreshToken(string refreshToken)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTime.UtcNow.AddDays(7),
+                Path = "/api/usuarios"
+            };
+            Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
+        }
+
+        private void RemoverCookieRefreshToken()
+        {
+            Response.Cookies.Delete("refreshToken", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Path = "/api/usuarios"
             });
         }
 
