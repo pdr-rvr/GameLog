@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using GameLog_Backend.Services.Interfaces;
 
 namespace GameLog_Backend.Services.Catalog
 {
@@ -63,13 +64,14 @@ namespace GameLog_Backend.Services.Catalog
     public class SteamGridDbService
     {
         private readonly HttpClient _httpClient;
-        private readonly IMemoryCache _cache;
+        private readonly ICacheService _cache;
         private readonly ILogger<SteamGridDbService> _logger;
         private readonly string? _apiKey;
 
+        [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
         public SteamGridDbService(
             HttpClient httpClient,
-            IMemoryCache cache,
+            ICacheService cache,
             IConfiguration configuration,
             ILogger<SteamGridDbService> logger)
         {
@@ -96,7 +98,8 @@ namespace GameLog_Backend.Services.Catalog
             }
 
             var cacheKey = $"sgdb_cover_{tituloJogo.Trim().ToLowerInvariant()}";
-            if (_cache.TryGetValue(cacheKey, out string? cached) && cached != null)
+            var cached = await _cache.GetAsync<string>(cacheKey, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(cached))
             {
                 return cached;
             }
@@ -121,7 +124,7 @@ namespace GameLog_Backend.Services.Catalog
                     var imageUrl = gridRes.Data[0].Url;
                     if (!string.IsNullOrWhiteSpace(imageUrl))
                     {
-                        _cache.Set(cacheKey, imageUrl, TimeSpan.FromDays(7));
+                        await _cache.SetAsync(cacheKey, imageUrl, TimeSpan.FromDays(7), cancellationToken);
                         return imageUrl;
                     }
                 }

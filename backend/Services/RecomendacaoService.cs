@@ -14,9 +14,9 @@ namespace GameLog_Backend.Services
     public class RecomendacaoService : IRecomendacaoService
     {
         private readonly GameLogContext _context;
-        private readonly IMemoryCache _cache;
+        private readonly ICacheService _cache;
 
-        public RecomendacaoService(GameLogContext context, IMemoryCache cache)
+        public RecomendacaoService(GameLogContext context, ICacheService cache)
         {
             _context = context;
             _cache = cache;
@@ -25,7 +25,8 @@ namespace GameLog_Backend.Services
         public async Task<List<GeneroFavoritoDTO>> IdentificaTopNGenerosFavoritos(Guid id, int topN = 5)
         {
             var cacheKey = $"fav_genres_{id}_{topN}";
-            if (_cache.TryGetValue<List<GeneroFavoritoDTO>>(cacheKey, out var cachedGenres) && cachedGenres != null)
+            var cachedGenres = await _cache.GetAsync<List<GeneroFavoritoDTO>>(cacheKey);
+            if (cachedGenres != null)
             {
                 return cachedGenres;
             }
@@ -85,14 +86,15 @@ namespace GameLog_Backend.Services
                 .Select(kv => new GeneroFavoritoDTO { Genero = kv.Key })
                 .ToList();
 
-            _cache.Set(cacheKey, topGeneros, TimeSpan.FromMinutes(10));
+            await _cache.SetAsync(cacheKey, topGeneros, TimeSpan.FromMinutes(10));
             return topGeneros;
         }
 
         public async Task<IEnumerable<JogoRecomendacaoDTO>> RecomendarJogos(Guid usuarioId)
         {
             var cacheKey = $"rec_user_{usuarioId}";
-            if (_cache.TryGetValue<List<JogoRecomendacaoDTO>>(cacheKey, out var cachedRecs) && cachedRecs != null)
+            var cachedRecs = await _cache.GetAsync<List<JogoRecomendacaoDTO>>(cacheKey);
+            if (cachedRecs != null)
             {
                 return cachedRecs;
             }
@@ -276,7 +278,7 @@ namespace GameLog_Backend.Services
                     Score = (item.Media ?? 4.0) * 10
                 }).ToList();
 
-                _cache.Set(cacheKey, resultadoObrasPrimas, TimeSpan.FromMinutes(10));
+                await _cache.SetAsync(cacheKey, resultadoObrasPrimas, TimeSpan.FromMinutes(10));
                 return resultadoObrasPrimas;
             }
 
@@ -415,7 +417,7 @@ namespace GameLog_Backend.Services
                 selecionados.AddRange(restantes);
             }
 
-            _cache.Set(cacheKey, selecionados, TimeSpan.FromMinutes(10));
+            await _cache.SetAsync(cacheKey, selecionados, TimeSpan.FromMinutes(10));
             return selecionados;
         }
     }

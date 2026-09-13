@@ -217,6 +217,9 @@ builder.Services.AddScoped<MassiveCatalogSeeder>();
 
 builder.Services.AddAutoMapper(typeof(UsuarioProfile).Assembly);
 
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSingleton<ICacheService, DistributedCacheService>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRecomendacaoService, RecomendacaoService>();
 builder.Services.AddScoped<ISocialService, SocialService>();

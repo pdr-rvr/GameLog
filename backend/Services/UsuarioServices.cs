@@ -33,7 +33,7 @@ namespace GameLog_Backend.Services
             IMapper mapper,
             Microsoft.Extensions.Options.IOptions<GameLog_Backend.Configurations.JwtSettings> jwtOptions)
             : this(
-                new UserProfileService(context, mapper, new RecomendacaoService(context, new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions()))),
+                new UserProfileService(context, mapper, new RecomendacaoService(context, new MemoryCacheService())),
                 new AuthService(context, mapper, jwtOptions),
                 new SocialService(context),
                 new FeedService(context))

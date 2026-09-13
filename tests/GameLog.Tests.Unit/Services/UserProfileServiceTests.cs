@@ -15,7 +15,7 @@ namespace GameLog.Tests.Unit.Services
     {
         private UserProfileService CriarServico(GameLog_Backend.Database.GameLogContext context, AutoMapper.IMapper mapper)
         {
-            var recomendacaoService = new RecomendacaoService(context, new MemoryCache(new MemoryCacheOptions()));
+            var recomendacaoService = new RecomendacaoService(context, new MemoryCacheService());
             return new UserProfileService(context, mapper, recomendacaoService);
         }
 
