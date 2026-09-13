@@ -15,20 +15,28 @@ namespace GameLog_Backend.Controllers
     [Authorize]
     public class UsuariosController : ControllerBase
     {
-        private readonly IUsuarioService _usuarioServices;
+        private readonly IUserProfileService _userProfileService;
         private readonly IAuthService _authService;
+        private readonly ISocialService _socialService;
+        private readonly IFeedService _feedService;
 
-        public UsuariosController(IUsuarioService usuarioServices, IAuthService authService)
+        public UsuariosController(
+            IUserProfileService userProfileService,
+            IAuthService authService,
+            ISocialService socialService,
+            IFeedService feedService)
         {
-            _usuarioServices = usuarioServices;
+            _userProfileService = userProfileService;
             _authService = authService;
+            _socialService = socialService;
+            _feedService = feedService;
         }
 
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> ListarTodosUsuarios()
         {
-            var usuarios = await _usuarioServices.ListarUsuarios();
+            var usuarios = await _userProfileService.ListarUsuarios();
             return Ok(usuarios);
         }
 
@@ -36,7 +44,7 @@ namespace GameLog_Backend.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> ObterUsuarioPorId(Guid id)
         {
-            var usuario = await _usuarioServices.ObterUsuarioPorId(id);
+            var usuario = await _userProfileService.ObterUsuarioPorId(id);
             if (usuario == null)
             {
                 return NotFound(new { message = "Usuário não encontrado" });
@@ -48,7 +56,7 @@ namespace GameLog_Backend.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> ObterGenerosFavoritos(Guid id, [FromQuery] int topN = 4)
         {
-            var generos = await _usuarioServices.IdentificaTopNGenerosFavoritos(id, topN);
+            var generos = await _userProfileService.IdentificaTopNGenerosFavoritos(id, topN);
             return Ok(generos);
         }
 
@@ -58,7 +66,7 @@ namespace GameLog_Backend.Controllers
         [HttpPost("registrar")]
         public async Task<IActionResult> CriarUsuario([FromBody] CriarUsuarioDTO usuarioDTO)
         {
-            var usuario = await _usuarioServices.CriarUsuario(usuarioDTO);
+            var usuario = await _authService.RegistrarUsuario(usuarioDTO);
             return CreatedAtAction(nameof(ObterUsuarioPorId), new { id = usuario.UsuarioId }, usuario);
         }
 
@@ -177,7 +185,7 @@ namespace GameLog_Backend.Controllers
                 return Forbid();
             }
 
-            var usuarioAtualizado = await _usuarioServices.EditarUsuario(
+            var usuarioAtualizado = await _userProfileService.EditarUsuario(
                 id,
                 editarUsuarioDTO.SenhaAtual,
                 editarUsuarioDTO); 
@@ -199,7 +207,7 @@ namespace GameLog_Backend.Controllers
                 return Forbid();
             }
 
-            var sucesso = await _usuarioServices.DeletarUsuario(id, deletarUsuarioDTO.Senha);
+            var sucesso = await _userProfileService.DeletarUsuario(id, deletarUsuarioDTO.Senha);
 
             if (!sucesso)
             {
@@ -213,7 +221,7 @@ namespace GameLog_Backend.Controllers
         [Authorize]
         public async Task<IActionResult> ObterRecomendacoes(Guid id)
         {
-            var recomendacoes = await _usuarioServices.RecomendarJogos(id);
+            var recomendacoes = await _userProfileService.RecomendarJogos(id);
             return Ok(recomendacoes);
         }
 
@@ -224,7 +232,7 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> AlternarSeguir(Guid id)
         {
             var seguidorId = User.GetUserId();
-            var (seguido, totalSeguidores) = await _usuarioServices.AlternarSeguirUsuario(seguidorId, id);
+            var (seguido, totalSeguidores) = await _socialService.AlternarSeguirUsuario(seguidorId, id);
 
             return Ok(new
             {
@@ -239,7 +247,7 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> VerificarStatusSeguir(Guid id)
         {
             var seguidorId = User.GetUserId();
-            var seguido = await _usuarioServices.VerificarSeSegue(seguidorId, id);
+            var seguido = await _socialService.VerificarSeSegue(seguidorId, id);
             return Ok(new { seguido });
         }
 
@@ -248,7 +256,7 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> ObterEstatisticasSociais(Guid id)
         {
             var solicitanteId = User.GetUserIdOrNull();
-            var stats = await _usuarioServices.ObterEstatisticasSociais(id, solicitanteId);
+            var stats = await _socialService.ObterEstatisticasSociais(id, solicitanteId);
             return Ok(stats);
         }
 
@@ -257,7 +265,7 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> ObterSeguidores(Guid id)
         {
             var solicitanteId = User.GetUserIdOrNull();
-            var seguidores = await _usuarioServices.ObterSeguidores(id, solicitanteId);
+            var seguidores = await _socialService.ObterSeguidores(id, solicitanteId);
             return Ok(seguidores);
         }
 
@@ -266,7 +274,7 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> ObterSeguindo(Guid id)
         {
             var solicitanteId = User.GetUserIdOrNull();
-            var seguindo = await _usuarioServices.ObterSeguindo(id, solicitanteId);
+            var seguindo = await _socialService.ObterSeguindo(id, solicitanteId);
             return Ok(seguindo);
         }
 
@@ -275,7 +283,7 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> ObterFeedSocial([FromQuery] int pagina = 1, [FromQuery] int itensPorPagina = 20)
         {
             var usuarioId = User.GetUserId();
-            var feed = await _usuarioServices.ObterFeedSocial(usuarioId, pagina, itensPorPagina);
+            var feed = await _feedService.ObterFeedSocial(usuarioId, pagina, itensPorPagina);
             return Ok(feed);
         }
 
@@ -284,7 +292,7 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> ObterAtividadesTimeline([FromQuery] int pagina = 1, [FromQuery] int itensPorPagina = 30)
         {
             var usuarioId = User.GetUserId();
-            var timeline = await _usuarioServices.ObterTimelineAtividades(usuarioId, pagina, itensPorPagina);
+            var timeline = await _feedService.ObterTimelineAtividades(usuarioId, pagina, itensPorPagina);
             return Ok(timeline);
         }
     }
