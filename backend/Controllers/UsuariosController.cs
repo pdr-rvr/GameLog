@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Extensions;
-using GameLog_Backend.Services;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,9 +12,9 @@ namespace GameLog_Backend.Controllers
     [Authorize]
     public class UsuariosController : ControllerBase
     {
-        private readonly UsuarioServices _usuarioServices;
+        private readonly IUsuarioService _usuarioServices;
 
-        public UsuariosController(UsuarioServices usuarioServices)
+        public UsuariosController(IUsuarioService usuarioServices)
         {
             _usuarioServices = usuarioServices;
         }

@@ -4,11 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameLog_Backend.Services
 {
-    public class EmpresaServices
+    public class EmpresaServices : IEmpresaService
     {
         private readonly GameLogContext _context;
 

@@ -5,16 +5,17 @@ using System.Threading.Tasks;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Helpers;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameLog_Backend.Services
 {
-    public class JogoServices
+    public class JogoServices : IJogoService
     {
         protected readonly GameLogContext _context;
-        protected readonly RawgApiService _rawgApiService;
+        protected readonly IRawgApiService _rawgApiService;
 
-        public JogoServices(GameLogContext context, RawgApiService rawgApiService)
+        public JogoServices(GameLogContext context, IRawgApiService rawgApiService)
         {
             _context = context;
             _rawgApiService = rawgApiService;
@@ -28,6 +29,7 @@ namespace GameLog_Backend.Services
                 .Include(j => j.Generos)
                 .Include(j => j.Empresa)
                 .Include(j => j.Publicadora)
+                .Take(50)
                 .ToListAsync();
 
             if (!jogos.Any())

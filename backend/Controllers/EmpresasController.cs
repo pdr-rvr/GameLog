@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using GameLog_Backend.Services;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,9 +10,9 @@ namespace GameLog_Backend.Controllers
     [Route("api/[controller]")]
     public class EmpresasController : ControllerBase
     {
-        private readonly EmpresaServices _empresaServices;
+        private readonly IEmpresaService _empresaServices;
 
-        public EmpresasController(EmpresaServices empresaServices)
+        public EmpresasController(IEmpresaService empresaServices)
         {
             _empresaServices = empresaServices;
         }

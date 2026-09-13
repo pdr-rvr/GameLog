@@ -11,6 +11,7 @@ using GameLog_Backend.Configurations;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -18,7 +19,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace GameLog_Backend.Services
 {
-    public class UsuarioServices
+    public class UsuarioServices : IUsuarioService
     {
         private readonly GameLogContext _context;
         private readonly IMapper _mapper;
@@ -65,9 +66,9 @@ namespace GameLog_Backend.Services
             if (nomeUsuario != null)
             {
                 var trimmed = nomeUsuario.Trim();
-                if (trimmed.Length < 3 || trimmed.Length > 50)
+                if (trimmed.Length < 3 || trimmed.Length > 30)
                 {
-                    throw new ArgumentException("O nome de usuário deve ter entre 3 e 50 caracteres.");
+                    throw new ArgumentException("O nome de usuário deve ter entre 3 e 30 caracteres.");
                 }
 
                 if (!Regex.IsMatch(trimmed, @"^[a-zA-Z0-9_\.]+$"))

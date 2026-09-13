@@ -11,6 +11,7 @@ using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
 using GameLog_Backend.Helpers;
 using GameLog_Backend.Services.Catalog;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +19,7 @@ using Microsoft.Extensions.Logging;
 
 namespace GameLog_Backend.Services
 {
-    public class RawgApiService
+    public class RawgApiService : IRawgApiService
     {
         private readonly HttpClient _httpClient;
         private readonly GameLogContext _context;

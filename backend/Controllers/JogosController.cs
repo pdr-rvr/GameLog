@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using GameLog_Backend.Services;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +12,10 @@ namespace GameLog_Backend.Controllers
     [Route("api/[controller]")]
     public class JogosController : ControllerBase
     {
-        private readonly JogoServices _jogoServices;
-        private readonly RawgApiService _rawgApiService;
+        private readonly IJogoService _jogoServices;
+        private readonly IRawgApiService _rawgApiService;
 
-        public JogosController(JogoServices jogoServices, RawgApiService rawgApiService)
+        public JogosController(IJogoService jogoServices, IRawgApiService rawgApiService)
         {
             _jogoServices = jogoServices;
             _rawgApiService = rawgApiService;
@@ -130,7 +132,7 @@ namespace GameLog_Backend.Controllers
         /// Importa sob demanda um jogo da RAWG para a base de dados local do GameLog.
         /// </summary>
         [HttpPost("rawg/importar/{rawgId}")]
-        [AllowAnonymous]
+        [Authorize]
         public async Task<IActionResult> ImportarJogoRawg(int rawgId)
         {
             if (rawgId <= 0)

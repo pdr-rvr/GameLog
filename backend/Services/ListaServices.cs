@@ -5,11 +5,12 @@ using System.Threading.Tasks;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameLog_Backend.Services
 {
-    public class ListaServices
+    public class ListaServices : IListaService
     {
         private readonly GameLogContext _context;
 

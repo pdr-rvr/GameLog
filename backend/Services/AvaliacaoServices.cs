@@ -6,11 +6,12 @@ using AutoMapper;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameLog_Backend.Services
 {
-    public class AvaliacaoServices
+    public class AvaliacaoServices : IAvaliacaoService
     {
         private readonly GameLogContext _context;
         private readonly IMapper _mapper;

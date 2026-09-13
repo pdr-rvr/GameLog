@@ -10,6 +10,7 @@ using GameLog_Backend.Profiles;
 using GameLog_Backend.Seeders;
 using GameLog_Backend.Services;
 using GameLog_Backend.Services.Catalog;
+using GameLog_Backend.Services.Interfaces;
 using GameLog_Backend.Validators;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -130,21 +131,29 @@ builder.Services.AddDbContext<GameLogContext>(options =>
     options.UseNpgsql(completeConnectionString));
 
 builder.Services.AddMemoryCache();
-builder.Services.AddHttpClient<RawgApiService>();
+builder.Services.AddHttpClient<IRawgApiService, RawgApiService>();
+builder.Services.AddScoped<IRawgApiService, RawgApiService>();
 builder.Services.AddScoped<RawgApiService>();
 builder.Services.AddHttpClient<SteamGridDbService>();
 builder.Services.AddScoped<SteamGridDbService>();
 builder.Services.AddScoped<MassiveCatalogSeeder>();
 
+builder.Services.AddAutoMapper(typeof(UsuarioProfile), typeof(AvaliacaoProfile), typeof(EmpresaProfile));
+
+builder.Services.AddScoped<IJogoService, JogoServices>();
 builder.Services.AddScoped<JogoServices>();
-builder.Services.AddAutoMapper(typeof(UsuarioProfile));
+builder.Services.AddScoped<IUsuarioService, UsuarioServices>();
 builder.Services.AddScoped<UsuarioServices>();
-builder.Services.AddAutoMapper(typeof(AvaliacaoProfile));
+builder.Services.AddScoped<IAvaliacaoService, AvaliacaoServices>();
 builder.Services.AddScoped<AvaliacaoServices>();
-builder.Services.AddAutoMapper(typeof(EmpresaProfile));
+builder.Services.AddScoped<IEmpresaService, EmpresaServices>();
 builder.Services.AddScoped<EmpresaServices>();
+builder.Services.AddScoped<IBibliotecaService, BibliotecaServices>();
 builder.Services.AddScoped<BibliotecaServices>();
+builder.Services.AddScoped<IListaService, ListaServices>();
 builder.Services.AddScoped<ListaServices>();
+builder.Services.AddScoped<IBuscaGlobalService, BuscaGlobalService>();
+builder.Services.AddScoped<IComunidadeService, ComunidadeServices>();
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<GameLogContext>("database");

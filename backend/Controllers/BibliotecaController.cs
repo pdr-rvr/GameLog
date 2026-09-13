@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
 using GameLog_Backend.Extensions;
-using GameLog_Backend.Services;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,9 +12,9 @@ namespace GameLog_Backend.Controllers
     [Route("api/[controller]")]
     public class BibliotecaController : ControllerBase
     {
-        private readonly BibliotecaServices _bibliotecaServices;
+        private readonly IBibliotecaService _bibliotecaServices;
 
-        public BibliotecaController(BibliotecaServices bibliotecaServices)
+        public BibliotecaController(IBibliotecaService bibliotecaServices)
         {
             _bibliotecaServices = bibliotecaServices;
         }

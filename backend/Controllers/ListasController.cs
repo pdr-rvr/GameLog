@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Extensions;
-using GameLog_Backend.Services;
+using GameLog_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,9 +11,9 @@ namespace GameLog_Backend.Controllers
     [Route("api/[controller]")]
     public class ListasController : ControllerBase
     {
-        private readonly ListaServices _listaServices;
+        private readonly IListaService _listaServices;
 
-        public ListasController(ListaServices listaServices)
+        public ListasController(IListaService listaServices)
         {
             _listaServices = listaServices;
         }
