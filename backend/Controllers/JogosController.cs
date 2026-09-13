@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using GameLog_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace GameLog_Backend.Controllers
 {
@@ -114,6 +115,7 @@ namespace GameLog_Backend.Controllers
         /// </summary>
         [HttpGet("rawg/buscar")]
         [AllowAnonymous]
+        [EnableRateLimiting("ExternalApiLimiter")]
         public async Task<IActionResult> BuscarNaRawg(
             [FromQuery] string termo,
             [FromQuery] int pagina = 1,
@@ -133,6 +135,7 @@ namespace GameLog_Backend.Controllers
         /// </summary>
         [HttpPost("rawg/importar/{rawgId}")]
         [Authorize]
+        [EnableRateLimiting("ExternalApiLimiter")]
         public async Task<IActionResult> ImportarJogoRawg(int rawgId)
         {
             if (rawgId <= 0)

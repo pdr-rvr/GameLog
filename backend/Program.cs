@@ -50,13 +50,48 @@ var completeConnectionString = baseConnectionString
 
 Console.WriteLine($"[GameLog] Conectando ao PostgreSQL em: {dbServer}:{dbPort}, Database: {dbName}");
 
+var allowedOriginsEnv = Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGINS");
+var allowedOrigins = !string.IsNullOrWhiteSpace(allowedOriginsEnv)
+    ? allowedOriginsEnv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    : new[] { "http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173" };
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReactApp",
-        corsBuilder => corsBuilder
-            .AllowAnyOrigin()
+    options.AddPolicy("AllowReactApp", corsBuilder =>
+    {
+        corsBuilder
+            .WithOrigins(allowedOrigins)
             .AllowAnyMethod()
-            .AllowAnyHeader());
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("AuthLimiter", httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    options.AddPolicy("ExternalApiLimiter", httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
 });
 
 builder.Services.AddControllers()
@@ -165,6 +200,7 @@ var app = builder.Build();
 
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseCors("AllowReactApp");
+app.UseRateLimiter();
 
 if (!app.Environment.IsEnvironment("Testing"))
 {
@@ -186,10 +222,18 @@ if (!app.Environment.IsEnvironment("Testing"))
 
                 context.Database.EnsureCreated();
 
-                Console.WriteLine("[GameLog] Executando limpeza e povoamento do catálogo com jogos reais da RAWG...");
-                var massiveSeeder = services.GetRequiredService<MassiveCatalogSeeder>();
-                massiveSeeder.CleanAndSeedRealGamesAsync().GetAwaiter().GetResult();
-                Console.WriteLine("[GameLog] Povoamento com jogos reais finalizado com sucesso!");
+                var forceReseed = string.Equals(Environment.GetEnvironmentVariable("FORCE_RESEED"), "true", StringComparison.OrdinalIgnoreCase);
+                if (app.Environment.IsDevelopment() || forceReseed)
+                {
+                    Console.WriteLine("[GameLog] Verificando catálogo e integridade com a RAWG...");
+                    var massiveSeeder = services.GetRequiredService<MassiveCatalogSeeder>();
+                    massiveSeeder.CleanAndSeedRealGamesAsync().GetAwaiter().GetResult();
+                    Console.WriteLine("[GameLog] Povoamento/verificação de jogos finalizado com sucesso!");
+                }
+                else
+                {
+                    logger.LogInformation("[GameLog] Ambiente de Produção detectado sem FORCE_RESEED. Rotina destrutiva do seeder pulada para proteção de dados.");
+                }
 
                 connected = true;
                 break;

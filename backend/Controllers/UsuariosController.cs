@@ -4,6 +4,7 @@ using GameLog_Backend.Extensions;
 using GameLog_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace GameLog_Backend.Controllers
 {
@@ -48,6 +49,7 @@ namespace GameLog_Backend.Controllers
         }
 
         [AllowAnonymous]
+        [EnableRateLimiting("AuthLimiter")]
         [HttpPost]
         [HttpPost("registrar")]
         public async Task<IActionResult> CriarUsuario([FromBody] CriarUsuarioDTO usuarioDTO)
@@ -57,6 +59,7 @@ namespace GameLog_Backend.Controllers
         }
 
         [AllowAnonymous]
+        [EnableRateLimiting("AuthLimiter")]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UsuarioLoginDTO loginDTO)
         {

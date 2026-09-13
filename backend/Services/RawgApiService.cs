@@ -42,7 +42,12 @@ namespace GameLog_Backend.Services
 
             _apiKey = Environment.GetEnvironmentVariable("RAWG_API_KEY") 
                 ?? configuration["Rawg:ApiKey"] 
-                ?? "***REDACTED_RAWG_API_KEY***";
+                ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(_apiKey))
+            {
+                _logger.LogWarning("[RawgApiService] RAWG_API_KEY não configurada. Chamadas externas à RAWG falharão.");
+            }
 
             _baseUrl = configuration["Rawg:BaseUrl"] ?? "https://api.rawg.io/api";
         }

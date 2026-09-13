@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     container_name: gamelog-postgres
     environment:
-      - POSTGRES_DB=gamelog
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=***REDACTED_PASSWORD***
+      - POSTGRES_DB=${DB_NAME:-gamelog}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-***REDACTED_PASSWORD***}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d gamelog"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-gamelog}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -25,13 +25,16 @@ services:
       dockerfile: Dockerfile
     container_name: gamelog-backend
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - DB_SERVER=postgres
-      - DB_PORT=5432
-      - DB_NAME=gamelog
-      - DB_USER=postgres
-      - DB_PASSWORD=***REDACTED_PASSWORD***
-      - JWT_SECRET=***REDACTED_JWT_SECRET***
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - DB_SERVER=${DB_SERVER:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-gamelog}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-***REDACTED_PASSWORD***}
+      - JWT_SECRET=${JWT_SECRET:-***REDACTED_JWT_SECRET***}
+      - RAWG_API_KEY=${RAWG_API_KEY:-}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173}
+      - FORCE_RESEED=${FORCE_RESEED:-false}
     ports:
       - "7096:8080"
     depends_on:

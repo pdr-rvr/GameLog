@@ -29,13 +29,7 @@ namespace GameLog_Backend.Services
         {
             _context = context;
             _mapper = mapper;
-            _jwtSettings = jwtOptions.Value ?? new JwtSettings
-            {
-                Key = "***REDACTED_JWT_SECRET***",
-                Issuer = "GameLogAPI",
-                Audience = "GameLogClient",
-                ExpireHours = 24
-            };
+            _jwtSettings = jwtOptions.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
         }
 
         private void ValidarEmailESenha(string email, string? senha, string? nomeUsuario = null)
@@ -87,11 +81,21 @@ namespace GameLog_Backend.Services
 
             var email = loginDTO.Email.Trim().ToLower();
             var usuario = await _context.Usuarios
-                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == email && u.EstaAtivo);
 
-            if (usuario == null || !VerificarSenha(loginDTO.Senha, usuario.Senha))
+            if (usuario == null)
                 return (null, null, DateTime.MinValue);
+
+            var (valida, precisaMigrar) = VerificarEMigrarSenha(loginDTO.Senha, usuario.Senha);
+            if (!valida)
+                return (null, null, DateTime.MinValue);
+
+            // Migração transparente de hash legado SHA-256 para BCrypt
+            if (precisaMigrar)
+            {
+                usuario.Senha = HashSenha(loginDTO.Senha);
+                await _context.SaveChangesAsync();
+            }
 
             var usuarioDTO = _mapper.Map<UsuarioDTO>(usuario);
             var token = GerarTokenJwt(usuario);
@@ -104,7 +108,7 @@ namespace GameLog_Backend.Services
         {
             var keyString = !string.IsNullOrEmpty(_jwtSettings.Key) && _jwtSettings.Key != "{JWT_SECRET}"
                 ? _jwtSettings.Key
-                : "***REDACTED_JWT_SECRET***";
+                : throw new InvalidOperationException("Chave JWT não configurada.");
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -179,27 +183,34 @@ namespace GameLog_Backend.Services
             return BCrypt.Net.BCrypt.HashPassword(senha, workFactor: 11);
         }
 
-        private bool VerificarSenha(string senha, string senhaHash)
+        private (bool Valida, bool PrecisaMigrar) VerificarEMigrarSenha(string senha, string senhaHash)
         {
             if (string.IsNullOrEmpty(senha) || string.IsNullOrEmpty(senhaHash))
-                return false;
+                return (false, false);
 
             try
             {
                 if (senhaHash.StartsWith("$2"))
                 {
-                    return BCrypt.Net.BCrypt.Verify(senha, senhaHash);
+                    return (BCrypt.Net.BCrypt.Verify(senha, senhaHash), false);
                 }
                 
                 using var sha256 = System.Security.Cryptography.SHA256.Create();
                 var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(senha));
                 var legacyHash = Convert.ToBase64String(bytes);
-                return legacyHash == senhaHash;
+                var match = legacyHash == senhaHash;
+                return (match, match);
             }
             catch
             {
-                return false;
+                return (false, false);
             }
+        }
+
+        private bool VerificarSenha(string senha, string senhaHash)
+        {
+            var (valida, _) = VerificarEMigrarSenha(senha, senhaHash);
+            return valida;
         }
 
         public async Task<bool> EmailEmUso(string email)

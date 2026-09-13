@@ -16,4 +16,6 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 
 EXPOSE 8080
 
+USER $APP_UID
+
 ENTRYPOINT ["dotnet", "GameLog_Backend.dll"]

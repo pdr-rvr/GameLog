@@ -242,6 +242,16 @@ namespace GameLog_Backend.Seeders
                 return;
             }
 
+            var forceReseed = string.Equals(Environment.GetEnvironmentVariable("FORCE_RESEED"), "true", StringComparison.OrdinalIgnoreCase);
+            var temUsuarios = await _context.Usuarios.AnyAsync();
+            if (temUsuarios && !forceReseed)
+            {
+                _logger.LogWarning("[Seeder] O banco de dados já possui usuários cadastrados ({TotalJogos} jogos existentes) e FORCE_RESEED não está ativo. Operação de truncamento cancelada para proteção de dados.", totalJogosExistentes);
+                await NormalizarGenerosExistentesAsync();
+                await ConsolidarENormalizarEmpresasExistentesAsync();
+                return;
+            }
+
             _logger.LogInformation("[Seeder] Iniciando limpeza completa do banco de dados para ingestão curada de 6.600 jogos oficiais (Recentes 2020-2024: 2.750, Era Dourada 2000-2019: 2.650, Clássicos Pré-2000: 700, Futuros 2025-2027: 500)...");
 
             // 1. Limpeza segura e completa do banco de dados
