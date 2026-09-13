@@ -12,6 +12,13 @@
 .env.development.local
 .env.test.local
 .env.production.local
+secrets.json
+appsettings.Production.json
+appsettings.*.local.json
+*.pem
+*.key
+*.pfx
+*.p12
 
 # ------------------------------------------
 # Internal Documentation & Notes
