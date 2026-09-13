@@ -37,11 +37,13 @@ namespace GameLog_Backend.Configurations
 
             builder.HasOne(e => e.Empresa)
                 .WithMany()
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(e => e.Publicadora)
                 .WithMany()
-                .IsRequired(false);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
             builder.Property(p => p.EstaAtivo)
                 .IsRequired();

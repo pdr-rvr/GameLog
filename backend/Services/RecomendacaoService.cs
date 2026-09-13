@@ -7,20 +7,29 @@ using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
 using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GameLog_Backend.Services
 {
     public class RecomendacaoService : IRecomendacaoService
     {
         private readonly GameLogContext _context;
+        private readonly IMemoryCache _cache;
 
-        public RecomendacaoService(GameLogContext context)
+        public RecomendacaoService(GameLogContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<List<GeneroFavoritoDTO>> IdentificaTopNGenerosFavoritos(Guid id, int topN = 5)
         {
+            var cacheKey = $"fav_genres_{id}_{topN}";
+            if (_cache.TryGetValue<List<GeneroFavoritoDTO>>(cacheKey, out var cachedGenres) && cachedGenres != null)
+            {
+                return cachedGenres;
+            }
+
             var favoritos = await _context.JogosFavoritosUsuarios
                 .AsNoTracking()
                 .Where(f => f.Usuario.Id == id && f.EstaAtivo)
@@ -76,11 +85,18 @@ namespace GameLog_Backend.Services
                 .Select(kv => new GeneroFavoritoDTO { Genero = kv.Key })
                 .ToList();
 
+            _cache.Set(cacheKey, topGeneros, TimeSpan.FromMinutes(10));
             return topGeneros;
         }
 
         public async Task<IEnumerable<JogoRecomendacaoDTO>> RecomendarJogos(Guid usuarioId)
         {
+            var cacheKey = $"rec_user_{usuarioId}";
+            if (_cache.TryGetValue<List<JogoRecomendacaoDTO>>(cacheKey, out var cachedRecs) && cachedRecs != null)
+            {
+                return cachedRecs;
+            }
+
             var jogosAvaliadosIds = await _context.Avaliacoes
                 .AsNoTracking()
                 .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
@@ -245,7 +261,7 @@ namespace GameLog_Backend.Services
                     .Take(12)
                     .ToList();
 
-                return topObrasPrimas.Select(item => new JogoRecomendacaoDTO
+                var resultadoObrasPrimas = topObrasPrimas.Select(item => new JogoRecomendacaoDTO
                 {
                     JogoId = item.Jogo.Id,
                     Titulo = item.Jogo.Titulo,
@@ -258,7 +274,10 @@ namespace GameLog_Backend.Services
                     MediaAvaliacoes = item.Media.HasValue ? Math.Round(item.Media.Value, 1) : null,
                     MotivoRecomendacao = item.TotalReviews > 0 ? "Aclamado pela Comunidade" : "Destaque do Catálogo",
                     Score = (item.Media ?? 4.0) * 10
-                });
+                }).ToList();
+
+                _cache.Set(cacheKey, resultadoObrasPrimas, TimeSpan.FromMinutes(10));
+                return resultadoObrasPrimas;
             }
 
             var afinidadeEstudiosIds = afinidadeEstudios.Keys.ToList();
@@ -396,6 +415,7 @@ namespace GameLog_Backend.Services
                 selecionados.AddRange(restantes);
             }
 
+            _cache.Set(cacheKey, selecionados, TimeSpan.FromMinutes(10));
             return selecionados;
         }
     }

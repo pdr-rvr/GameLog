@@ -29,62 +29,37 @@ namespace GameLog_Backend.Services
             if (!empresas.Any())
                 return Enumerable.Empty<EmpresaDTO>();
 
-            // Jogos agrupados considerando desenvolvedora OU publicadora
-            var todosJogos = await _context.Jogos
+            // 1. Contagens agregadas diretamente no PostgreSQL
+            var statsDev = await _context.Jogos
                 .AsNoTracking()
-                .Where(j => j.EstaAtivo)
-                .Select(j => new
-                {
-                    JogoId = j.Id,
-                    DevId = j.Empresa != null ? j.Empresa.Id : (Guid?)null,
-                    PubId = j.Publicadora != null ? j.Publicadora.Id : (Guid?)null
-                })
-                .ToListAsync();
+                .Where(j => j.EstaAtivo && j.Empresa != null)
+                .GroupBy(j => j.Empresa!.Id)
+                .Select(g => new { EmpresaId = g.Key, Total = g.Count() })
+                .ToDictionaryAsync(x => x.EmpresaId, x => x.Total);
 
-            var jogosStats = new Dictionary<Guid, int>();
-            foreach (var j in todosJogos)
-            {
-                if (j.DevId.HasValue)
-                {
-                    jogosStats[j.DevId.Value] = jogosStats.GetValueOrDefault(j.DevId.Value, 0) + 1;
-                }
-                if (j.PubId.HasValue && j.PubId.Value != j.DevId)
-                {
-                    jogosStats[j.PubId.Value] = jogosStats.GetValueOrDefault(j.PubId.Value, 0) + 1;
-                }
-            }
-
-            // Média de notas
-            var notasPorJogo = await _context.Avaliacoes
+            var statsPub = await _context.Jogos
                 .AsNoTracking()
-                .Where(a => a.EstaAtivo && a.Jogo != null)
-                .GroupBy(a => a.Jogo.Id)
+                .Where(j => j.EstaAtivo && j.Publicadora != null && j.Publicadora.Id != j.Empresa.Id)
+                .GroupBy(j => j.Publicadora!.Id)
+                .Select(g => new { EmpresaId = g.Key, Total = g.Count() })
+                .ToDictionaryAsync(x => x.EmpresaId, x => x.Total);
+
+            // 2. Média de notas agregada no banco
+            var mediasPorEmpresa = await _context.Avaliacoes
+                .AsNoTracking()
+                .Where(a => a.EstaAtivo && a.Jogo != null && a.Jogo.EstaAtivo && a.Jogo.Empresa != null)
+                .GroupBy(a => a.Jogo.Empresa!.Id)
                 .Select(g => new
                 {
-                    JogoId = g.Key,
+                    EmpresaId = g.Key,
                     Media = g.Average(x => (double)x.Nota)
                 })
-                .ToDictionaryAsync(x => x.JogoId, x => x.Media);
+                .ToDictionaryAsync(x => x.EmpresaId, x => x.Media);
 
             return empresas.Select(e =>
             {
-                jogosStats.TryGetValue(e.Id, out var total);
-                
-                var jogosDaEmpresa = todosJogos
-                    .Where(j => j.DevId == e.Id || j.PubId == e.Id)
-                    .Select(j => j.JogoId)
-                    .ToList();
-
-                double? media = null;
-                var notasDaEmpresa = jogosDaEmpresa
-                    .Where(id => notasPorJogo.ContainsKey(id))
-                    .Select(id => notasPorJogo[id])
-                    .ToList();
-
-                if (notasDaEmpresa.Any())
-                {
-                    media = notasDaEmpresa.Average();
-                }
+                var total = statsDev.GetValueOrDefault(e.Id, 0) + statsPub.GetValueOrDefault(e.Id, 0);
+                mediasPorEmpresa.TryGetValue(e.Id, out var media);
 
                 return new EmpresaDTO
                 {
@@ -92,7 +67,7 @@ namespace GameLog_Backend.Services
                     NomeEmpresa = e.NomeEmpresa,
                     EstaAtivo = e.EstaAtivo,
                     TotalJogos = total,
-                    MediaNotasJogos = media
+                    MediaNotasJogos = media > 0 ? Math.Round(media, 1) : null
                 };
             }).ToList();
         }
