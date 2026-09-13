@@ -184,7 +184,13 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddDbContext<GameLogContext>(options =>
-    options.UseNpgsql(completeConnectionString));
+    options.UseNpgsql(completeConnectionString, npgsqlOptions =>
+    {
+        npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(5),
+            errorCodesToAdd: null);
+    }));
 
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<IRawgApiService, RawgApiService>();
@@ -242,7 +248,7 @@ if (!app.Environment.IsEnvironment("Testing"))
                 var context = services.GetRequiredService<GameLogContext>();
                 Console.WriteLine($"[GameLog] Tentativa {attempt}/{maxRetries} - Conectando ao PostgreSQL e garantindo schema...");
 
-                context.Database.EnsureCreated();
+                context.Database.Migrate();
 
                 var forceReseed = string.Equals(Environment.GetEnvironmentVariable("FORCE_RESEED"), "true", StringComparison.OrdinalIgnoreCase);
                 if (app.Environment.IsDevelopment() || forceReseed)
