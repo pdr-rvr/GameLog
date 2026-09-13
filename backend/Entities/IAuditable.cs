@@ -1,7 +1,12 @@
-﻿namespace GameLog_Backend.Entities
+namespace GameLog_Backend.Entities
 {
-    public interface IAuditable
+    public interface ISoftDeletable
     {
         public bool EstaAtivo { get; set; }
+    }
+
+    public interface IAuditable : ISoftDeletable
+    {
+        // Interface para entidades com exclusão lógica e rastreabilidade
     }
 }

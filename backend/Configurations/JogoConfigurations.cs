@@ -45,6 +45,12 @@ namespace GameLog_Backend.Configurations
 
             builder.Property(p => p.EstaAtivo)
                 .IsRequired();
+
+            // Índices de Performance e Otimização de Consultas
+            builder.HasIndex(p => p.Titulo);
+            builder.HasIndex(p => p.DataLancamento);
+            builder.HasIndex(p => p.EstaAtivo);
+            builder.HasIndex(p => new { p.EstaAtivo, p.DataLancamento });
         }
     }
 }

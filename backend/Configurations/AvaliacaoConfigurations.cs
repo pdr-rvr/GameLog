@@ -49,6 +49,14 @@ namespace GameLog_Backend.Configurations
 
             builder.Property(p => p.EstaAtivo)
                 .IsRequired();
+
+            // Prevenção estrita de Race Condition: Apenas 1 avaliação ativa por usuário para o mesmo jogo
+            builder.HasIndex("UsuarioId", "JogoId")
+                .HasFilter("\"EstaAtivo\" = true")
+                .IsUnique();
+
+            builder.HasIndex(p => p.DataPublicacao);
+            builder.HasIndex(p => p.EstaAtivo);
         }
     }
 }

@@ -29,6 +29,9 @@ namespace GameLog_Backend.Configurations
             builder.HasIndex(b => new { b.UsuarioId, b.JogoId })
                 .IsUnique();
 
+            builder.HasIndex(b => b.EstaAtivo);
+            builder.HasIndex(b => b.DataAtualizacao);
+
             builder.HasOne(b => b.Usuario)
                 .WithMany()
                 .HasForeignKey(b => b.UsuarioId)
