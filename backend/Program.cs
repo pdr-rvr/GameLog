@@ -6,6 +6,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using GameLog_Backend.Configurations;
 using GameLog_Backend.Database;
+using GameLog_Backend.Interceptors;
 using GameLog_Backend.Middlewares;
 using GameLog_Backend.Profiles;
 using GameLog_Backend.Seeders;
@@ -207,14 +208,20 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
-builder.Services.AddDbContext<GameLogContext>(options =>
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditSaveChangesInterceptor>();
+
+builder.Services.AddDbContext<GameLogContext>((sp, options) =>
+{
     options.UseNpgsql(completeConnectionString, npgsqlOptions =>
     {
         npgsqlOptions.EnableRetryOnFailure(
             maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(5),
             errorCodesToAdd: null);
-    }));
+    });
+    options.AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>());
+});
 
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<IRawgApiService, RawgApiService>()

@@ -35,9 +35,14 @@ namespace GameLog.Tests.Integration
                     services.Remove(descriptor);
                 }
 
-                services.AddDbContext<GameLogContext>(options =>
+                services.AddDbContext<GameLogContext>((sp, options) =>
                 {
                     options.UseInMemoryDatabase(_dbName);
+                    var interceptor = sp.GetService<GameLog_Backend.Interceptors.AuditSaveChangesInterceptor>();
+                    if (interceptor != null)
+                    {
+                        options.AddInterceptors(interceptor);
+                    }
                 });
             });
         }

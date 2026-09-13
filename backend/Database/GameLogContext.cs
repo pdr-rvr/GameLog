@@ -26,6 +26,9 @@ namespace GameLog_Backend.Database
         public DbSet<ListaDeJogos> ListasDeJogos { get; set; }
         public DbSet<ItemDeLista> ItensDeListas { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+
+        public bool SuppressAuditLogging { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -76,6 +79,7 @@ namespace GameLog_Backend.Database
             modelBuilder.ApplyConfiguration(new ListaDeJogosConfigurations());
             modelBuilder.ApplyConfiguration(new ItemDeListaConfigurations());
             modelBuilder.ApplyConfiguration(new RefreshTokenConfigurations());
+            modelBuilder.ApplyConfiguration(new AuditLogConfigurations());
         }
     }
 }
