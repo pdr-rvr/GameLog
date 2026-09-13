@@ -19,8 +19,31 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var loggerConfig = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+    .Enrich.FromLogContext();
+
+if (builder.Environment.IsDevelopment())
+{
+    loggerConfig.WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] {Message:lj}{NewLine}{Exception}");
+}
+else
+{
+    loggerConfig.WriteTo.Console(new RenderedCompactJsonFormatter());
+}
+
+Log.Logger = loggerConfig.CreateLogger();
+builder.Host.UseSerilog();
 
 if (builder.Environment.IsDevelopment())
 {
@@ -246,6 +269,8 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseSerilogRequestLogging();
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseCors("AllowReactApp");
 app.UseRateLimiter();
@@ -314,7 +339,14 @@ app.MapControllers();
 app.MapGet("/", () => "API GameLog está online!").AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 
-app.Run();
+try
+{
+    app.Run();
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
 public partial class Program { }
 

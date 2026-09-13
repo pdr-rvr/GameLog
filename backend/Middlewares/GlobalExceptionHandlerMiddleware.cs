@@ -46,6 +46,9 @@ namespace GameLog_Backend.Middlewares
         {
             context.Response.ContentType = "application/problem+json";
 
+            var correlationId = context.Items[CorrelationIdMiddleware.CorrelationIdHeaderName] as string 
+                ?? context.TraceIdentifier;
+
             if (exception is FluentValidation.ValidationException validationEx)
             {
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
@@ -64,7 +67,8 @@ namespace GameLog_Backend.Middlewares
                     status = (int)HttpStatusCode.BadRequest,
                     detail = "Um ou mais campos contêm erros de validação.",
                     instance = context.Request.Path.Value,
-                    traceId = context.TraceIdentifier,
+                    traceId = correlationId,
+                    correlationId = correlationId,
                     errors = validationErrors
                 };
 
@@ -129,7 +133,8 @@ namespace GameLog_Backend.Middlewares
                 status,
                 detail,
                 instance = context.Request.Path.Value,
-                traceId = context.TraceIdentifier
+                traceId = correlationId,
+                correlationId = correlationId
             };
 
             var options = new JsonSerializerOptions
