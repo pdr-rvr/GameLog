@@ -59,13 +59,15 @@ vi.mock("../../services/socialService", () => ({
 
 vi.mock("../../services/avaliacaoService", () => ({
   AvaliacaoService: {
-    toggleCurtir: vi.fn(() => Promise.resolve({}))
+    toggleCurtir: vi.fn(() => Promise.resolve({})),
+    criarAvaliacao: vi.fn(() => Promise.resolve({}))
   }
 }));
 
-vi.mock("../TelaHome/actions/TelaHomeActions", () => ({
-  buscarJogos: vi.fn(() => Promise.resolve([])),
-  criarAvaliacao: vi.fn(() => Promise.resolve({}))
+vi.mock("../../services/jogoService", () => ({
+  JogoService: {
+    listarJogos: vi.fn(() => Promise.resolve([]))
+  }
 }));
 
 const mockUser = { id: "u1", nome: "Tester" };

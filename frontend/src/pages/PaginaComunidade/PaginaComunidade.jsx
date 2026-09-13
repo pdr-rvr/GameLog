@@ -5,7 +5,10 @@ import ReviewCardV2 from "../../components/ReviewCardV2/ReviewCardV2";
 import FormAvaliacao from "../../components/FormAvaliacao/FormAvaliacao";
 import { ComunidadeService } from "../../services/comunidadeService";
 import { AvaliacaoService } from "../../services/avaliacaoService";
-import { buscarJogos, criarAvaliacao } from "../TelaHome/actions/TelaHomeActions";
+import { JogoService } from "../../services/jogoService";
+
+const buscarJogos = () => JogoService.listarJogos();
+const criarAvaliacao = (data) => AvaliacaoService.criarAvaliacao(data);
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { 

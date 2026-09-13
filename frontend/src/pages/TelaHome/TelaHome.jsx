@@ -8,14 +8,26 @@ import AvaliacaoCarrossel from "../../components/AvaliacaoCarrossel/AvaliacaoCar
 import FormAvaliacao from "../../components/FormAvaliacao/FormAvaliacao";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { 
-  buscarAvaliacoes, 
-  buscarJogos, 
-  criarAvaliacao, 
-  buscarRecomendacoes,
-  buscarDestaques,
-  buscarTopAvaliados
-} from "./actions/TelaHomeActions";
+import { JogoService } from "../../services/jogoService";
+import { AvaliacaoService } from "../../services/avaliacaoService";
+
+const buscarAvaliacoes = async (usuarioId = null) => {
+  const params = usuarioId ? { usuarioId } : {};
+  const data = await AvaliacaoService.listarAvaliacoes(params);
+  const dados = Array.isArray(data) ? data : (data?.$values || []);
+  return dados.map(avaliacao => ({
+    ...avaliacao,
+    avaliacaoId: avaliacao.avaliacaoId || avaliacao.id,
+    jogoId: avaliacao.jogoId,
+    usuarioId: avaliacao.usuarioId,
+    nomeUsuario: avaliacao.nomeUsuario || "Usuário Anônimo"
+  }));
+};
+const buscarJogos = () => JogoService.listarJogos();
+const criarAvaliacao = (data) => AvaliacaoService.criarAvaliacao(data);
+const buscarRecomendacoes = (userId) => JogoService.obterRecomendacoes(userId);
+const buscarDestaques = (limite = 5) => JogoService.obterDestaques(limite);
+const buscarTopAvaliados = () => JogoService.obterTopAvaliados();
 import { 
   FaGamepad, 
   FaFire, 

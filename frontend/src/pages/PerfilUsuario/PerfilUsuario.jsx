@@ -1,38 +1,26 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
-import AvaliacaoCard from "../../components/AvaliacaoCard/AvaliacaoCard";
-import ConfirmModal from "../../components/ConfirmModal/ConfirmModal";
 import PodioFavoritos from "../../components/PodioFavoritos/PodioFavoritos";
 import ModalEditarFavoritos from "../../components/ModalEditarFavoritos/ModalEditarFavoritos";
 import ModalCriarLista from "../../components/ModalCriarLista/ModalCriarLista";
 import ModalConexoes from "../../components/ModalConexoes/ModalConexoes";
-import BibliotecaCard from "../../components/BibliotecaCard/BibliotecaCard";
+import ConfirmModal from "../../components/ConfirmModal/ConfirmModal";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { fetchUserProfile, fetchUserReviews, fetchUserTopGenres } from "./actions/PerfilUsuarioActions";
-import { deleteReview } from "../../pages/MinhasAvaliacoes/actions/MinhasAvaliacoesActions";
-import { BibliotecaService, STATUS_JOGO } from "../../services/bibliotecaService";
+import { UsuarioService } from "../../services/usuarioService";
+import { AvaliacaoService } from "../../services/avaliacaoService";
+import { BibliotecaService } from "../../services/bibliotecaService";
 import { ListaService } from "../../services/listaService";
 import { SocialService } from "../../services/socialService";
-import { 
-  FaGamepad, 
-  FaStar, 
-  FaCog, 
-  FaComments, 
-  FaLayerGroup, 
-  FaCalendarAlt,
-  FaAward,
-  FaBookmark,
-  FaSearch,
-  FaTimes,
-  FaPlus,
-  FaGlobe,
-  FaLock,
-  FaUserPlus,
-  FaUserCheck,
-  FaUserFriends
-} from "react-icons/fa";
+
+import PerfilHeader from "./components/PerfilHeader";
+import PerfilStatsBar from "./components/PerfilStatsBar";
+import PerfilBibliotecaTab from "./components/PerfilBibliotecaTab";
+import PerfilColecoesTab from "./components/PerfilColecoesTab";
+import PerfilAvaliacoesTab from "./components/PerfilAvaliacoesTab";
+
+import { FaBookmark, FaLayerGroup, FaComments } from "react-icons/fa";
 import "./PerfilUsuario.css";
 
 const PerfilUsuario = () => {
@@ -88,7 +76,7 @@ const PerfilUsuario = () => {
 
   // Target User ID to load
   const targetId = userId || user?.id;
-  const isOwner = user && targetId && String(user.id).toLowerCase() === String(targetId).toLowerCase();
+  const isOwner = Boolean(user && targetId && String(user.id).toLowerCase() === String(targetId).toLowerCase());
 
   const carregarDadosPerfil = useCallback(async () => {
     if (!targetId) {
@@ -101,9 +89,9 @@ const PerfilUsuario = () => {
     setError("");
     try {
       const [dadosUsuario, dadosAvaliacoes, dadosGeneros, dadosFavoritos, dadosStats, dadosListas, dadosSociais] = await Promise.all([
-        fetchUserProfile(targetId),
-        fetchUserReviews(targetId),
-        fetchUserTopGenres(targetId),
+        UsuarioService.obterPerfil(targetId),
+        AvaliacaoService.listarPorUsuario(targetId).catch(() => []),
+        UsuarioService.obterGenerosFavoritos(targetId).catch(() => []),
         BibliotecaService.obterFavoritos(targetId).catch(() => []),
         BibliotecaService.obterEstatisticas(targetId).catch(() => ({
           totalJogos: 0,
@@ -140,7 +128,6 @@ const PerfilUsuario = () => {
     carregarDadosPerfil();
   }, [carregarDadosPerfil]);
 
-  // Load Library Items with filters
   const carregarItensBiblioteca = useCallback(async () => {
     if (!targetId) return;
     setLoadingBiblioteca(true);
@@ -162,7 +149,6 @@ const PerfilUsuario = () => {
     carregarItensBiblioteca();
   }, [carregarItensBiblioteca]);
 
-  // Refresh Stats and Library
   const recarregarBibliotecaCompleta = async () => {
     if (!targetId) return;
     try {
@@ -177,7 +163,6 @@ const PerfilUsuario = () => {
     }
   };
 
-  // Statistics calculation
   const totalAvaliacoes = avaliacoes.length;
   const mediaNotas = totalAvaliacoes > 0
     ? (avaliacoes.reduce((acc, curr) => acc + (Number(curr.nota) || 0), 0) / totalAvaliacoes).toFixed(1)
@@ -196,7 +181,7 @@ const PerfilUsuario = () => {
         seguidoPorMim: res.seguido,
         totalSeguidores: res.totalSeguidores
       }));
-      toast.success(res.seguido ? `Você agora está seguindo ${perfil.nomeUsuario}.` : `Você deixou de seguir ${perfil.nomeUsuario}.`);
+      toast.success(res.seguido ? `Você agora está seguindo ${perfil?.nomeUsuario}.` : `Você deixou de seguir ${perfil?.nomeUsuario}.`);
     } catch (err) {
       console.error("Erro ao alterar seguir:", err);
       toast.error(err.response?.data?.detail || err.response?.data?.message || "Erro ao atualizar relacionamento.");
@@ -218,7 +203,7 @@ const PerfilUsuario = () => {
     if (!itemParaExcluir) return;
     setIsDeleting(true);
     try {
-      await deleteReview(itemParaExcluir);
+      await AvaliacaoService.excluirAvaliacao(itemParaExcluir);
       setAvaliacoes((prev) => prev.filter((a) => (a.avaliacaoId || a.id) !== itemParaExcluir));
       toast.success("Avaliação excluída com sucesso!");
     } catch (err) {
@@ -252,15 +237,6 @@ const PerfilUsuario = () => {
     }
   };
 
-  const tabsFiltroBiblioteca = [
-    { status: null, label: "Todos", count: statsBiblioteca.totalJogos },
-    { status: STATUS_JOGO.QUERO_JOGAR, label: "Quero Jogar", count: statsBiblioteca.totalQueroJogar },
-    { status: STATUS_JOGO.JOGANDO, label: "Jogando", count: statsBiblioteca.totalJogando },
-    { status: STATUS_JOGO.ZERADO, label: "Zerado", count: statsBiblioteca.totalZerados },
-    { status: STATUS_JOGO.PAUSADO, label: "Pausado", count: statsBiblioteca.totalPausados },
-    { status: STATUS_JOGO.ABANDONADO, label: "Abandonado", count: statsBiblioteca.totalAbandonados },
-  ];
-
   return (
     <div className="perfil-social-page">
       <Navbar />
@@ -281,166 +257,32 @@ const PerfilUsuario = () => {
 
         {!loading && !error && perfil && (
           <>
-            {/* Hero Header do Gamer */}
-            <header className="gamer-hero-card">
-              <div className="gamer-avatar-wrapper">
-                {perfil.fotoDePerfil ? (
-                  <img src={perfil.fotoDePerfil} alt={perfil.nomeUsuario} className="gamer-avatar-img" />
-                ) : (
-                  <div className="gamer-avatar-fallback">
-                    <span>{perfil.nomeUsuario ? perfil.nomeUsuario.charAt(0).toUpperCase() : "G"}</span>
-                  </div>
-                )}
-              </div>
+            <PerfilHeader
+              perfil={perfil}
+              statsSociais={statsSociais}
+              isOwner={isOwner}
+              user={user}
+              processandoSeguir={processandoSeguir}
+              onToggleSeguir={handleToggleSeguirPerfil}
+              onOpenConexoes={(tab) => {
+                setModalConexoesTab(tab);
+                setModalConexoesAberto(true);
+              }}
+            />
 
-              <div className="gamer-hero-info">
-                <div className="gamer-hero-top">
-                  <div className="gamer-title-group">
-                    <h1 className="gamer-username">{perfil.nomeUsuario || "Gamer"}</h1>
-                    <span className="gamer-badge">
-                      <FaGamepad /> Membro GameLog
-                    </span>
-                  </div>
-
-                  <div className="gamer-hero-actions">
-                    {/* Botão de Seguir - Somente visível para outros perfis */}
-                    {!isOwner && user && (
-                      <button
-                        type="button"
-                        className={`btn-follow-profile ${statsSociais.seguidoPorMim ? "following" : ""}`}
-                        disabled={processandoSeguir}
-                        onClick={handleToggleSeguirPerfil}
-                      >
-                        {statsSociais.seguidoPorMim ? (
-                          <>
-                            <FaUserCheck /> <span>Seguindo</span>
-                          </>
-                        ) : (
-                          <>
-                            <FaUserPlus /> <span>Seguir</span>
-                          </>
-                        )}
-                      </button>
-                    )}
-
-                    {/* Botão de Configurações - Somente visível para o dono */}
-                    {isOwner && (
-                      <Link to="/configuracoes" className="btn-edit-settings">
-                        <FaCog /> <span>Configurações de Conta</span>
-                      </Link>
-                    )}
-                  </div>
-                </div>
-
-                {/* Contadores Sociais (Seguidores & Seguindo) */}
-                <div className="gamer-social-counters">
-                  <button
-                    type="button"
-                    className="social-counter-btn"
-                    onClick={() => {
-                      setModalConexoesTab("seguidores");
-                      setModalConexoesAberto(true);
-                    }}
-                  >
-                    <strong>{statsSociais.totalSeguidores}</strong> <span>{statsSociais.totalSeguidores === 1 ? "Seguidor" : "Seguidores"}</span>
-                  </button>
-                  <span className="counter-dot">•</span>
-                  <button
-                    type="button"
-                    className="social-counter-btn"
-                    onClick={() => {
-                      setModalConexoesTab("seguindo");
-                      setModalConexoesAberto(true);
-                    }}
-                  >
-                    <strong>{statsSociais.totalSeguindo}</strong> <span>Seguindo</span>
-                  </button>
-                </div>
-
-                {/* Bio Gamer */}
-                {perfil.bio ? (
-                  <p className="gamer-bio-text">{perfil.bio}</p>
-                ) : isOwner ? (
-                  <p className="gamer-bio-text empty">
-                    Você ainda não adicionou uma bio. <Link to="/configuracoes">Adicione uma apresentação</Link>
-                  </p>
-                ) : (
-                  <p className="gamer-bio-text empty">Este jogador ainda não adicionou uma bio.</p>
-                )}
-              </div>
-            </header>
-
-            {/* Pódio Top 5 Jogos Favoritos (Estilo Letterboxd) */}
             <PodioFavoritos
               favoritos={favoritos}
               isOwner={isOwner}
               onEditar={() => setModalFavoritosAberto(true)}
             />
 
-            {/* Barra de Estatísticas Rápidas do Gamer */}
-            <section className="gamer-stats-bar">
-              <div className="stat-card">
-                <div className="stat-icon-wrapper purple">
-                  <FaBookmark />
-                </div>
-                <div className="stat-data">
-                  <span className="stat-value">{statsBiblioteca.totalJogos}</span>
-                  <span className="stat-label">Jogos na Biblioteca</span>
-                </div>
-              </div>
+            <PerfilStatsBar
+              statsBiblioteca={statsBiblioteca}
+              totalColecoes={listas.length}
+              mediaNotas={mediaNotas}
+              topGeneros={topGeneros}
+            />
 
-              <div className="stat-card">
-                <div className="stat-icon-wrapper cyan">
-                  <FaGamepad />
-                </div>
-                <div className="stat-data">
-                  <span className="stat-value">{statsBiblioteca.totalZerados}</span>
-                  <span className="stat-label">Jogos Zerados</span>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-icon-wrapper green">
-                  <FaLayerGroup />
-                </div>
-                <div className="stat-data">
-                  <span className="stat-value">{listas.length}</span>
-                  <span className="stat-label">Coleções Criadas</span>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-icon-wrapper gold">
-                  <FaStar />
-                </div>
-                <div className="stat-data">
-                  <span className="stat-value">{mediaNotas}</span>
-                  <span className="stat-label">Média das Avaliações</span>
-                </div>
-              </div>
-
-              <div className="stat-card full-span">
-                <div className="stat-icon-wrapper pink">
-                  <FaAward />
-                </div>
-                <div className="stat-data">
-                  <span className="stat-label">Gêneros Favoritos</span>
-                  <div className="genre-chips-wrapper">
-                    {topGeneros.length > 0 ? (
-                      topGeneros.map((g, idx) => (
-                        <span key={idx} className="genre-chip">
-                          {g.genero || g.tituloGenero || g}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="genre-chip empty">Gamer Eclético</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Seletor de Seções Principais do Perfil */}
             <nav className="perfil-nav-sections">
               <button
                 type="button"
@@ -470,243 +312,47 @@ const PerfilUsuario = () => {
               </button>
             </nav>
 
-            {/* SEÇÃO 1: Biblioteca Gamer */}
             {secaoAtiva === "biblioteca" && (
-              <section className="gamer-library-section">
-                <div className="library-section-header">
-                  <div>
-                    <h2 className="section-title">
-                      Biblioteca de {isOwner ? "Você" : perfil.nomeUsuario}
-                    </h2>
-                    <span className="section-subtitle">Coleção e status de progresso dos jogos</span>
-                  </div>
-                </div>
-
-                {/* Filter Tabs and Search Bar */}
-                <div className="library-toolbar">
-                  <div className="library-tabs-row">
-                    {tabsFiltroBiblioteca.map((tab, idx) => {
-                      const isAtivo = statusFiltro === tab.status;
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          className={`library-tab-btn ${isAtivo ? "ativo" : ""}`}
-                          onClick={() => setStatusFiltro(tab.status)}
-                        >
-                          <span className="tab-label">{tab.label}</span>
-                          <span className="tab-count">{tab.count}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="library-search-input-wrap">
-                    <FaSearch className="search-icon" />
-                    <input
-                      type="text"
-                      placeholder="Buscar na biblioteca..."
-                      value={buscaBiblioteca}
-                      onChange={(e) => setBuscaBiblioteca(e.target.value)}
-                    />
-                    {buscaBiblioteca && (
-                      <button
-                        type="button"
-                        className="btn-clear-library-search"
-                        onClick={() => setBuscaBiblioteca("")}
-                      >
-                        <FaTimes />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Library Cards Grid */}
-                {loadingBiblioteca ? (
-                  <div className="library-loading-state">
-                    <div className="perfil-spinner small"></div>
-                    <span>Atualizando biblioteca...</span>
-                  </div>
-                ) : itensBiblioteca.length === 0 ? (
-                  <div className="library-empty-state">
-                    <FaBookmark className="empty-lib-icon" />
-                    <h3>Nenhum jogo encontrado</h3>
-                    <p>
-                      {statusFiltro !== null
-                        ? "Nenhum jogo corresponde a esse filtro de status."
-                        : buscaBiblioteca
-                        ? "Nenhum jogo encontrado com esse termo de busca."
-                        : isOwner
-                        ? "Sua biblioteca está vazia. Comece a adicionar os jogos que você está jogando ou já zerou!"
-                        : `${perfil.nomeUsuario} ainda não adicionou jogos a esta categoria.`}
-                    </p>
-                    {isOwner && (
-                      <Link to="/jogos" className="btn-browse-games">
-                        Explorar Catálogo de Jogos
-                      </Link>
-                    )}
-                  </div>
-                ) : (
-                  <div className="library-cards-grid">
-                    {itensBiblioteca.map((item) => (
-                      <BibliotecaCard
-                        key={item.id || item.jogoId}
-                        item={item}
-                        isOwner={isOwner}
-                        onRemover={(id) => setJogoParaRemoverBiblioteca(id)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
+              <PerfilBibliotecaTab
+                perfil={perfil}
+                isOwner={isOwner}
+                statsBiblioteca={statsBiblioteca}
+                statusFiltro={statusFiltro}
+                setStatusFiltro={setStatusFiltro}
+                buscaBiblioteca={buscaBiblioteca}
+                setBuscaBiblioteca={setBuscaBiblioteca}
+                loadingBiblioteca={loadingBiblioteca}
+                itensBiblioteca={itensBiblioteca}
+                onRemoverJogo={(id) => setJogoParaRemoverBiblioteca(id)}
+              />
             )}
 
-            {/* SEÇÃO 2: Coleções & Listas */}
             {secaoAtiva === "listas" && (
-              <section className="gamer-collections-section">
-                <div className="collections-section-header">
-                  <div>
-                    <h2 className="section-title">
-                      Coleções de {isOwner ? "Você" : perfil.nomeUsuario}
-                    </h2>
-                    <span className="section-subtitle">Listas temáticas e seleções especiais</span>
-                  </div>
-
-                  {isOwner && (
-                    <button
-                      type="button"
-                      className="btn-create-collection"
-                      onClick={() => {
-                        setListaEmEdicao(null);
-                        setModalCriarListaAberto(true);
-                      }}
-                    >
-                      <FaPlus /> <span>Criar Nova Coleção</span>
-                    </button>
-                  )}
-                </div>
-
-                {listas.length === 0 ? (
-                  <div className="empty-collections-state">
-                    <FaLayerGroup className="empty-icon" />
-                    <h3>Nenhuma coleção criada</h3>
-                    <p>
-                      {isOwner
-                        ? "Crie listas temáticas personalizadas (ex: Melhores RPGs, Jogos para Zerar) e compartilhe seu gosto com a comunidade!"
-                        : `${perfil.nomeUsuario} ainda não criou coleções públicas.`}
-                    </p>
-                    {isOwner && (
-                      <button
-                        type="button"
-                        className="btn-create-collection-cta"
-                        onClick={() => {
-                          setListaEmEdicao(null);
-                          setModalCriarListaAberto(true);
-                        }}
-                      >
-                        <FaPlus /> <span>Criar Minha Primeira Coleção</span>
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="collections-grid">
-                    {listas.map((lista) => (
-                      <div key={lista.listaId || lista.id} className="collection-card">
-                        <Link to={`/listas/${lista.listaId || lista.id}`} className="collection-mosaic-wrap">
-                          {lista.capasPreview && lista.capasPreview.length > 0 ? (
-                            <div className={`collection-mosaic count-${Math.min(lista.capasPreview.length, 4)}`}>
-                              {lista.capasPreview.slice(0, 4).map((capa, idx) => (
-                                <img key={idx} src={capa} alt="Capa" className="mosaic-thumb" />
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="collection-mosaic-placeholder">
-                              <FaGamepad className="placeholder-icon" />
-                              <span>Coleção Vazia</span>
-                            </div>
-                          )}
-                        </Link>
-
-                        <div className="collection-card-body">
-                          <div className="collection-card-header-row">
-                            <Link to={`/listas/${lista.listaId || lista.id}`} className="collection-card-title">
-                              {lista.titulo}
-                            </Link>
-                            {!lista.estaPublica && (
-                              <span className="collection-private-badge" title="Lista Privada">
-                                <FaLock />
-                              </span>
-                            )}
-                          </div>
-
-                          {lista.descricao && (
-                            <p className="collection-card-desc">{lista.descricao}</p>
-                          )}
-
-                          <div className="collection-card-footer">
-                            <span className="collection-game-count">
-                              <strong>{lista.totalJogos}</strong> {lista.totalJogos === 1 ? "jogo" : "jogos"}
-                            </span>
-                            <Link to={`/listas/${lista.listaId || lista.id}`} className="btn-view-collection">
-                              Ver Coleção →
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
+              <PerfilColecoesTab
+                perfil={perfil}
+                isOwner={isOwner}
+                listas={listas}
+                onCriarLista={() => {
+                  setListaEmEdicao(null);
+                  setModalCriarListaAberto(true);
+                }}
+              />
             )}
 
-            {/* SEÇÃO 3: Feed de Avaliações do Usuário */}
             {secaoAtiva === "avaliacoes" && (
-              <section className="gamer-reviews-section">
-                <div className="section-header">
-                  <div>
-                    <h2 className="section-title">
-                      Avaliações de {isOwner ? "Você" : perfil.nomeUsuario}
-                    </h2>
-                    <span className="section-subtitle">Críticas e impressões detalhadas</span>
-                  </div>
-                  <span className="section-counter">{totalAvaliacoes} {totalAvaliacoes === 1 ? "publicação" : "publicações"}</span>
-                </div>
-
-                {avaliacoes.length === 0 ? (
-                  <div className="empty-gamer-reviews">
-                    <FaGamepad className="empty-icon" />
-                    <h3>Nenhuma avaliação publicada ainda</h3>
-                    <p>
-                      {isOwner
-                        ? "Você ainda não avaliou nenhum jogo. Explore nosso catálogo e compartilhe suas opiniões!"
-                        : `${perfil.nomeUsuario} ainda não publicou nenhuma avaliação.`}
-                    </p>
-                    {isOwner && (
-                      <Link to="/jogos" className="btn-browse-games">
-                        Explorar Catálogo de Jogos
-                      </Link>
-                    )}
-                  </div>
-                ) : (
-                  <div className="gamer-reviews-grid">
-                    {avaliacoes.map((avaliacao) => (
-                      <div key={avaliacao.avaliacaoId || avaliacao.id} className="gamer-review-grid-item">
-                        <AvaliacaoCard
-                          avaliacao={avaliacao}
-                          onEdit={isOwner ? () => handleEditReview(avaliacao) : null}
-                          onDelete={isOwner ? () => handleDeleteRequest(avaliacao.avaliacaoId || avaliacao.id) : null}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
+              <PerfilAvaliacoesTab
+                perfil={perfil}
+                isOwner={isOwner}
+                avaliacoes={avaliacoes}
+                totalAvaliacoes={totalAvaliacoes}
+                onEditReview={handleEditReview}
+                onDeleteReview={handleDeleteRequest}
+              />
             )}
           </>
         )}
       </main>
 
-      {/* Modal de Personalização dos 5 Favoritos (Pódio) */}
       <ModalEditarFavoritos
         isOpen={modalFavoritosAberto}
         onClose={() => setModalFavoritosAberto(false)}
@@ -714,7 +360,6 @@ const PerfilUsuario = () => {
         onSalvo={(novos) => setFavoritos(novos || [])}
       />
 
-      {/* Modal para Criar / Editar Lista */}
       <ModalCriarLista
         isOpen={modalCriarListaAberto}
         onClose={() => {
@@ -725,7 +370,6 @@ const PerfilUsuario = () => {
         onListaSalva={recarregarListas}
       />
 
-      {/* Modal de Confirmação para exclusão de Avaliação */}
       <ConfirmModal
         isOpen={Boolean(itemParaExcluir)}
         title="Excluir Avaliação"
@@ -738,7 +382,6 @@ const PerfilUsuario = () => {
         onCancel={() => !isDeleting && setItemParaExcluir(null)}
       />
 
-      {/* Modal de Confirmação para remoção de Jogo da Biblioteca */}
       <ConfirmModal
         isOpen={Boolean(jogoParaRemoverBiblioteca)}
         title="Remover da Biblioteca"
@@ -750,7 +393,6 @@ const PerfilUsuario = () => {
         onCancel={() => setJogoParaRemoverBiblioteca(null)}
       />
 
-      {/* Modal de Conexões Sociais (Seguidores & Seguindo) */}
       {modalConexoesAberto && (
         <ModalConexoes
           isOpen={modalConexoesAberto}

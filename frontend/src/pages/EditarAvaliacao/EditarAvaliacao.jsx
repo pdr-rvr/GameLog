@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
-import { fetchReviewById, updateReview } from "./actions/EditarAvaliacaoActions";
+import { AvaliacaoService } from "../../services/avaliacaoService";
+
+const fetchReviewById = (id) => AvaliacaoService.obterAvaliacaoPorId(id);
+const updateReview = (id, data) => AvaliacaoService.atualizarAvaliacao(id, data);
 import { useToast } from "../../context/ToastContext";
 import { FaStar, FaGamepad, FaArrowLeft, FaSave } from "react-icons/fa";
 import "./EditarAvaliacao.css";

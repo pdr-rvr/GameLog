@@ -2,7 +2,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import JogoCard from "../../components/JogoCard/JogoCard";
-import { fetchEmpresa, fetchJogosDaEmpresa } from "./actions/PaginaEmpresaActions";
+import { EmpresaService } from "../../services/empresaService";
+
+const fetchEmpresa = (empresaId) => EmpresaService.obterEmpresaPorId(empresaId);
+const fetchJogosDaEmpresa = (empresaId) => EmpresaService.listarJogosPorEmpresa(empresaId);
 import { 
   FaBuilding, 
   FaGamepad, 

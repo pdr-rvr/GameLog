@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FaTimes, FaSearch, FaTrash, FaCheck, FaTrophy, FaGamepad, FaSpinner } from "react-icons/fa";
-import { buscarJogosPaginados } from "../../pages/PaginaJogos/actions/PaginaJogosActions";
+import { JogoService } from "../../services/jogoService";
 import { BibliotecaService } from "../../services/bibliotecaService";
 import { useToast } from "../../context/ToastContext";
+
+const buscarJogosPaginados = (params) => JogoService.buscarJogosPaginados(params);
 import "./ModalEditarFavoritos.css";
 
 const POSICOES = [

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { FaTimes, FaSearch, FaPlus, FaTrash, FaLayerGroup, FaLock, FaGlobe, FaCheck } from "react-icons/fa";
-import { buscarJogos } from "../../pages/PaginaJogos/actions/PaginaJogosActions";
+import { JogoService } from "../../services/jogoService";
 import { ListaService } from "../../services/listaService";
 import { useToast } from "../../context/ToastContext";
+
+const buscarJogos = () => JogoService.listarJogos();
 import "./ModalCriarLista.css";
 
 const ModalCriarLista = ({

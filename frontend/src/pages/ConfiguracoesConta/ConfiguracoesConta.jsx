@@ -3,7 +3,10 @@ import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { fetchUserProfile, updateUserProfile } from "./actions/ConfiguracoesContaActions";
+import { UsuarioService } from "../../services/usuarioService";
+
+const fetchUserProfile = (userId) => UsuarioService.obterPerfil(userId);
+const updateUserProfile = (userId, data) => UsuarioService.atualizarPerfil(userId, data);
 import { 
   FaUser, 
   FaEnvelope, 

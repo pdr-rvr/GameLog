@@ -8,7 +8,11 @@ import ClassificacaoBadge from "../../components/ClassificacaoBadge/Classificaca
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import api from "../../services/api";
-import { buscarJogoPorId, buscarAvaliacoesPorJogoId } from "./actions/TelaJogoActions";
+import { JogoService } from "../../services/jogoService";
+import { AvaliacaoService } from "../../services/avaliacaoService";
+
+const buscarJogoPorId = (id) => JogoService.obterJogoPorId(id);
+const buscarAvaliacoesPorJogoId = (id) => AvaliacaoService.listarPorJogo(id);
 import { FaStar, FaEdit, FaPlus, FaGamepad } from "react-icons/fa";
 import "./TelaJogo.css";
 

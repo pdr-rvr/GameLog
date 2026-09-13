@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
+import React, { createContext, useState, useEffect, useContext, useCallback, useMemo } from "react";
 import { jwtDecode } from "jwt-decode";
 import { AuthService } from "../services/authService";
 
@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }) => {
         };
     }, [loadUserFromToken]);
 
-    const login = async (email, senha) => {
+    const login = useCallback(async (email, senha) => {
         setLoadingAuth(true);
         try {
             const response = await AuthService.login(email, senha);
@@ -83,9 +83,9 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setLoadingAuth(false);
         }
-    };
+    }, [loadUserFromToken]);
 
-    const register = async (nick, email, senha) => {
+    const register = useCallback(async (nick, email, senha) => {
         setLoadingAuth(true);
         try {
             const response = await AuthService.register(nick, email, senha);
@@ -93,15 +93,15 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setLoadingAuth(false);
         }
-    };
+    }, []);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         AuthService.logout();
         setUser(null);
         setIsAuthenticated(false);
-    };
+    }, []);
 
-    const value = {
+    const value = useMemo(() => ({
         user,
         isAuthenticated,
         loadingAuth,
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         loadUserFromToken
-    };
+    }), [user, isAuthenticated, loadingAuth, login, register, logout, loadUserFromToken]);
 
     return (
         <AuthContext.Provider value={value}>

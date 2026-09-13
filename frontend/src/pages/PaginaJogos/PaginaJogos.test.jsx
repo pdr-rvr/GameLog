@@ -3,11 +3,13 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import PaginaJogos from "./PaginaJogos";
-import * as PaginaJogosActions from "./actions/PaginaJogosActions";
+import { JogoService } from "../../services/jogoService";
 
-vi.mock("./actions/PaginaJogosActions", () => ({
-  obterMetadadosFiltros: vi.fn(),
-  buscarJogosPaginados: vi.fn()
+vi.mock("../../services/jogoService", () => ({
+  JogoService: {
+    obterMetadadosFiltros: vi.fn(),
+    buscarJogosPaginados: vi.fn()
+  }
 }));
 
 vi.mock("../../context/ToastContext", () => ({
@@ -21,12 +23,12 @@ vi.mock("../../context/AuthContext", () => ({
 describe("PaginaJogos Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    PaginaJogosActions.obterMetadadosFiltros.mockResolvedValue({
+    JogoService.obterMetadadosFiltros.mockResolvedValue({
       generos: ["Ação", "RPG", "Soulslike"],
       anos: [2024, 2023, 2022]
     });
 
-    PaginaJogosActions.buscarJogosPaginados.mockResolvedValue({
+    JogoService.buscarJogosPaginados.mockResolvedValue({
       itens: [
         {
           id: "1",
@@ -68,7 +70,7 @@ describe("PaginaJogos Component", () => {
     );
 
     await waitFor(() => {
-      expect(PaginaJogosActions.obterMetadadosFiltros).toHaveBeenCalled();
+      expect(JogoService.obterMetadadosFiltros).toHaveBeenCalled();
     });
 
     // Selecionar Gênero RPG

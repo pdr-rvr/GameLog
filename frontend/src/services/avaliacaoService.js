@@ -38,9 +38,35 @@ export const AvaliacaoService = {
     return response.data;
   },
 
+  async criarAvaliacao(dados) {
+    const response = await api.post("/Avaliacoes", dados);
+    return response.data;
+  },
+
+  async atualizarAvaliacao(id, dados) {
+    const response = await api.put(`/Avaliacoes/${id}`, dados);
+    return response.data;
+  },
+
+  async excluirAvaliacao(id) {
+    const response = await api.delete(`/Avaliacoes/${id}`);
+    return response.data;
+  },
+
+  async listarPorUsuario(usuarioId) {
+    const response = await api.get(`/Avaliacoes/usuario/${usuarioId}`);
+    return Array.isArray(response.data) ? response.data : (response.data?.$values || []);
+  },
+
+  async listarPorJogo(jogoId) {
+    const response = await api.get(`/Avaliacoes/jogo/${jogoId}`);
+    return Array.isArray(response.data) ? response.data : (response.data?.$values || []);
+  },
+
   async toggleCurtirResposta(respostaId) {
     const response = await api.post(`/Avaliacoes/respostas/${respostaId}/curtir`);
     return response.data;
   }
 };
 
+export default AvaliacaoService;

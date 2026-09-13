@@ -5,7 +5,10 @@ import MyAvaliacaoCard from "../../components/MyAvaliacaoCard/MyAvaliacaoCard";
 import ConfirmModal from "../../components/ConfirmModal/ConfirmModal";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { fetchUserReviews, deleteReview } from "./actions/MinhasAvaliacoesActions";
+import { AvaliacaoService } from "../../services/avaliacaoService";
+
+const fetchUserReviews = (userId) => AvaliacaoService.listarPorUsuario(userId);
+const deleteReview = (id) => AvaliacaoService.excluirAvaliacao(id);
 import { FaGamepad } from "react-icons/fa";
 import "./MinhasAvaliacoes.css";
 

@@ -30,13 +30,15 @@ vi.mock("../../services/avaliacaoService", () => ({
         dataPublicacao: "2026-09-10T12:00:00Z"
       }
     ])),
-    toggleCurtir: vi.fn()
+    toggleCurtir: vi.fn(),
+    criarAvaliacao: vi.fn(() => Promise.resolve({}))
   }
 }));
 
-vi.mock("../TelaHome/actions/TelaHomeActions", () => ({
-  buscarJogos: vi.fn(() => Promise.resolve([])),
-  criarAvaliacao: vi.fn(() => Promise.resolve({}))
+vi.mock("../../services/jogoService", () => ({
+  JogoService: {
+    listarJogos: vi.fn(() => Promise.resolve([]))
+  }
 }));
 
 vi.mock("../../context/AuthContext", () => ({
