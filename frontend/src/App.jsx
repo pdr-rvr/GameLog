@@ -17,14 +17,16 @@ import PaginaDetalhesAvaliacao from './pages/PaginaDetalhesAvaliacao/PaginaDetal
 import PaginaDetalhesLista from './pages/PaginaDetalhesLista/PaginaDetalhesLista';
 
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext'; 
 import { ToastProvider } from './context/ToastContext';
 
 function App() {
   return (
-    <Router>
-      <ToastProvider>
-        <AuthProvider>
+    <ErrorBoundary>
+      <Router>
+        <ToastProvider>
+          <AuthProvider>
           <Routes>
             {/* Rotas de Autenticação (públicas) */}
             <Route path="/login" element={<Login />} />
@@ -79,6 +81,7 @@ function App() {
         </AuthProvider>
       </ToastProvider>
     </Router>
+    </ErrorBoundary>
   );
 }
 

@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Subject } from "rxjs";
-import { debounceTime, distinctUntilChanged, switchMap } from "rxjs/operators";
 import Navbar from "../../components/Navbar/Navbar";
 import JogoCard from "../../components/JogoCard/JogoCard";
 import { buscarJogosPaginados, obterMetadadosFiltros } from "./actions/PaginaJogosActions";
 import rawgService from "../../services/rawgService";
 import { useToast } from "../../context/ToastContext";
+import useDebounce from "../../utils/useDebounce";
 import { 
   FaGamepad, 
   FaSearch, 
   FaCalendarAlt, 
-  FaStar,
+  FaStar, 
   FaSortAmountDown, 
   FaTimes, 
   FaChevronLeft, 
@@ -51,7 +50,6 @@ function PaginaJogos() {
     };
 
     const [termoPesquisa, setTermoPesquisa] = useState(initialQuery);
-    const [buscaAtiva, setBuscaAtiva] = useState(initialQuery);
     const [generosSelecionados, setGenerosSelecionados] = useState(parseGenerosFromUrl());
     const [anoSelecionado, setAnoSelecionado] = useState(searchParams.get("ano") || "");
     const [anoInput, setAnoInput] = useState(searchParams.get("ano") || "");
@@ -64,8 +62,7 @@ function PaginaJogos() {
 
     const [importandoJogoId, setImportandoJogoId] = useState(null);
 
-    // RxJS Subject for reactive query stream & cancellation
-    const filterSubject$ = useRef(null);
+    const debouncedBusca = useDebounce(termoPesquisa, 300);
 
     // Sync state with URL params
     const atualizarUrl = useCallback((novaPagina, busca, generos, ano, nota, ordem) => {
@@ -88,16 +85,15 @@ function PaginaJogos() {
                 setGenerosDisponiveis(meta.generos || []);
                 setAnosDisponiveis(meta.anos || []);
             })
-            .catch(err => console.error("Erro ao carregar metadados dos filtros:", err));
+            .catch(() => {});
     }, []);
 
     // Sincronizar se a URL mudar externamente (ex: busca na navbar ou navegação por gênero)
     useEffect(() => {
         const qUrl = searchParams.get("busca") || searchParams.get("q") || "";
         const gensUrl = parseGenerosFromUrl();
-        if (qUrl !== buscaAtiva) {
+        if (qUrl !== termoPesquisa) {
             setTermoPesquisa(qUrl);
-            setBuscaAtiva(qUrl);
             setPaginaAtual(1);
         }
         if (JSON.stringify(gensUrl) !== JSON.stringify(generosSelecionados)) {
@@ -106,65 +102,48 @@ function PaginaJogos() {
         }
     }, [searchParams]);
 
-    // Setup RxJS Reactive Pipeline for continuous debounced request streaming
+    // Fetch games whenever filters or debounced query change
     useEffect(() => {
-        filterSubject$.current = new Subject();
+        let isMounted = true;
+        setLoading(true);
+        setError("");
 
-        const subscription = filterSubject$.current.pipe(
-            debounceTime(250),
-            distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
-            switchMap(async (params) => {
-                setLoading(true);
-                setError("");
-                try {
-                    const res = await buscarJogosPaginados(params);
-                    return { res, error: null };
-                } catch (err) {
-                    return { res: null, error: err.message || "Não foi possível carregar os jogos." };
-                }
-            })
-        ).subscribe(({ res, error: err }) => {
-            if (err) {
-                setError(err);
-            } else if (res) {
-                setJogos(res.itens || []);
-                setTotalPaginas(res.totalPaginas || 1);
-                setTotalItens(res.totalItens || 0);
-            }
+        buscarJogosPaginados({
+            pagina: paginaAtual,
+            itensPorPagina: ITENS_POR_PAGINA,
+            busca: debouncedBusca,
+            genero: generosSelecionados,
+            ano: anoSelecionado ? parseInt(anoSelecionado, 10) : null,
+            nota: notaSelecionada ? parseFloat(notaSelecionada) : null,
+            ordenacao
+        })
+        .then(res => {
+            if (!isMounted) return;
+            setJogos(res.itens || []);
+            setTotalPaginas(res.totalPaginas || 1);
+            setTotalItens(res.totalItens || 0);
+            setLoading(false);
+        })
+        .catch(err => {
+            if (!isMounted) return;
+            setError(err.message || "Não foi possível carregar os jogos.");
             setLoading(false);
         });
 
         return () => {
-            subscription.unsubscribe();
+            isMounted = false;
         };
-    }, []);
-
-    // Push latest filter state to RxJS stream
-    useEffect(() => {
-        if (filterSubject$.current) {
-            filterSubject$.current.next({
-                pagina: paginaAtual,
-                itensPorPagina: ITENS_POR_PAGINA,
-                busca: buscaAtiva,
-                genero: generosSelecionados,
-                ano: anoSelecionado ? parseInt(anoSelecionado, 10) : null,
-                nota: notaSelecionada ? parseFloat(notaSelecionada) : null,
-                ordenacao
-            });
-        }
-    }, [paginaAtual, buscaAtiva, generosSelecionados, anoSelecionado, notaSelecionada, ordenacao]);
+    }, [paginaAtual, debouncedBusca, generosSelecionados, anoSelecionado, notaSelecionada, ordenacao]);
 
     const handleSearchChange = (e) => {
         const val = e.target.value;
         setTermoPesquisa(val);
-        setBuscaAtiva(val);
         setPaginaAtual(1);
         atualizarUrl(1, val, generosSelecionados, anoSelecionado, notaSelecionada, ordenacao);
     };
 
     const handleLimparBusca = () => {
         setTermoPesquisa("");
-        setBuscaAtiva("");
         setPaginaAtual(1);
         atualizarUrl(1, "", generosSelecionados, anoSelecionado, notaSelecionada, ordenacao);
     };
@@ -176,14 +155,14 @@ function PaginaJogos() {
             : [...generosSelecionados, gen];
         setGenerosSelecionados(novo);
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, novo, anoSelecionado, notaSelecionada, ordenacao);
+        atualizarUrl(1, termoPesquisa, novo, anoSelecionado, notaSelecionada, ordenacao);
     };
 
     const handleRemoverGenero = (gen) => {
         const novo = generosSelecionados.filter(g => g !== gen);
         setGenerosSelecionados(novo);
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, novo, anoSelecionado, notaSelecionada, ordenacao);
+        atualizarUrl(1, termoPesquisa, novo, anoSelecionado, notaSelecionada, ordenacao);
     };
 
     const handleAnoChange = (e) => {
@@ -192,7 +171,7 @@ function PaginaJogos() {
         if (val === "" || val.length === 4) {
             setAnoSelecionado(val);
             setPaginaAtual(1);
-            atualizarUrl(1, buscaAtiva, generosSelecionados, val, notaSelecionada, ordenacao);
+            atualizarUrl(1, termoPesquisa, generosSelecionados, val, notaSelecionada, ordenacao);
         }
     };
 
@@ -200,24 +179,23 @@ function PaginaJogos() {
         setAnoInput("");
         setAnoSelecionado("");
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, generosSelecionados, "", notaSelecionada, ordenacao);
+        atualizarUrl(1, termoPesquisa, generosSelecionados, "", notaSelecionada, ordenacao);
     };
 
     const handleNotaChange = (val) => {
         setNotaSelecionada(val);
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, generosSelecionados, anoSelecionado, val, ordenacao);
+        atualizarUrl(1, termoPesquisa, generosSelecionados, anoSelecionado, val, ordenacao);
     };
 
     const handleOrdenacaoChange = (val) => {
         setOrdenacao(val);
         setPaginaAtual(1);
-        atualizarUrl(1, buscaAtiva, generosSelecionados, anoSelecionado, notaSelecionada, val);
+        atualizarUrl(1, termoPesquisa, generosSelecionados, anoSelecionado, notaSelecionada, val);
     };
 
     const limparFiltros = () => {
         setTermoPesquisa("");
-        setBuscaAtiva("");
         setGenerosSelecionados([]);
         setAnoInput("");
         setAnoSelecionado("");
@@ -230,7 +208,7 @@ function PaginaJogos() {
     const handleMudarPagina = (novaPagina) => {
         if (novaPagina < 1 || novaPagina > totalPaginas || novaPagina === paginaAtual) return;
         setPaginaAtual(novaPagina);
-        atualizarUrl(novaPagina, buscaAtiva, generosSelecionados, anoSelecionado, notaSelecionada, ordenacao);
+        atualizarUrl(novaPagina, termoPesquisa, generosSelecionados, anoSelecionado, notaSelecionada, ordenacao);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
@@ -242,7 +220,6 @@ function PaginaJogos() {
                 const targetId = imported.jogoId || imported.id;
                 navigate(`/jogos/${targetId}`);
             } catch (err) {
-                console.error("Erro ao importar jogo:", err);
                 const fallbackId = jogo.jogoId || jogo.id;
                 if (fallbackId) navigate(`/jogos/${fallbackId}`);
             } finally {
@@ -255,7 +232,7 @@ function PaginaJogos() {
     };
 
     const temFiltrosAtivos = Boolean(
-        buscaAtiva || 
+        termoPesquisa || 
         generosSelecionados.length > 0 || 
         anoSelecionado || 
         notaSelecionada || 
