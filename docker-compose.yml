@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_DB=${DB_NAME:-gamelog}
       - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-***REDACTED_PASSWORD***}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?Variavel de ambiente DB_PASSWORD obrigatoria no arquivo .env}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
@@ -30,8 +30,8 @@ services:
       - DB_PORT=${DB_PORT:-5432}
       - DB_NAME=${DB_NAME:-gamelog}
       - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-***REDACTED_PASSWORD***}
-      - JWT_SECRET=${JWT_SECRET:-***REDACTED_JWT_SECRET***}
+      - DB_PASSWORD=${DB_PASSWORD:?Variavel de ambiente DB_PASSWORD obrigatoria no arquivo .env}
+      - JWT_SECRET=${JWT_SECRET:?Variavel de ambiente JWT_SECRET obrigatoria no arquivo .env}
       - RAWG_API_KEY=${RAWG_API_KEY:-}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173}
       - FORCE_RESEED=${FORCE_RESEED:-false}

@@ -22,20 +22,39 @@ var builder = WebApplication.CreateBuilder(args);
 
 if (builder.Environment.IsDevelopment())
 {
-    DotNetEnv.Env.Load();
+    DotNetEnv.Env.TraversePath().Load();
 }
+
+var isTesting = builder.Environment.IsEnvironment("Testing");
 
 var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? "localhost";
 var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
 var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "gamelog";
 var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "postgres";
-var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "***REDACTED_PASSWORD***";
-var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? "***REDACTED_JWT_SECRET***";
+var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
 
-// Garantir tamanho mínimo de 256 bits (32 bytes) para algoritmo HMAC-SHA256
-if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+if (!isTesting)
 {
-    jwtSecret = "***REDACTED_JWT_SECRET***";
+    if (string.IsNullOrWhiteSpace(dbPassword))
+    {
+        throw new InvalidOperationException(
+            "FATAL: A variável de ambiente 'DB_PASSWORD' não foi configurada. Defina-a no arquivo .env ou nas variáveis do ambiente.");
+    }
+
+    if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+    {
+        throw new InvalidOperationException(
+            "FATAL: A variável de ambiente 'JWT_SECRET' é obrigatória e deve possuir no mínimo 32 caracteres (256 bits) para garantir a segurança do algoritmo HMAC-SHA256.");
+    }
+}
+else
+{
+    dbPassword ??= "TestingDbPassword";
+    if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+    {
+        jwtSecret = "TestingSecretKeyMustBeAtLeast32CharactersLong123456!";
+    }
 }
 
 var baseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
