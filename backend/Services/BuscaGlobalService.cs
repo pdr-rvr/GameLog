@@ -7,6 +7,7 @@ using GameLog_Backend.DTOs;
 using GameLog_Backend.Helpers;
 using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace GameLog_Backend.Services
 {
@@ -14,11 +15,16 @@ namespace GameLog_Backend.Services
     {
         private readonly GameLogContext _context;
         private readonly IRawgApiService _rawgService;
+        private readonly ILogger<BuscaGlobalService> _logger;
 
-        public BuscaGlobalService(GameLogContext context, IRawgApiService rawgService)
+        public BuscaGlobalService(
+            GameLogContext context, 
+            IRawgApiService rawgService,
+            ILogger<BuscaGlobalService> logger)
         {
             _context = context;
             _rawgService = rawgService;
+            _logger = logger;
         }
 
         public async Task<BuscaGlobalDTO> BuscarAsync(string? q, int limite = 5)
@@ -98,9 +104,9 @@ namespace GameLog_Backend.Services
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Falha de rede da RAWG não quebra a busca local
+                    _logger.LogWarning(ex, "[BuscaGlobal] Falha ao consultar catálogo externo da RAWG para a query '{Termo}'. Continuando com resultados locais.", termo);
                 }
             }
 

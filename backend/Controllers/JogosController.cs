@@ -48,7 +48,7 @@ namespace GameLog_Backend.Controllers
             return Ok(jogos);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:guid}")]
         [AllowAnonymous]
         public async Task<IActionResult> ObterJogoPorId(Guid id)
         {

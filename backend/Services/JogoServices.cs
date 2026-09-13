@@ -7,6 +7,7 @@ using GameLog_Backend.DTOs;
 using GameLog_Backend.Helpers;
 using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace GameLog_Backend.Services
 {
@@ -14,11 +15,13 @@ namespace GameLog_Backend.Services
     {
         protected readonly GameLogContext _context;
         protected readonly IRawgApiService _rawgApiService;
+        protected readonly IConfiguration _configuration;
 
-        public JogoServices(GameLogContext context, IRawgApiService rawgApiService)
+        public JogoServices(GameLogContext context, IRawgApiService rawgApiService, IConfiguration configuration)
         {
             _context = context;
             _rawgApiService = rawgApiService;
+            _configuration = configuration;
         }
 
         public async Task<IEnumerable<JogoDTO>> ListarJogos()
@@ -251,17 +254,18 @@ namespace GameLog_Backend.Services
         public async Task<IEnumerable<JogoDTO>> ListarDestaquesHeroAsync(int limite = 5)
         {
             limite = Math.Clamp(limite, 1, 10);
-            var titulosCanonicicos = new[]
-            {
-                "The Witcher 3: Wild Hunt",
-                "Red Dead Redemption 2",
-                "Baldur's Gate III",
-                "Cyberpunk 2077",
-                "Elden Ring",
-                "God of War",
-                "The Legend of Zelda: Tears of the Kingdom",
-                "Grand Theft Auto V"
-            };
+            var titulosCanonicicos = _configuration.GetSection("Catalog:HeroFeaturedTitles").Get<string[]>()
+                ?? new[]
+                {
+                    "The Witcher 3: Wild Hunt",
+                    "Red Dead Redemption 2",
+                    "Baldur's Gate III",
+                    "Cyberpunk 2077",
+                    "Elden Ring",
+                    "God of War",
+                    "The Legend of Zelda: Tears of the Kingdom",
+                    "Grand Theft Auto V"
+                };
 
             var destaques = await _context.Jogos
                 .AsNoTracking()

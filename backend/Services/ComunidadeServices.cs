@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
+using GameLog_Backend.Extensions;
 using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -80,25 +81,7 @@ namespace GameLog_Backend.Services
                 .OrderByDescending(a => a.CurtidasDeAvaliacao.Count(c => c.EstaAtivo && c.Curtida))
                 .ThenByDescending(a => a.DataPublicacao)
                 .Take(6)
-                .Select(a => new AvaliacaoDTO
-                {
-                    AvaliacaoId = a.Id,
-                    Nota = a.Nota,
-                    JogoId = a.Jogo.Id,
-                    NomeJogo = a.Jogo.Titulo,
-                    ImagemJogo = a.Jogo.Imagem,
-                    NomeEmpresa = a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
-                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (Guid?)null,
-                    DataLancamentoJogo = a.Jogo.DataLancamento,
-                    UsuarioId = a.Usuario.Id,
-                    NomeUsuario = a.Usuario.NomeUsuario,
-                    FotoPerfilUsuario = a.Usuario.FotoDePerfil,
-                    TextoAvaliacao = a.TextoAvaliacao,
-                    DataPublicacao = a.DataPublicacao,
-                    TotalCurtidas = a.CurtidasDeAvaliacao.Count(c => c.EstaAtivo && c.Curtida),
-                    CurtidaPorMim = usuarioId.HasValue && a.CurtidasDeAvaliacao.Any(c => c.UsuarioId == usuarioId.Value && c.EstaAtivo && c.Curtida),
-                    TotalRespostas = a.RespostasDeAvaliacao.Count(r => r.EstaAtivo)
-                })
+                .ProjetarParaDTO(usuarioId)
                 .ToListAsync();
 
             // 3. Listas / Colecoes em Destaque

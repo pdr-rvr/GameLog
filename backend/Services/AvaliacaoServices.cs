@@ -6,6 +6,7 @@ using AutoMapper;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
 using GameLog_Backend.Entities;
+using GameLog_Backend.Extensions;
 using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -113,25 +114,7 @@ namespace GameLog_Backend.Services
             }
 
             return await query
-                .Select(a => new AvaliacaoDTO
-                {
-                    AvaliacaoId = a.Id,
-                    Nota = a.Nota,
-                    JogoId = a.Jogo.Id,
-                    NomeJogo = a.Jogo.Titulo,
-                    ImagemJogo = a.Jogo.Imagem,
-                    NomeEmpresa = a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
-                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (Guid?)null,
-                    DataLancamentoJogo = a.Jogo.DataLancamento,
-                    UsuarioId = a.Usuario.Id,
-                    NomeUsuario = a.Usuario.NomeUsuario,
-                    FotoPerfilUsuario = a.Usuario.FotoDePerfil,
-                    TextoAvaliacao = a.TextoAvaliacao,
-                    DataPublicacao = a.DataPublicacao,
-                    TotalCurtidas = a.CurtidasDeAvaliacao.Count(c => c.EstaAtivo && c.Curtida),
-                    CurtidaPorMim = usuarioId.HasValue && a.CurtidasDeAvaliacao.Any(c => c.UsuarioId == usuarioId.Value && c.EstaAtivo && c.Curtida),
-                    TotalRespostas = a.RespostasDeAvaliacao.Count(r => r.EstaAtivo)
-                })
+                .ProjetarParaDTO(usuarioId)
                 .ToListAsync();
         }
 
@@ -140,25 +123,7 @@ namespace GameLog_Backend.Services
             return await _context.Avaliacoes
                 .AsNoTracking()
                 .Where(a => a.Id == id && a.EstaAtivo)
-                .Select(a => new AvaliacaoDTO
-                {
-                    AvaliacaoId = a.Id,
-                    Nota = a.Nota,
-                    JogoId = a.Jogo.Id,
-                    NomeJogo = a.Jogo.Titulo,
-                    ImagemJogo = a.Jogo.Imagem,
-                    NomeEmpresa = a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
-                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (Guid?)null,
-                    DataLancamentoJogo = a.Jogo.DataLancamento,
-                    UsuarioId = a.Usuario.Id,
-                    NomeUsuario = a.Usuario.NomeUsuario,
-                    FotoPerfilUsuario = a.Usuario.FotoDePerfil,
-                    TextoAvaliacao = a.TextoAvaliacao,
-                    DataPublicacao = a.DataPublicacao,
-                    TotalCurtidas = a.CurtidasDeAvaliacao.Count(c => c.EstaAtivo && c.Curtida),
-                    CurtidaPorMim = usuarioId.HasValue && a.CurtidasDeAvaliacao.Any(c => c.UsuarioId == usuarioId.Value && c.EstaAtivo && c.Curtida),
-                    TotalRespostas = a.RespostasDeAvaliacao.Count(r => r.EstaAtivo)
-                })
+                .ProjetarParaDTO(usuarioId)
                 .FirstOrDefaultAsync();
         }
 
@@ -168,25 +133,7 @@ namespace GameLog_Backend.Services
                 .AsNoTracking()
                 .Where(a => a.Usuario.Id == usuarioId && a.EstaAtivo)
                 .OrderByDescending(a => a.DataPublicacao)
-                .Select(a => new AvaliacaoDTO
-                {
-                    AvaliacaoId = a.Id,
-                    Nota = a.Nota,
-                    JogoId = a.Jogo.Id,
-                    NomeJogo = a.Jogo.Titulo,
-                    ImagemJogo = a.Jogo.Imagem,
-                    NomeEmpresa = a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
-                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (Guid?)null,
-                    DataLancamentoJogo = a.Jogo.DataLancamento,
-                    UsuarioId = a.Usuario.Id,
-                    NomeUsuario = a.Usuario.NomeUsuario,
-                    FotoPerfilUsuario = a.Usuario.FotoDePerfil,
-                    TextoAvaliacao = a.TextoAvaliacao,
-                    DataPublicacao = a.DataPublicacao,
-                    TotalCurtidas = a.CurtidasDeAvaliacao.Count(c => c.EstaAtivo && c.Curtida),
-                    CurtidaPorMim = usuarioSolicitanteId.HasValue && a.CurtidasDeAvaliacao.Any(c => c.UsuarioId == usuarioSolicitanteId.Value && c.EstaAtivo && c.Curtida),
-                    TotalRespostas = a.RespostasDeAvaliacao.Count(r => r.EstaAtivo)
-                })
+                .ProjetarParaDTO(usuarioSolicitanteId)
                 .ToListAsync();
         }
 
@@ -196,25 +143,7 @@ namespace GameLog_Backend.Services
                 .AsNoTracking()
                 .Where(a => a.Jogo.Id == jogoId && a.EstaAtivo)
                 .OrderByDescending(a => a.DataPublicacao)
-                .Select(a => new AvaliacaoDTO
-                {
-                    AvaliacaoId = a.Id,
-                    Nota = a.Nota,
-                    JogoId = a.Jogo.Id,
-                    NomeJogo = a.Jogo.Titulo,
-                    ImagemJogo = a.Jogo.Imagem,
-                    NomeEmpresa = a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
-                    EmpresaId = a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (Guid?)null,
-                    DataLancamentoJogo = a.Jogo.DataLancamento,
-                    UsuarioId = a.Usuario.Id,
-                    NomeUsuario = a.Usuario.NomeUsuario,
-                    FotoPerfilUsuario = a.Usuario.FotoDePerfil,
-                    TextoAvaliacao = a.TextoAvaliacao,
-                    DataPublicacao = a.DataPublicacao,
-                    TotalCurtidas = a.CurtidasDeAvaliacao.Count(c => c.EstaAtivo && c.Curtida),
-                    CurtidaPorMim = usuarioId.HasValue && a.CurtidasDeAvaliacao.Any(c => c.UsuarioId == usuarioId.Value && c.EstaAtivo && c.Curtida),
-                    TotalRespostas = a.RespostasDeAvaliacao.Count(r => r.EstaAtivo)
-                })
+                .ProjetarParaDTO(usuarioId)
                 .ToListAsync();
         }
 
@@ -265,25 +194,7 @@ namespace GameLog_Backend.Services
             return await _context.Avaliacoes
                 .AsNoTracking()
                 .Where(a => a.Id == id)
-                .Select(a => new AvaliacaoDTO
-                {
-                    AvaliacaoId = a.Id,
-                    Nota = a.Nota,
-                    JogoId = a.Jogo != null ? a.Jogo.Id : Guid.Empty,
-                    NomeJogo = a.Jogo != null ? a.Jogo.Titulo : string.Empty,
-                    ImagemJogo = a.Jogo != null ? a.Jogo.Imagem : null,
-                    NomeEmpresa = a.Jogo != null && a.Jogo.Empresa != null ? a.Jogo.Empresa.NomeEmpresa : null,
-                    EmpresaId = a.Jogo != null && a.Jogo.Empresa != null ? a.Jogo.Empresa.Id : (Guid?)null,
-                    DataLancamentoJogo = a.Jogo != null ? a.Jogo.DataLancamento : (DateOnly?)null,
-                    UsuarioId = a.Usuario != null ? a.Usuario.Id : Guid.Empty,
-                    NomeUsuario = a.Usuario != null ? a.Usuario.NomeUsuario : string.Empty,
-                    FotoPerfilUsuario = a.Usuario != null ? a.Usuario.FotoDePerfil : null,
-                    TextoAvaliacao = a.TextoAvaliacao,
-                    DataPublicacao = a.DataPublicacao,
-                    TotalCurtidas = a.CurtidasDeAvaliacao.Count(c => c.EstaAtivo && c.Curtida),
-                    CurtidaPorMim = usuarioId.HasValue && a.CurtidasDeAvaliacao.Any(c => c.UsuarioId == usuarioId.Value && c.EstaAtivo && c.Curtida),
-                    TotalRespostas = a.RespostasDeAvaliacao.Count(r => r.EstaAtivo)
-                })
+                .ProjetarParaDTO(usuarioId)
                 .FirstAsync();
         }
 

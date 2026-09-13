@@ -170,7 +170,7 @@ builder.Services.AddHttpClient<IRawgApiService, RawgApiService>();
 builder.Services.AddHttpClient<SteamGridDbService>();
 builder.Services.AddScoped<MassiveCatalogSeeder>();
 
-builder.Services.AddAutoMapper(typeof(UsuarioProfile), typeof(AvaliacaoProfile), typeof(EmpresaProfile));
+builder.Services.AddAutoMapper(typeof(UsuarioProfile).Assembly);
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRecomendacaoService, RecomendacaoService>();

@@ -46,30 +46,8 @@ namespace GameLog_Backend.Services
             _context.Set<ListaDeJogos>().Add(lista);
             await _context.SaveChangesAsync();
 
-            if (dto.JogosIds != null && dto.JogosIds.Any())
-            {
-                var ordem = 1;
-                var jogosExistentes = await _context.Jogos
-                    .Where(j => dto.JogosIds.Contains(j.Id) && j.EstaAtivo)
-                    .Select(j => j.Id)
-                    .ToListAsync();
-
-                foreach (var jogoId in dto.JogosIds.Distinct())
-                {
-                    if (jogosExistentes.Contains(jogoId))
-                    {
-                        _context.Set<ItemDeLista>().Add(new ItemDeLista
-                        {
-                            ListaDeJogosId = lista.Id,
-                            JogoId = jogoId,
-                            Ordem = ordem++,
-                            DataAdicionado = DateTime.UtcNow,
-                            EstaAtivo = true
-                        });
-                    }
-                }
-                await _context.SaveChangesAsync();
-            }
+            await AdicionarItensNaListaAsync(lista.Id, dto.JogosIds);
+            await _context.SaveChangesAsync();
 
             return (await ObterListaPorId(lista.Id, usuarioId))!;
         }
@@ -206,27 +184,7 @@ namespace GameLog_Backend.Services
             {
                 // Remover itens antigos
                 _context.Set<ItemDeLista>().RemoveRange(lista.Itens);
-
-                var ordem = 1;
-                var jogosExistentes = await _context.Jogos
-                    .Where(j => dto.JogosIds.Contains(j.Id) && j.EstaAtivo)
-                    .Select(j => j.Id)
-                    .ToListAsync();
-
-                foreach (var jogoId in dto.JogosIds.Distinct())
-                {
-                    if (jogosExistentes.Contains(jogoId))
-                    {
-                        _context.Set<ItemDeLista>().Add(new ItemDeLista
-                        {
-                            ListaDeJogosId = lista.Id,
-                            JogoId = jogoId,
-                            Ordem = ordem++,
-                            DataAdicionado = DateTime.UtcNow,
-                            EstaAtivo = true
-                        });
-                    }
-                }
+                await AdicionarItensNaListaAsync(lista.Id, dto.JogosIds);
             }
 
             await _context.SaveChangesAsync();
@@ -291,6 +249,33 @@ namespace GameLog_Backend.Services
             lista.DataAtualizacao = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        private async Task AdicionarItensNaListaAsync(Guid listaId, IEnumerable<Guid>? jogosIds)
+        {
+            if (jogosIds == null || !jogosIds.Any()) return;
+
+            var idsDistintos = jogosIds.Distinct().ToList();
+            var jogosExistentes = await _context.Jogos
+                .Where(j => idsDistintos.Contains(j.Id) && j.EstaAtivo)
+                .Select(j => j.Id)
+                .ToListAsync();
+
+            var ordem = 1;
+            foreach (var jogoId in idsDistintos)
+            {
+                if (jogosExistentes.Contains(jogoId))
+                {
+                    _context.Set<ItemDeLista>().Add(new ItemDeLista
+                    {
+                        ListaDeJogosId = listaId,
+                        JogoId = jogoId,
+                        Ordem = ordem++,
+                        DataAdicionado = DateTime.UtcNow,
+                        EstaAtivo = true
+                    });
+                }
+            }
         }
     }
 }
