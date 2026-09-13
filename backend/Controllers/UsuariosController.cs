@@ -121,7 +121,7 @@ namespace GameLog_Backend.Controllers
             }
         }
 
-        [Authorize]
+        [AllowAnonymous]
         [HttpPost("revogar")]
         public async Task<IActionResult> RevogarToken([FromBody] RefreshTokenRequestDTO? request)
         {
