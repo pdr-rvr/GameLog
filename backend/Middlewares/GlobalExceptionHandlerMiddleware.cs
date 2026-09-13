@@ -85,6 +85,11 @@ namespace GameLog_Backend.Middlewares
                     "Recurso Não Encontrado",
                     "https://tools.ietf.org/html/rfc7231#section-6.5.4"
                 ),
+                UnauthorizedAccessException ex when ex.Message.Contains("permissão") || ex.Message.Contains("autorizado a alterar") || ex.Message.Contains("autorizado a excluir") => (
+                    (int)HttpStatusCode.Forbidden,
+                    "Acesso Proibido",
+                    "https://tools.ietf.org/html/rfc7231#section-6.5.3"
+                ),
                 UnauthorizedAccessException => (
                     (int)HttpStatusCode.Unauthorized,
                     "Não Autorizado",

@@ -150,12 +150,18 @@ namespace GameLog_Backend.Services
         public async Task<AvaliacaoDTO?> EditarAvaliacao(Guid id, EditarAvaliacaoDTO avaliacaoDTO, Guid usuarioId)
         {
             var avaliacao = await _context.Avaliacoes
-                .FirstOrDefaultAsync(a => a.Id == id &&
-                                          a.Usuario.Id == usuarioId &&
-                                          a.EstaAtivo);
+                .Include(a => a.Usuario)
+                .FirstOrDefaultAsync(a => a.Id == id && a.EstaAtivo);
 
             if (avaliacao == null)
-                return null;
+            {
+                throw new KeyNotFoundException("Avaliação não encontrada.");
+            }
+
+            if (avaliacao.Usuario.Id != usuarioId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para alterar esta avaliação.");
+            }
 
             if (avaliacaoDTO.Nota < 1 || avaliacaoDTO.Nota > 5)
             {
@@ -176,12 +182,18 @@ namespace GameLog_Backend.Services
         public async Task<bool> DeletarAvaliacao(Guid id, Guid usuarioId)
         {
             var avaliacao = await _context.Avaliacoes
-                .FirstOrDefaultAsync(a => a.Id == id &&
-                                          a.Usuario.Id == usuarioId &&
-                                          a.EstaAtivo);
+                .Include(a => a.Usuario)
+                .FirstOrDefaultAsync(a => a.Id == id && a.EstaAtivo);
 
             if (avaliacao == null)
-                return false;
+            {
+                throw new KeyNotFoundException("Avaliação não encontrada.");
+            }
+
+            if (avaliacao.Usuario.Id != usuarioId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para excluir esta avaliação.");
+            }
 
             avaliacao.EstaAtivo = false;
             await _context.SaveChangesAsync();
@@ -341,7 +353,9 @@ namespace GameLog_Backend.Services
                 .FirstOrDefaultAsync(r => r.Id == respostaId && r.EstaAtivo);
 
             if (resposta == null)
-                return false;
+            {
+                throw new KeyNotFoundException("Resposta não encontrada.");
+            }
 
             // Permitir se for o autor do comentário OU o dono da avaliação (poder de moderação)
             var isAutorResposta = resposta.UsuarioId == usuarioId;
@@ -349,7 +363,7 @@ namespace GameLog_Backend.Services
 
             if (!isAutorResposta && !isDonoAvaliacao)
             {
-                return false;
+                throw new UnauthorizedAccessException("Você não tem permissão para excluir esta resposta.");
             }
 
             resposta.EstaAtivo = false;

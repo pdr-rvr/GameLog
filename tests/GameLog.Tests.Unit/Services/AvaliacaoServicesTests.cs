@@ -259,5 +259,168 @@ namespace GameLog.Tests.Unit.Services
             await act.Should().ThrowAsync<InvalidOperationException>()
                 .WithMessage("*Não é permitido avaliar ou dar nota a um jogo que ainda não foi lançado*");
         }
+
+        [Fact]
+        public async Task EditarAvaliacao_ComIdInexistente_DeveLancarKeyNotFoundException()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var mapper = TestContextHelper.CreateMapper();
+            var service = new AvaliacaoServices(context, mapper);
+
+            var dto = new EditarAvaliacaoDTO { Nota = 4, TextoAvaliacao = "Nova review" };
+
+            // Act & Assert
+            var act = async () => await service.EditarAvaliacao(Guid.NewGuid(), dto, Guid.NewGuid());
+            await act.Should().ThrowAsync<KeyNotFoundException>()
+                .WithMessage("*Avaliação não encontrada*");
+        }
+
+        [Fact]
+        public async Task EditarAvaliacao_PorOutroUsuario_DeveLancarUnauthorizedAccessException()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var mapper = TestContextHelper.CreateMapper();
+            var service = new AvaliacaoServices(context, mapper);
+
+            var empresa = new Empresa { NomeEmpresa = "Valve", EstaAtivo = true };
+            context.Empresa.Add(empresa);
+
+            var autor = new Usuario { NomeUsuario = "AutorOriginal", Email = "autor@gamelog.com", Senha = "hash", EstaAtivo = true };
+            var invasor = new Usuario { NomeUsuario = "Invasor", Email = "invasor@gamelog.com", Senha = "hash", EstaAtivo = true };
+            var jogo = new Jogo { Titulo = "Portal 2", Descricao = "Puzzle", Imagem = "portal.jpg", Empresa = empresa, EstaAtivo = true };
+            context.Usuarios.AddRange(autor, invasor);
+            context.Jogos.Add(jogo);
+            await context.SaveChangesAsync();
+
+            var avaliacao = await service.CriarAvaliacao(new CriarAvaliacaoDTO
+            {
+                JogoId = jogo.Id,
+                Nota = 5,
+                TextoAvaliacao = "Review original"
+            }, autor.Id);
+
+            var dto = new EditarAvaliacaoDTO { Nota = 1, TextoAvaliacao = "Tentativa de alteração não autorizada" };
+
+            // Act & Assert
+            var act = async () => await service.EditarAvaliacao(avaliacao.AvaliacaoId, dto, invasor.Id);
+            await act.Should().ThrowAsync<UnauthorizedAccessException>()
+                .WithMessage("*Você não tem permissão para alterar esta avaliação*");
+        }
+
+        [Fact]
+        public async Task EditarAvaliacao_PeloAutor_DeveAtualizarComSucesso()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var mapper = TestContextHelper.CreateMapper();
+            var service = new AvaliacaoServices(context, mapper);
+
+            var empresa = new Empresa { NomeEmpresa = "Valve", EstaAtivo = true };
+            context.Empresa.Add(empresa);
+
+            var autor = new Usuario { NomeUsuario = "AutorLegitimo", Email = "legit@gamelog.com", Senha = "hash", EstaAtivo = true };
+            var jogo = new Jogo { Titulo = "Half-Life 2", Descricao = "FPS", Imagem = "hl2.jpg", Empresa = empresa, EstaAtivo = true };
+            context.Usuarios.Add(autor);
+            context.Jogos.Add(jogo);
+            await context.SaveChangesAsync();
+
+            var avaliacao = await service.CriarAvaliacao(new CriarAvaliacaoDTO
+            {
+                JogoId = jogo.Id,
+                Nota = 4,
+                TextoAvaliacao = "Bom jogo"
+            }, autor.Id);
+
+            var dto = new EditarAvaliacaoDTO { Nota = 5, TextoAvaliacao = "Excelente jogo, mudei de ideia!" };
+
+            // Act
+            var resultado = await service.EditarAvaliacao(avaliacao.AvaliacaoId, dto, autor.Id);
+
+            // Assert
+            resultado.Should().NotBeNull();
+            resultado!.Nota.Should().Be(5);
+            resultado.TextoAvaliacao.Should().Be("Excelente jogo, mudei de ideia!");
+        }
+
+        [Fact]
+        public async Task DeletarAvaliacao_ComIdInexistente_DeveLancarKeyNotFoundException()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var mapper = TestContextHelper.CreateMapper();
+            var service = new AvaliacaoServices(context, mapper);
+
+            // Act & Assert
+            var act = async () => await service.DeletarAvaliacao(Guid.NewGuid(), Guid.NewGuid());
+            await act.Should().ThrowAsync<KeyNotFoundException>()
+                .WithMessage("*Avaliação não encontrada*");
+        }
+
+        [Fact]
+        public async Task DeletarAvaliacao_PorOutroUsuario_DeveLancarUnauthorizedAccessException()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var mapper = TestContextHelper.CreateMapper();
+            var service = new AvaliacaoServices(context, mapper);
+
+            var empresa = new Empresa { NomeEmpresa = "Nintendo", EstaAtivo = true };
+            context.Empresa.Add(empresa);
+
+            var autor = new Usuario { NomeUsuario = "MarioFan", Email = "mario@gamelog.com", Senha = "hash", EstaAtivo = true };
+            var outroUsuario = new Usuario { NomeUsuario = "LuigiHater", Email = "luigi@gamelog.com", Senha = "hash", EstaAtivo = true };
+            var jogo = new Jogo { Titulo = "Super Mario Odyssey", Descricao = "Plataforma 3D", Imagem = "smo.jpg", Empresa = empresa, EstaAtivo = true };
+            context.Usuarios.AddRange(autor, outroUsuario);
+            context.Jogos.Add(jogo);
+            await context.SaveChangesAsync();
+
+            var avaliacao = await service.CriarAvaliacao(new CriarAvaliacaoDTO
+            {
+                JogoId = jogo.Id,
+                Nota = 5,
+                TextoAvaliacao = "Incrível!"
+            }, autor.Id);
+
+            // Act & Assert
+            var act = async () => await service.DeletarAvaliacao(avaliacao.AvaliacaoId, outroUsuario.Id);
+            await act.Should().ThrowAsync<UnauthorizedAccessException>()
+                .WithMessage("*Você não tem permissão para excluir esta avaliação*");
+        }
+
+        [Fact]
+        public async Task DeletarAvaliacao_PeloAutor_DeveDesativarComSucesso()
+        {
+            // Arrange
+            using var context = TestContextHelper.CreateInMemoryContext();
+            var mapper = TestContextHelper.CreateMapper();
+            var service = new AvaliacaoServices(context, mapper);
+
+            var empresa = new Empresa { NomeEmpresa = "Nintendo", EstaAtivo = true };
+            context.Empresa.Add(empresa);
+
+            var autor = new Usuario { NomeUsuario = "ZeldaFan", Email = "zelda@gamelog.com", Senha = "hash", EstaAtivo = true };
+            var jogo = new Jogo { Titulo = "Zelda BotW", Descricao = "Aventura", Imagem = "botw.jpg", Empresa = empresa, EstaAtivo = true };
+            context.Usuarios.Add(autor);
+            context.Jogos.Add(jogo);
+            await context.SaveChangesAsync();
+
+            var avaliacao = await service.CriarAvaliacao(new CriarAvaliacaoDTO
+            {
+                JogoId = jogo.Id,
+                Nota = 5,
+                TextoAvaliacao = "Sensacional"
+            }, autor.Id);
+
+            // Act
+            var sucesso = await service.DeletarAvaliacao(avaliacao.AvaliacaoId, autor.Id);
+
+            // Assert
+            sucesso.Should().BeTrue();
+            var avaliacaoDb = await context.Avaliacoes.FindAsync(avaliacao.AvaliacaoId);
+            avaliacaoDb.Should().NotBeNull();
+            avaliacaoDb!.EstaAtivo.Should().BeFalse();
+        }
     }
 }
