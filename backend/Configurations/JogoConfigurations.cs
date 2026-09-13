@@ -49,7 +49,10 @@ namespace GameLog_Backend.Configurations
                 .IsRequired();
 
             // Índices de Performance e Otimização de Consultas
-            builder.HasIndex(p => p.Titulo);
+            builder.HasIndex(p => p.Titulo)
+                .HasDatabaseName("idx_jogos_titulo_trgm")
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
             builder.HasIndex(p => p.DataLancamento);
             builder.HasIndex(p => p.EstaAtivo);
             builder.HasIndex(p => new { p.EstaAtivo, p.DataLancamento });

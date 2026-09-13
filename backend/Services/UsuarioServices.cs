@@ -15,6 +15,7 @@ namespace GameLog_Backend.Services
         private readonly ISocialService _socialService;
         private readonly IFeedService _feedService;
 
+        [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
         public UsuarioServices(
             IUserProfileService userProfileService,
             IAuthService authService,

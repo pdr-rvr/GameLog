@@ -60,6 +60,8 @@ namespace GameLog_Backend.Database
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.HasPostgresExtension("pg_trgm");
+
             modelBuilder.ApplyConfiguration(new UsuarioConfigurations());
             modelBuilder.ApplyConfiguration(new GeneroConfigurations());
             modelBuilder.ApplyConfiguration(new EmpresaConfigurations());

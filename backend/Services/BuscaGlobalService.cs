@@ -37,18 +37,35 @@ namespace GameLog_Backend.Services
             var termo = q.Trim().ToLower();
             limite = Math.Clamp(limite, 1, 20);
 
-            // 1. Busca em Jogos Locais com filtragem de relevância
-            var jogosLocaisCandidatos = await _context.Jogos
+            var isNpgsql = _context.Database.IsNpgsql();
+
+            // 1. Busca em Jogos Locais com filtragem de relevância (acelerada por índice GIN trgm no PostgreSQL)
+            var queryJogos = _context.Jogos
                 .AsNoTracking()
                 .Include(j => j.Generos)
                 .Include(j => j.Empresa)
                 .Include(j => j.Publicadora)
-                .Where(j => j.EstaAtivo && (
+                .Where(j => j.EstaAtivo);
+
+            if (isNpgsql)
+            {
+                var pattern = $"%{termo}%";
+                queryJogos = queryJogos.Where(j =>
+                    EF.Functions.ILike(j.Titulo, pattern) ||
+                    (j.Empresa != null && EF.Functions.ILike(j.Empresa.NomeEmpresa, pattern)) ||
+                    (j.Publicadora != null && EF.Functions.ILike(j.Publicadora.NomeEmpresa, pattern)) ||
+                    j.Generos.Any(g => EF.Functions.ILike(g.TituloGenero, pattern)));
+            }
+            else
+            {
+                queryJogos = queryJogos.Where(j =>
                     j.Titulo.ToLower().Contains(termo) ||
                     (j.Empresa != null && j.Empresa.NomeEmpresa.ToLower().Contains(termo)) ||
                     (j.Publicadora != null && j.Publicadora.NomeEmpresa.ToLower().Contains(termo)) ||
-                    j.Generos.Any(g => g.TituloGenero.ToLower().Contains(termo))
-                ))
+                    j.Generos.Any(g => g.TituloGenero.ToLower().Contains(termo)));
+            }
+
+            var jogosLocaisCandidatos = await queryJogos
                 .Take(limite * 3)
                 .ToListAsync();
 
@@ -111,9 +128,21 @@ namespace GameLog_Backend.Services
             }
 
             // 2. Busca em Usuários
-            var usuarios = await _context.Usuarios
+            var usuariosQuery = _context.Usuarios
                 .AsNoTracking()
-                .Where(u => u.EstaAtivo && u.NomeUsuario.ToLower().Contains(termo))
+                .Where(u => u.EstaAtivo);
+
+            if (isNpgsql)
+            {
+                var pattern = $"%{termo}%";
+                usuariosQuery = usuariosQuery.Where(u => EF.Functions.ILike(u.NomeUsuario, pattern));
+            }
+            else
+            {
+                usuariosQuery = usuariosQuery.Where(u => u.NomeUsuario.ToLower().Contains(termo));
+            }
+
+            var usuarios = await usuariosQuery
                 .Take(limite)
                 .Select(u => new BuscaItemUsuarioDTO
                 {
@@ -125,15 +154,28 @@ namespace GameLog_Backend.Services
                 .ToListAsync();
 
             // 3. Busca em Listas Públicas
-            var listas = await _context.ListasDeJogos
+            var listasQuery = _context.ListasDeJogos
                 .AsNoTracking()
                 .Include(l => l.Usuario)
                 .Include(l => l.Itens)
                     .ThenInclude(i => i.Jogo)
-                .Where(l => l.EstaAtivo && l.EstaPublica && (
+                .Where(l => l.EstaAtivo && l.EstaPublica);
+
+            if (isNpgsql)
+            {
+                var pattern = $"%{termo}%";
+                listasQuery = listasQuery.Where(l =>
+                    EF.Functions.ILike(l.Titulo, pattern) ||
+                    (l.Descricao != null && EF.Functions.ILike(l.Descricao, pattern)));
+            }
+            else
+            {
+                listasQuery = listasQuery.Where(l =>
                     l.Titulo.ToLower().Contains(termo) ||
-                    (l.Descricao != null && l.Descricao.ToLower().Contains(termo))
-                ))
+                    (l.Descricao != null && l.Descricao.ToLower().Contains(termo)));
+            }
+
+            var listas = await listasQuery
                 .Take(limite)
                 .Select(l => new BuscaItemListaDTO
                 {
