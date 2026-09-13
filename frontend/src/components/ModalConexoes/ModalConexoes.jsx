@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { FaTimes, FaUserFriends, FaUserPlus, FaUserCheck, FaUserSlash } from "react-icons/fa";
@@ -34,7 +35,7 @@ const ModalConexoes = ({
         setLista(dados || []);
       }
     } catch (err) {
-      console.error("Erro ao carregar conexoes:", err);
+      logger.error("Erro ao carregar conexoes:", err);
       toast.error("Nao foi possivel carregar a lista de conexoes.");
     } finally {
       setLoading(false);
@@ -71,7 +72,7 @@ const ModalConexoes = ({
       toast.success(res.seguido ? `Voce esta seguindo ${nome}.` : `Voce deixou de seguir ${nome}.`);
       if (onConexaoAlterada) onConexaoAlterada();
     } catch (err) {
-      console.error("Erro ao alterar relacao de seguir:", err);
+      logger.error("Erro ao alterar relacao de seguir:", err);
       toast.error(err.response?.data?.detail || err.response?.data?.message || "Erro ao atualizar conexao.");
     } finally {
       setProcessandoId(null);

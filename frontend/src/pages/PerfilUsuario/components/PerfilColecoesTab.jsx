@@ -51,7 +51,7 @@ const PerfilColecoesTab = ({ perfil, isOwner, listas, onCriarLista }) => {
                 {lista.capasPreview && lista.capasPreview.length > 0 ? (
                   <div className={`collection-mosaic count-${Math.min(lista.capasPreview.length, 4)}`}>
                     {lista.capasPreview.slice(0, 4).map((capa, idx) => (
-                      <img key={idx} src={capa} alt="Capa" className="mosaic-thumb" />
+                      <img key={idx} src={capa} alt={`Capa da coleção ${lista.titulo}`} className="mosaic-thumb" />
                     ))}
                   </div>
                 ) : (

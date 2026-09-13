@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -42,7 +43,7 @@ const PaginaDetalhesLista = () => {
       const dados = await ListaService.obterListaPorId(id);
       setLista(dados);
     } catch (err) {
-      console.error("Erro ao carregar detalhes da lista:", err);
+      logger.error("Erro ao carregar detalhes da lista:", err);
       setError(err.response?.data?.message || "Lista não encontrada ou privada.");
     } finally {
       setLoading(false);
@@ -62,7 +63,7 @@ const PaginaDetalhesLista = () => {
       toast.success("Coleção excluída com sucesso.");
       navigate(`/perfil/${user.id}`);
     } catch (err) {
-      console.error("Erro ao excluir lista:", err);
+      logger.error("Erro ao excluir lista:", err);
       toast.error(err.response?.data?.message || "Erro ao excluir coleção.");
     } finally {
       setExcluindo(false);

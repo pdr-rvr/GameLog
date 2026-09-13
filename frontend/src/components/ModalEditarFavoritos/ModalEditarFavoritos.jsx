@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FaTimes, FaSearch, FaTrash, FaCheck, FaTrophy, FaGamepad, FaSpinner } from "react-icons/fa";
 import { JogoService } from "../../services/jogoService";
@@ -71,7 +72,7 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
       });
       setJogosEncontrados(res.itens || []);
     } catch (err) {
-      console.error("Erro na busca de jogos para favoritos:", err);
+      logger.error("Erro na busca de jogos para favoritos:", err);
       setJogosEncontrados([]);
     } finally {
       setCarregandoCatalogo(false);
@@ -149,7 +150,7 @@ const ModalEditarFavoritos = ({ isOpen, onClose, favoritosAtuais = [], onSalvo }
       }
       onClose();
     } catch (err) {
-      console.error("Erro ao salvar favoritos:", err);
+      logger.error("Erro ao salvar favoritos:", err);
       toast.error(err.response?.data?.message || "Erro ao salvar jogos favoritos.");
     } finally {
       setSalvando(false);

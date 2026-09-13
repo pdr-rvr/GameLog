@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
@@ -82,7 +83,7 @@ const AvaliacaoCard = ({ avaliacao, onEdit, onDelete }) => {
         setTotalCurtidas(res.totalCurtidas);
       }
     } catch (err) {
-      console.error("Erro ao alternar curtida:", err);
+      logger.error("Erro ao alternar curtida:", err);
       setCurtido(anteriorCurtido);
       setTotalCurtidas(anteriorTotal);
       error(err.response?.data?.message || "Erro ao curtir avaliação.");

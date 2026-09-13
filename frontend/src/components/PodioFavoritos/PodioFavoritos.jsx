@@ -99,7 +99,7 @@ const PodioFavoritos = ({ favoritos = [], isOwner = false, onEditar }) => {
                     <div className="podio-poster-wrap">
                       <img
                         src={item.imagemJogo || "/game-images/default_game_cover.png"}
-                        alt={item.tituloJogo}
+                        alt={`Capa do jogo ${item.tituloJogo}`}
                         className="podio-poster-img"
                         loading="eager"
                         decoding="async"

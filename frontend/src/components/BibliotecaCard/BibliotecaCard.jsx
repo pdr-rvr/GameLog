@@ -24,7 +24,7 @@ const BibliotecaCard = ({ item, isOwner = false, onRemover }) => {
         <div className="biblioteca-cover-wrapper">
           <img
             src={item.imagemJogo || "/game-images/default_game_cover.png"}
-            alt={item.tituloJogo}
+            alt={`Capa do jogo ${item.tituloJogo}`}
             className="biblioteca-cover-img"
             loading="lazy"
             decoding="async"

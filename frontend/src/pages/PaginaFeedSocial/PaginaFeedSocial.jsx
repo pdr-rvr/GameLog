@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -66,7 +67,7 @@ const PaginaFeedSocial = () => {
           setGamersSugeridos(feedData.gamersSugeridos);
         }
       } catch (error) {
-        console.error("Erro ao carregar feed social:", error);
+        logger.error("Erro ao carregar feed social:", error);
       } finally {
         setLoadingFeed(false);
       }
@@ -85,7 +86,7 @@ const PaginaFeedSocial = () => {
           const lista = Array.isArray(dados) ? dados : dados?.itens || [];
           setAtividadesTimeline(lista);
         } catch (error) {
-          console.error("Erro ao carregar timeline de atividades:", error);
+          logger.error("Erro ao carregar timeline de atividades:", error);
         } finally {
           setLoadingTimeline(false);
         }
@@ -113,7 +114,7 @@ const PaginaFeedSocial = () => {
         })
       );
     } catch (error) {
-      console.error("Erro ao curtir avaliação:", error);
+      logger.error("Erro ao curtir avaliação:", error);
       toast.error("Não foi possível registrar a curtida.");
     }
   };
@@ -136,7 +137,7 @@ const PaginaFeedSocial = () => {
       const feedData = await SocialService.obterFeedSocial(1, 30);
       setItensFeed(feedData?.itens || (Array.isArray(feedData) ? feedData : []));
     } catch (error) {
-      console.error("Erro ao alternar seguir:", error);
+      logger.error("Erro ao alternar seguir:", error);
       toast.error("Não foi possível atualizar a ação de seguir.");
     }
   };
@@ -152,7 +153,7 @@ const PaginaFeedSocial = () => {
       const feedData = await SocialService.obterFeedSocial(1, 30);
       setItensFeed(feedData?.itens || (Array.isArray(feedData) ? feedData : []));
     } catch (error) {
-      console.error("Erro ao salvar avaliação:", error);
+      logger.error("Erro ao salvar avaliação:", error);
       toast.error(error.message || "Erro ao publicar avaliação.");
     } finally {
       setSalvandoAvaliacao(false);

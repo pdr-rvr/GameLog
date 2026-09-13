@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -54,7 +55,7 @@ const EditarAvaliacao = () => {
           textoAvaliacao: dados.textoAvaliacao || ""
         });
       } catch (err) {
-        console.error("Erro ao carregar avaliação para edição:", err);
+        logger.error("Erro ao carregar avaliação para edição:", err);
         setError(err.message || "Não foi possível carregar a avaliação.");
       } finally {
         setLoading(false);

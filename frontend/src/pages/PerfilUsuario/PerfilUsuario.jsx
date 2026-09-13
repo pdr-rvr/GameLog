@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -117,7 +118,7 @@ const PerfilUsuario = () => {
       setListas(dadosListas || []);
       setStatsSociais(dadosSociais);
     } catch (err) {
-      console.error("Erro ao carregar perfil:", err);
+      logger.error("Erro ao carregar perfil:", err);
       setError(err.message || "Não foi possível carregar o perfil do jogador.");
     } finally {
       setLoading(false);
@@ -139,7 +140,7 @@ const PerfilUsuario = () => {
       );
       setItensBiblioteca(itens || []);
     } catch (err) {
-      console.error("Erro ao carregar biblioteca:", err);
+      logger.error("Erro ao carregar biblioteca:", err);
     } finally {
       setLoadingBiblioteca(false);
     }
@@ -159,7 +160,7 @@ const PerfilUsuario = () => {
       setItensBiblioteca(itens || []);
       setStatsBiblioteca(stats);
     } catch (err) {
-      console.error("Erro ao recarregar estatísticas da biblioteca:", err);
+      logger.error("Erro ao recarregar estatísticas da biblioteca:", err);
     }
   };
 
@@ -183,7 +184,7 @@ const PerfilUsuario = () => {
       }));
       toast.success(res.seguido ? `Você agora está seguindo ${perfil?.nomeUsuario}.` : `Você deixou de seguir ${perfil?.nomeUsuario}.`);
     } catch (err) {
-      console.error("Erro ao alterar seguir:", err);
+      logger.error("Erro ao alterar seguir:", err);
       toast.error(err.response?.data?.detail || err.response?.data?.message || "Erro ao atualizar relacionamento.");
     } finally {
       setProcessandoSeguir(false);
@@ -222,7 +223,7 @@ const PerfilUsuario = () => {
       setJogoParaRemoverBiblioteca(null);
       await recarregarBibliotecaCompleta();
     } catch (err) {
-      console.error("Erro ao remover da biblioteca:", err);
+      logger.error("Erro ao remover da biblioteca:", err);
       toast.error(err.response?.data?.message || "Erro ao remover jogo da biblioteca.");
     }
   };
@@ -233,7 +234,7 @@ const PerfilUsuario = () => {
       const dados = await ListaService.listarListasDoUsuario(targetId);
       setListas(dados || []);
     } catch (err) {
-      console.error("Erro ao recarregar coleções:", err);
+      logger.error("Erro ao recarregar coleções:", err);
     }
   };
 

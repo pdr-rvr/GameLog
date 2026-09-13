@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -74,7 +75,7 @@ const TelaHome = () => {
           setRecomendacoes(dadosRecomendacoes || []);
         }
       } catch (error) {
-        console.error("Erro ao carregar dados da Home:", error);
+        logger.error("Erro ao carregar dados da Home:", error);
       } finally {
         setLoading(false);
       }
@@ -107,7 +108,7 @@ const TelaHome = () => {
       const novasAvaliacoes = await buscarAvaliacoes();
       setAvaliacoes(novasAvaliacoes);
     } catch (error) {
-      console.error("Erro ao salvar avaliação:", error);
+      logger.error("Erro ao salvar avaliação:", error);
       toast.error(error.message || "Erro ao publicar avaliação. Tente novamente.");
     } finally {
       setSalvandoAvaliacao(false);

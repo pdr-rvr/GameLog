@@ -88,7 +88,7 @@ const JogoCard = ({ jogo, onClick }) => {
         <div className="jogo-card-image-container">
           <img
             src={imagem}
-            alt={titulo}
+            alt={`Capa do jogo ${titulo}`}
             className="jogo-card-image"
             loading="eager"
             decoding="async"

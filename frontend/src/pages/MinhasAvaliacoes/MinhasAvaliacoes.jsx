@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -31,7 +32,7 @@ const MinhasAvaliacoes = () => {
       const dados = await fetchUserReviews(user.id);
       setAvaliacoes(dados || []);
     } catch (err) {
-      console.error("Erro ao carregar minhas avaliações:", err);
+      logger.error("Erro ao carregar minhas avaliações:", err);
       setError(err.message || "Não foi possível carregar suas avaliações.");
     } finally {
       setLoading(false);

@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -34,7 +35,7 @@ const PaginaEmpresa = () => {
       setEmpresa(dadosEmpresa);
       setJogos(dadosJogos || []);
     } catch (err) {
-      console.error("Erro ao carregar empresa:", err);
+      logger.error("Erro ao carregar empresa:", err);
       setError(err.message || "Não foi possível carregar os dados da empresa.");
     } finally {
       setLoading(false);

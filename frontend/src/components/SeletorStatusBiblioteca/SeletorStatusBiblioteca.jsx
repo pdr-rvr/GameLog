@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaBookmark, FaCheck, FaTrash, FaChevronDown } from "react-icons/fa";
@@ -55,7 +56,7 @@ const SeletorStatusBiblioteca = ({ jogoId, onAtualizado, ehFuturo = false }) => 
           }
         }
       } catch (err) {
-        console.error("Erro ao obter status do jogo na biblioteca:", err);
+        logger.error("Erro ao obter status do jogo na biblioteca:", err);
       } finally {
         if (!cancelado) setLoading(false);
       }
@@ -83,7 +84,7 @@ const SeletorStatusBiblioteca = ({ jogoId, onAtualizado, ehFuturo = false }) => 
       if (onAtualizado) onAtualizado(res);
       setPainelAberto(false);
     } catch (err) {
-      console.error("Erro ao salvar status:", err);
+      logger.error("Erro ao salvar status:", err);
       toast.error(err.response?.data?.message || "Erro ao atualizar biblioteca.");
     } finally {
       setSalvando(false);
@@ -102,7 +103,7 @@ const SeletorStatusBiblioteca = ({ jogoId, onAtualizado, ehFuturo = false }) => 
       if (onAtualizado) onAtualizado(null);
       setPainelAberto(false);
     } catch (err) {
-      console.error("Erro ao remover da biblioteca:", err);
+      logger.error("Erro ao remover da biblioteca:", err);
       toast.error(err.response?.data?.message || "Erro ao remover da biblioteca.");
     } finally {
       setSalvando(false);

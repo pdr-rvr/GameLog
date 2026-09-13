@@ -118,7 +118,7 @@ const FeedStream = ({
                       <img 
                         key={idx} 
                         src={capa} 
-                        alt="Capa do Jogo" 
+                        alt={`Capa da coleção ${listaTitulo}`} 
                         className="collection-preview-thumb" 
                       />
                     ))}

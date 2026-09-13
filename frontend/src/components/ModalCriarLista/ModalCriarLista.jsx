@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { FaTimes, FaSearch, FaPlus, FaTrash, FaLayerGroup, FaLock, FaGlobe, FaCheck } from "react-icons/fa";
 import { JogoService } from "../../services/jogoService";
@@ -58,7 +59,7 @@ const ModalCriarLista = ({
             setCatalogo(normalizados);
           })
           .catch((err) => {
-            console.error("Erro ao carregar catálogo:", err);
+            logger.error("Erro ao carregar catálogo:", err);
           })
           .finally(() => setCarregandoCatalogo(false));
       }
@@ -122,7 +123,7 @@ const ModalCriarLista = ({
       if (onListaSalva) onListaSalva(resultado);
       onClose();
     } catch (err) {
-      console.error("Erro ao salvar lista:", err);
+      logger.error("Erro ao salvar lista:", err);
       toast.error(err.response?.data?.message || "Erro ao salvar a coleção.");
     } finally {
       setSalvando(false);

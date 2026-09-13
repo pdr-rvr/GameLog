@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -44,7 +45,7 @@ function TelaJogo() {
             setJogo(dadosJogo);
             setAvaliacoes(dadosAvaliacoes || []);
         } catch (err) {
-            console.error("Erro ao carregar dados do jogo:", err);
+            logger.error("Erro ao carregar dados do jogo:", err);
             setError(err.message || "Não foi possível carregar os detalhes do jogo.");
         } finally {
             setLoading(false);
@@ -89,7 +90,7 @@ function TelaJogo() {
             setJogo(novosDadosJogo);
             setAvaliacoes(novasAvaliacoes || []);
         } catch (err) {
-            console.error("Erro ao salvar avaliação:", err);
+            logger.error("Erro ao salvar avaliação:", err);
             toast.error(err.userMessage || err.response?.data?.message || "Erro ao salvar avaliação.");
         } finally {
             setSalvandoAvaliacao(false);

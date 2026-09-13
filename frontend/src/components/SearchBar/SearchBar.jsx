@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaSearch, FaTimes, FaGamepad, FaUser, FaLayerGroup, FaChevronRight } from 'react-icons/fa';
@@ -48,7 +49,7 @@ const SearchBar = ({
       });
     } catch (err) {
       if (err.name !== 'CanceledError' && err.code !== 'ERR_CANCELED') {
-        console.error("Erro na busca global:", err);
+        logger.error("Erro na busca global:", err);
       }
     } finally {
       setLoading(false);
@@ -91,7 +92,7 @@ const SearchBar = ({
           const targetId = imported.jogoId || imported.id;
           navigate(`/jogos/${targetId}`);
         } catch (err) {
-          console.error("Erro ao importar jogo selecionado:", err);
+          logger.error("Erro ao importar jogo selecionado:", err);
           const fallbackId = jogo.jogoId || jogo.id;
           if (fallbackId) navigate(`/jogos/${fallbackId}`);
         }

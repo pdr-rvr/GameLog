@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -60,7 +61,7 @@ const PaginaComunidade = () => {
         setTendencias(dadosTendencias || {});
         setJogos(dadosJogos || []);
       } catch (error) {
-        console.error("Erro ao carregar dados da comunidade:", error);
+        logger.error("Erro ao carregar dados da comunidade:", error);
       } finally {
         setLoading(false);
       }
@@ -81,7 +82,7 @@ const PaginaComunidade = () => {
         const data = await AvaliacaoService.listarAvaliacoes(params);
         setAvaliacoes(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Erro ao carregar avaliações:", error);
+        logger.error("Erro ao carregar avaliações:", error);
       } finally {
         setLoadingAvaliacoes(false);
       }
@@ -115,7 +116,7 @@ const PaginaComunidade = () => {
         })
       );
     } catch (error) {
-      console.error("Erro ao curtir avaliação:", error);
+      logger.error("Erro ao curtir avaliação:", error);
       toast.error("Não foi possível registrar a curtida.");
     }
   };
@@ -132,7 +133,7 @@ const PaginaComunidade = () => {
       const novasAvaliacoes = await AvaliacaoService.listarAvaliacoes(params);
       setAvaliacoes(novasAvaliacoes || []);
     } catch (error) {
-      console.error("Erro ao publicar avaliação:", error);
+      logger.error("Erro ao publicar avaliação:", error);
       toast.error(error.message || "Erro ao publicar avaliação.");
     } finally {
       setSalvandoAvaliacao(false);

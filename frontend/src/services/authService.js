@@ -1,3 +1,4 @@
+import { logger } from "../utils/logger";
 import api from './api';
 import { jwtDecode } from 'jwt-decode';
 
@@ -63,7 +64,7 @@ export const AuthService = {
       const decoded = jwtDecode(token);
       return decoded.exp * 1000 > Date.now();
     } catch (error) {
-      console.error("Token inválido ou expirado na checagem de autenticação:", error);
+      logger.error("Token inválido ou expirado na checagem de autenticação:", error);
       AuthService.logout(); 
       return false;
     }

@@ -1,3 +1,4 @@
+import { logger } from "../../utils/logger";
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -61,7 +62,7 @@ const PaginaDetalhesAvaliacao = () => {
       setTotalCurtidas(Number(dadosAvaliacao.totalCurtidas) || 0);
       setRespostas(dadosRespostas || []);
     } catch (err) {
-      console.error("Erro ao carregar detalhes da avaliação:", err);
+      logger.error("Erro ao carregar detalhes da avaliação:", err);
       error("Não foi possível carregar a avaliação.");
     } finally {
       setLoading(false);
@@ -104,7 +105,7 @@ const PaginaDetalhesAvaliacao = () => {
         setTotalCurtidas(res.totalCurtidas);
       }
     } catch (err) {
-      console.error("Erro ao alternar curtida da avaliação:", err);
+      logger.error("Erro ao alternar curtida da avaliação:", err);
       setCurtido(anteriorCurtido);
       setTotalCurtidas(anteriorTotal);
       error(err.response?.data?.message || "Erro ao curtir avaliação.");
@@ -152,7 +153,7 @@ const PaginaDetalhesAvaliacao = () => {
         );
       }
     } catch (err) {
-      console.error("Erro ao curtir resposta:", err);
+      logger.error("Erro ao curtir resposta:", err);
       error(err.response?.data?.message || "Erro ao curtir resposta.");
       // Rollback
       carregarDados();
@@ -175,7 +176,7 @@ const PaginaDetalhesAvaliacao = () => {
       setNovoComentario("");
       success("Comentário publicado com sucesso!");
     } catch (err) {
-      console.error("Erro ao enviar comentário:", err);
+      logger.error("Erro ao enviar comentário:", err);
       error(err.response?.data?.message || "Não foi possível enviar o comentário.");
     } finally {
       setEnviandoComentario(false);
@@ -190,7 +191,7 @@ const PaginaDetalhesAvaliacao = () => {
       setRespostas((prev) => prev.filter((r) => r.respostaId !== respostaId));
       success("Comentário excluído.");
     } catch (err) {
-      console.error("Erro ao excluir resposta:", err);
+      logger.error("Erro ao excluir resposta:", err);
       error("Não foi possível excluir o comentário.");
     } finally {
       setDeletandoRespostaId(null);
