@@ -154,10 +154,11 @@ namespace GameLog_Backend.Controllers
 
         private void DefinirCookieRefreshToken(string refreshToken)
         {
+            var isProduction = !string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase);
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = Request.IsHttps,
+                Secure = Request.IsHttps || isProduction,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddDays(7),
                 Path = "/api/usuarios"
@@ -167,10 +168,11 @@ namespace GameLog_Backend.Controllers
 
         private void RemoverCookieRefreshToken()
         {
+            var isProduction = !string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase);
             Response.Cookies.Delete("refreshToken", new CookieOptions
             {
                 HttpOnly = true,
-                Secure = Request.IsHttps,
+                Secure = Request.IsHttps || isProduction,
                 SameSite = SameSiteMode.Lax,
                 Path = "/api/usuarios"
             });

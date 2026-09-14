@@ -172,7 +172,14 @@ namespace GameLog_Backend.Services
             tokenExistente.SubstituidoPorToken = novoRefreshToken.Token;
 
             _context.RefreshTokens.Add(novoRefreshToken);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new SecurityTokenException("Conflito de concorrência detectado na renovação do token de atualização. Tente novamente.");
+            }
 
             var novoJwt = GerarTokenJwt(tokenExistente.Usuario);
             var expireMinutes = _jwtSettings.ExpireMinutes > 0 ? _jwtSettings.ExpireMinutes : (_jwtSettings.ExpireHours > 0 ? _jwtSettings.ExpireHours * 60 : 15);

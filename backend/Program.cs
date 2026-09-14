@@ -16,6 +16,7 @@ using GameLog_Backend.Services.Interfaces;
 using GameLog_Backend.Validators;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http.Resilience;
@@ -268,14 +269,22 @@ builder.Services.AddScoped<IListaService, ListaServices>();
 builder.Services.AddScoped<IBuscaGlobalService, BuscaGlobalService>();
 builder.Services.AddScoped<IComunidadeService, ComunidadeServices>();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<GameLogContext>("database");
+    .AddDbContextCheck<GameLogContext>("database", tags: new[] { "ready" });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
@@ -348,6 +357,14 @@ app.MapControllers();
 
 app.MapGet("/", () => "API GameLog está online!").AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false
+}).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+}).AllowAnonymous();
 
 try
 {

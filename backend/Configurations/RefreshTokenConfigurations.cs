@@ -19,6 +19,9 @@ namespace GameLog_Backend.Configurations
                 .IsRequired()
                 .HasMaxLength(256);
 
+            builder.Property(rt => rt.RevogadoEm)
+                .IsConcurrencyToken();
+
             builder.HasIndex(rt => rt.Token)
                 .IsUnique();
 
