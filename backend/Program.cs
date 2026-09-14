@@ -4,6 +4,7 @@ using AutoMapper;
 using DotNetEnv;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using GameLog_Backend.BackgroundServices;
 using GameLog_Backend.Configurations;
 using GameLog_Backend.Database;
 using GameLog_Backend.Interceptors;
@@ -268,6 +269,12 @@ builder.Services.AddScoped<IBibliotecaService, BibliotecaServices>();
 builder.Services.AddScoped<IListaService, ListaServices>();
 builder.Services.AddScoped<IBuscaGlobalService, BuscaGlobalService>();
 builder.Services.AddScoped<IComunidadeService, ComunidadeServices>();
+builder.Services.AddScoped<IAuditRetentionService, AuditRetentionService>();
+
+if (!isTesting)
+{
+    builder.Services.AddHostedService<AuditRetentionBackgroundService>();
+}
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
