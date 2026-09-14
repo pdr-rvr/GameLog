@@ -18,6 +18,13 @@ services:
       start_period: 5s
     networks:
       - gamelog-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          memory: 128M
 
   backend:
     build:
@@ -48,6 +55,13 @@ services:
       start_period: 15s
     networks:
       - gamelog-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 512M
+        reservations:
+          memory: 128M
 
   frontend:
     build:
@@ -64,6 +78,13 @@ services:
         condition: service_healthy
     networks:
       - gamelog-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          memory: 32M
 
 volumes:
   postgres_data:
