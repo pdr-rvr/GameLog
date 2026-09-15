@@ -87,7 +87,7 @@ else
 }
 
 var baseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? "Host={DB_SERVER};Port={DB_PORT};Database={DB_NAME};Username={DB_USER};Password={DB_PASSWORD};";
+    ?? "Host={DB_SERVER};Port={DB_PORT};Database={DB_NAME};Username={DB_USER};Password={DB_PASSWORD};SslMode=Prefer;TrustServerCertificate=true;";
 
 var completeConnectionString = baseConnectionString
     .Replace("{DB_SERVER}", dbServer)
