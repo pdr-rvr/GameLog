@@ -28,16 +28,16 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore Dependencies
-        run: dotnet restore backend/GameLog_Backend.csproj
+        run: dotnet restore GameLog.sln
 
-      - name: Build Backend (Release)
-        run: dotnet build backend/GameLog_Backend.csproj --configuration Release --no-restore
+      - name: Build Solution (Release)
+        run: dotnet build GameLog.sln --configuration Release --no-restore
 
       - name: Run Backend Unit Tests
-        run: dotnet test tests/GameLog.Tests.Unit/GameLog.Tests.Unit.csproj --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+        run: dotnet test tests/GameLog.Tests.Unit/GameLog.Tests.Unit.csproj --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --no-build
 
       - name: Run Backend Integration Tests
-        run: dotnet test tests/GameLog.Tests.Integration/GameLog.Tests.Integration.csproj --configuration Release --verbosity normal
+        run: dotnet test tests/GameLog.Tests.Integration/GameLog.Tests.Integration.csproj --configuration Release --verbosity normal --no-build
 
   frontend-ci:
     name: Frontend CI (React / Vite / Vitest)

@@ -1,7 +1,11 @@
 node_modules/
 dist/
-coverage/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .git/
+.gitignore
 .env
-.env.*
-.vscode/
+.env.local
+*.md
