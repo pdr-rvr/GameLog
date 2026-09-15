@@ -48,5 +48,22 @@ namespace GameLog.Tests.Unit.Catalog
             dev.Should().Be("CD Projekt Red");
             pub.Should().Be("CD Projekt Red");
         }
+
+        [Theory]
+        [InlineData("Vampire: The Masquerade – Bloodlines 2", "Paradox Interactive")]
+        [InlineData("Gothic 1 Remake", "THQ Nordic")]
+        [InlineData("Hades II", "Supergiant Games")]
+        [InlineData("Cult of the Lamb", "Devolver Digital")]
+        [InlineData("Escape from Tarkov", "Battlestate Games")]
+        [InlineData("Cronos: The New Dawn", "Bloober Team")]
+        [InlineData("Hollow Knight: Silksong", "Team Cherry")]
+        public void ResolverEmpresaPorFranquia_NovasFranquias_DeveResolverEstudioCorreto(string titulo, string esperado)
+        {
+            // Act
+            var result = CompanyNormalizer.ResolverEmpresaPorFranquia(titulo);
+
+            // Assert
+            result.Should().Be(esperado);
+        }
     }
 }

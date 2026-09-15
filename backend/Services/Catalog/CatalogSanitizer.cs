@@ -228,24 +228,44 @@ namespace GameLog_Backend.Services.Catalog
             { "the witcher 3: wild hunt", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/292030/library_600x900_2x.jpg" },
             { "the witcher 3", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/292030/library_600x900_2x.jpg" },
             { "cyberpunk 2077", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/library_600x900_2x.jpg" },
+            { "elden ring: nightreign", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2622380/library_600x900_2x.jpg" },
+            { "elden ring nightreign", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2622380/library_600x900_2x.jpg" },
+            { "elden ring nightrain", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2622380/library_600x900_2x.jpg" },
             { "elden ring", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/library_600x900_2x.jpg" },
             { "dark souls: remastered", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570940/library_600x900_2x.jpg" },
             { "dark souls ii: scholar of the first sin", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/335300/library_600x900_2x.jpg" },
             { "dark souls iii", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/374320/library_600x900_2x.jpg" },
             { "sekiro: shadows die twice", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/814380/library_600x900_2x.jpg" },
+            { "grand theft auto vi", "https://media.rawg.io/media/games/734/7342a1cd82c8997ec620084ae4c2e7e4.jpg" },
+            { "gta vi", "https://media.rawg.io/media/games/734/7342a1cd82c8997ec620084ae4c2e7e4.jpg" },
+            { "grand theft auto 6", "https://media.rawg.io/media/games/734/7342a1cd82c8997ec620084ae4c2e7e4.jpg" },
+            { "gta 6", "https://media.rawg.io/media/games/734/7342a1cd82c8997ec620084ae4c2e7e4.jpg" },
             { "grand theft auto v", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/271590/library_600x900_2x.jpg" },
             { "gta v", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/271590/library_600x900_2x.jpg" },
+            { "grand theft auto 5", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/271590/library_600x900_2x.jpg" },
+            { "grand theft auto iv", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12210/library_600x900_2x.jpg" },
+            { "gta iv", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12210/library_600x900_2x.jpg" },
+            { "grand theft auto 4", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12210/library_600x900_2x.jpg" },
             { "grand theft auto: san andreas", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12120/library_600x900_2x.jpg" },
             { "grand theft auto: vice city", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12110/library_600x900_2x.jpg" },
             { "grand theft auto iii", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12100/library_600x900_2x.jpg" },
+            { "grand theft auto 3", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12100/library_600x900_2x.jpg" },
             { "red dead redemption 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/library_600x900_2x.jpg" },
+            { "red dead redemption", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2668510/library_600x900_2x.jpg" },
             { "baldur's gate 3", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/library_600x900_2x.jpg" },
             { "god of war (2018)", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1593500/library_600x900_2x.jpg" },
+            { "half-life: alyx", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/546560/library_600x900_2x.jpg" },
+            { "half-life 2: episode one", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/380/library_600x900_2x.jpg" },
+            { "half-life 2: episode two", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/420/library_600x900_2x.jpg" },
             { "half-life 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/220/library_600x900_2x.jpg" },
             { "half-life", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/70/library_600x900_2x.jpg" },
             { "portal 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/library_600x900_2x.jpg" },
+            { "portal", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/400/library_600x900_2x.jpg" },
             { "monster hunter: world", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/582010/library_600x900_2x.jpg" },
+            { "hollow knight: silksong", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1030300/library_600x900_2x.jpg" },
             { "hollow knight", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/library_600x900_2x.jpg" },
+            { "hades ii", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145350/library_600x900_2x.jpg" },
+            { "hades 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145350/library_600x900_2x.jpg" },
             { "hades", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145360/library_600x900_2x.jpg" },
             { "persona 5 royal", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1687950/library_600x900_2x.jpg" },
             { "resident evil 4", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2050650/library_600x900_2x.jpg" },
@@ -263,13 +283,21 @@ namespace GameLog_Backend.Services.Catalog
             { "fallout 4", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/377160/library_600x900_2x.jpg" },
             { "fallout: new vegas", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/22380/library_600x900_2x.jpg" },
             { "fallout 3", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/22370/library_600x900_2x.jpg" },
+            { "fallout", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/38400/library_600x900_2x.jpg" },
             { "mass effect legendary edition", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1328670/library_600x900_2x.jpg" },
-            { "max payne", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12140/library_600x900_2x.jpg" },
+            { "max payne 3", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204100/library_600x900_2x.jpg" },
             { "max payne 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12150/library_600x900_2x.jpg" },
+            { "max payne", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/12140/library_600x900_2x.jpg" },
             { "final fantasy vii remake intergrade", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1462040/library_600x900_2x.jpg" },
+            { "final fantasy vii", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/39140/library_600x900_2x.jpg" },
+            { "final fantasy vi", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1173820/library_600x900_2x.jpg" },
             { "chrono trigger", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/613830/library_600x900_2x.jpg" },
             { "slay the spire 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2868840/library_600x900_2x.jpg" },
-            { "wreckfest 2", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2011830/library_600x900_2x.jpg" }
+            { "slay the spire", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/646570/library_600x900_2x.jpg" },
+            { "wreckfest 2", "https://media.rawg.io/media/screenshots/e5e/e5e61aefced41b79d41dac01664bc82e.jpg" },
+            { "wreckfest", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/228380/library_600x900_2x.jpg" },
+            { "pid", "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/227860/library_600x900_2x.jpg" },
+            { "sin", "https://media.rawg.io/media/screenshots/559/559f0bc2b44bc3223f14e4393a2f70d8.jpg" }
         };
 
         public static string ResolverMelhorCapaHd(
@@ -308,7 +336,7 @@ namespace GameLog_Backend.Services.Catalog
 
                 foreach (var kvp in CuratedMasterpieceCovers)
                 {
-                    if (titLower.Contains(kvp.Key) || kvp.Key.Contains(titLower))
+                    if (Regex.IsMatch(titLower, $@"\b{Regex.Escape(kvp.Key)}\b", RegexOptions.IgnoreCase))
                     {
                         return kvp.Value;
                     }

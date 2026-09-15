@@ -561,9 +561,9 @@ namespace GameLog_Backend.Seeders
                     if (titulosVistos.Add(titulo))
                     {
                         var par = ResolverEstudioCompleto(item);
-                        if (!string.IsNullOrWhiteSpace(par.DevNome))
+                        if (par.HasValue && !string.IsNullOrWhiteSpace(par.Value.DevNome))
                         {
-                            resultado.Add((item, par.DevNome, par.PubNome));
+                            resultado.Add((item, par.Value.DevNome, par.Value.PubNome));
                         }
                     }
                 }
@@ -1621,7 +1621,7 @@ namespace GameLog_Backend.Seeders
             return null;
         }
 
-        private static (string DevNome, string? PubNome) ResolverEstudioCompleto(RawgGameItemDTO rawg)
+        private static (string DevNome, string? PubNome)? ResolverEstudioCompleto(RawgGameItemDTO rawg)
         {
             var studioCurado = ResolverEstudio(rawg);
             string? devEncontrado = studioCurado;
@@ -1631,11 +1631,24 @@ namespace GameLog_Backend.Seeders
             {
                 devEncontrado = CompanyNormalizer.ResolverEmpresaPorFranquia(rawg.Name)
                     ?? rawg.Publishers?.FirstOrDefault()?.Name?.Trim()
-                    ?? rawg.Developers?.FirstOrDefault()?.Name?.Trim()
-                    ?? "Estúdio Independente";
+                    ?? rawg.Developers?.FirstOrDefault()?.Name?.Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(devEncontrado) || 
+                devEncontrado.Equals("Estúdio Independente", StringComparison.OrdinalIgnoreCase) || 
+                devEncontrado.Equals("Independente", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
             }
 
             var (devFinal, pubFinal) = CompanyNormalizer.ResolverParDesenvolvedoraPublicadora(rawg.Name, devEncontrado, pubEncontrado);
+            if (string.IsNullOrWhiteSpace(devFinal) || 
+                devFinal.Equals("Estúdio Independente", StringComparison.OrdinalIgnoreCase) || 
+                devFinal.Equals("Independente", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
             return (devFinal, pubFinal);
         }
 

@@ -284,6 +284,119 @@ namespace GameLog_Backend.Services.Catalog
             if (t.Contains("warcraft") || t.Contains("diablo") || t.Contains("starcraft") || t.Contains("overwatch"))
                 return "Blizzard Entertainment";
 
+            if (t.Contains("vampire: the masquerade") || t.Contains("crusader kings") || t.Contains("europa universalis") ||
+                t.Contains("hearts of iron") || t.Contains("stellaris") || t.Contains("cities: skylines") ||
+                t.Contains("prison architect") || t.Contains("age of wonders") || t.Contains("victoria"))
+                return "Paradox Interactive";
+
+            if (t.Contains("gothic") || t.Contains("darksiders") || t.Contains("biomutant") ||
+                t.Contains("destroy all humans") || t.Contains("titan quest") || t.Contains("spellforce") ||
+                t.Contains("elex") || t.Contains("risen") || t.Contains("alone in the dark") ||
+                t.Contains("saints row") || t.Contains("metro 2033") || t.Contains("metro last light") ||
+                t.Contains("metro exodus") || t.Contains("dead island") || t.Contains("kingdom come"))
+                return "THQ Nordic";
+
+            if (t.Contains("cult of the lamb") || t.Contains("hotline miami") || t.Contains("enter the gungeon") ||
+                t.Contains("the talos principle") || t.Contains("serious sam") || t.Contains("inscryption") ||
+                t.Contains("gris") || t.Contains("katana zero") || t.Contains("loop hero") ||
+                t.Contains("death's door") || t.Contains("the messenger") || t.Contains("shadow warrior") ||
+                t.Contains("broforce"))
+                return "Devolver Digital";
+
+            if (t.Contains("hades") || t.Contains("bastion") || t.Contains("transistor") || t.Contains("pyre"))
+                return "Supergiant Games";
+
+            if (t.Contains("a plague tale") || t.Contains("vampyr") || t.Contains("banishers") ||
+                t.Contains("snowrunner") || t.Contains("mudrunner") || t.Contains("space marine") ||
+                t.Contains("atomic heart") || t.Contains("the surge") || t.Contains("atlas fallen"))
+                return "Focus Entertainment";
+
+            if (t.Contains("control") || t.Contains("ghostrunner") || t.Contains("bloodstained") ||
+                t.Contains("payday") || t.Contains("assetto corsa"))
+                return "505 Games";
+
+            if (t.Contains("overcooked") || t.Contains("blasphemous") || t.Contains("dredge") ||
+                t.Contains("hell let loose") || t.Contains("the escapists") || t.Contains("worms") ||
+                t.Contains("trepang2") || t.Contains("my time at"))
+                return "Team17";
+
+            if (t.Contains("outer wilds") || t.Contains("stray") || t.Contains("edith finch") ||
+                t.Contains("neon white") || t.Contains("cocoon") || t.Contains("solar ash") ||
+                t.Contains("hyper light drifter"))
+                return "Annapurna Interactive";
+
+            if (t.Contains("escape from tarkov"))
+                return "Battlestate Games";
+
+            if (t.Contains("cronos: the new dawn") || t.Contains("the medium") || t.Contains("layers of fear") || t.Contains("observer"))
+                return "Bloober Team";
+
+            if (t.Contains("star citizen") || t.Contains("squadron 42"))
+                return "Cloud Imperium Games";
+
+            if (t.Contains("hitman") || t.Contains("007 first light"))
+                return "IO Interactive";
+
+            if (t.Contains("hollow knight") || t.Contains("silksong"))
+                return "Team Cherry";
+
+            if (t.Contains("stardew valley") || t.Contains("haunted chocolatier"))
+                return "ConcernedApe";
+
+            if (t.Contains("terraria"))
+                return "Re-Logic";
+
+            if (t.Contains("minecraft"))
+                return "Mojang Studios";
+
+            if (t.Contains("rust") || t.Contains("garry's mod"))
+                return "Facepunch Studios";
+
+            if (t.Contains("among us"))
+                return "Innersloth";
+
+            if (t.Contains("slay the spire"))
+                return "Mega Crit";
+
+            if (t.Contains("valheim") || t.Contains("satisfactory") || t.Contains("deep rock galactic") || t.Contains("goat simulator"))
+                return "Coffee Stain Publishing";
+
+            if (t.Contains("subnautica"))
+                return "Unknown Worlds Entertainment";
+
+            if (t.Contains("the forest") || t.Contains("sons of the forest"))
+                return "Endnight Games";
+
+            if (t.Contains("rimworld"))
+                return "Ludeon Studios";
+
+            if (t.Contains("factorio"))
+                return "Wube Software";
+
+            if (t.Contains("no man's sky"))
+                return "Hello Games";
+
+            if (t.Contains("sifu") || t.Contains("pacific drive") || t.Contains("scorn") || t.Contains("cat quest"))
+                return "Kepler Interactive";
+
+            if (t.Contains("sea of stars"))
+                return "Sabotage Studio";
+
+            if (t.Contains("balatro"))
+                return "LocalThunk";
+
+            if (t.Contains("lethal company"))
+                return "Zeekerss";
+
+            if (t.Contains("dead cells") || t.Contains("windblown"))
+                return "Motion Twin";
+
+            if (t.Contains("darkest dungeon"))
+                return "Red Hook Studios";
+
+            if (t.Contains("binding of isaac") || t.Contains("super meat boy") || t.Contains("mewgenics"))
+                return "Edmund McMillen";
+
             return null;
         }
 
