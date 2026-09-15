@@ -40,13 +40,28 @@ namespace GameLog_Backend.Services
             _cache = cache;
             _logger = logger;
 
-            _apiKey = Environment.GetEnvironmentVariable("RAWG_API_KEY") 
-                ?? configuration["Rawg:ApiKey"] 
-                ?? string.Empty;
+            var envKey = Environment.GetEnvironmentVariable("RAWG_API_KEY");
+            if (string.IsNullOrWhiteSpace(envKey))
+            {
+                envKey = Environment.GetEnvironmentVariable("Rawg__ApiKey");
+            }
+            if (string.IsNullOrWhiteSpace(envKey))
+            {
+                envKey = configuration["Rawg:ApiKey"];
+            }
+            if (string.IsNullOrWhiteSpace(envKey))
+            {
+                envKey = configuration["RAWG_API_KEY"];
+            }
+            _apiKey = envKey?.Trim() ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
                 _logger.LogWarning("[RawgApiService] RAWG_API_KEY não configurada. Chamadas externas à RAWG falharão.");
+            }
+            else
+            {
+                _logger.LogInformation("[RawgApiService] RAWG_API_KEY configurada com sucesso.");
             }
 
             _baseUrl = configuration["Rawg:BaseUrl"] ?? "https://api.rawg.io/api";

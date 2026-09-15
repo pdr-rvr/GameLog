@@ -545,40 +545,25 @@ namespace GameLog_Backend.Seeders
             _logger.LogInformation("[Seeder] Resolvendo estúdios para candidatos (Futuros: {TotalFut}, Recentes 2020-2024: {TotalRec}, Era Dourada 2000-2019: {TotalDou}, Clássicos: {TotalPre})...", 
                 candidatosFuturos.Count, candidatosRecentes.Count, candidatosEraDourada.Count, candidatosPre2000.Count);
 
-            using var detailSemaphore = new SemaphoreSlim(12);
-
-            async Task<List<(RawgGameItemDTO Rawg, string DevNome, string? PubNome)>> ColetarJogosValidosAsync(List<RawgGameItemDTO> candidatos, int metaQtd)
+            List<(RawgGameItemDTO Rawg, string DevNome, string? PubNome)> ColetarJogosValidos(List<RawgGameItemDTO> candidatos, int metaQtd)
             {
                 var resultado = new List<(RawgGameItemDTO Rawg, string DevNome, string? PubNome)>();
                 var titulosVistos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                const int loteTamanho = 50;
-                for (int i = 0; i < candidatos.Count && resultado.Count < metaQtd; i += loteTamanho)
+                foreach (var item in candidatos)
                 {
-                    var lote = candidatos.Skip(i).Take(loteTamanho).ToList();
-                    var tarefasLote = lote.Select(async item =>
+                    if (resultado.Count >= metaQtd) break;
+
+                    var titulo = FormatarTituloFinal(item.Name.Trim());
+                    if (string.IsNullOrWhiteSpace(titulo)) continue;
+                    if (titulo.Length > 250) titulo = titulo.Substring(0, 250).Trim();
+
+                    if (titulosVistos.Add(titulo))
                     {
-                        var titulo = FormatarTituloFinal(item.Name.Trim());
-                        if (string.IsNullOrWhiteSpace(titulo)) return ((RawgGameItemDTO)null!, (string)null!, (string?)null);
-
-                        var par = await ResolverEstudioCompletoAsync(item, detailSemaphore);
-                        if (par == null || string.IsNullOrWhiteSpace(par.Value.DevNome)) return ((RawgGameItemDTO)null!, (string)null!, (string?)null);
-
-                        return (item, par.Value.DevNome, par.Value.PubNome);
-                    });
-
-                    var resultadosLote = await Task.WhenAll(tarefasLote);
-                    foreach (var (rawg, devNome, pubNome) in resultadosLote)
-                    {
-                        if (rawg == null || string.IsNullOrWhiteSpace(devNome)) continue;
-
-                        var titulo = FormatarTituloFinal(rawg.Name.Trim());
-                        if (titulo.Length > 250) titulo = titulo.Substring(0, 250).Trim();
-
-                        if (titulosVistos.Add(titulo))
+                        var par = ResolverEstudioCompleto(item);
+                        if (!string.IsNullOrWhiteSpace(par.DevNome))
                         {
-                            resultado.Add((rawg, devNome, pubNome));
-                            if (resultado.Count >= metaQtd) break;
+                            resultado.Add((item, par.DevNome, par.PubNome));
                         }
                     }
                 }
@@ -586,10 +571,10 @@ namespace GameLog_Backend.Seeders
                 return resultado;
             }
 
-            var jogosFuturosValidos = await ColetarJogosValidosAsync(candidatosFuturos, 500);
-            var jogosRecentesValidos = await ColetarJogosValidosAsync(candidatosRecentes, 2750);
-            var jogosEraDouradaValidos = await ColetarJogosValidosAsync(candidatosEraDourada, 2650);
-            var jogosPre2000Validos = await ColetarJogosValidosAsync(candidatosPre2000, 700);
+            var jogosFuturosValidos = ColetarJogosValidos(candidatosFuturos, 500);
+            var jogosRecentesValidos = ColetarJogosValidos(candidatosRecentes, 2750);
+            var jogosEraDouradaValidos = ColetarJogosValidos(candidatosEraDourada, 2650);
+            var jogosPre2000Validos = ColetarJogosValidos(candidatosPre2000, 700);
 
             var jogosComEstudioValido = new List<(RawgGameItemDTO Rawg, string DevNome, string? PubNome)>();
             jogosComEstudioValido.AddRange(jogosFuturosValidos);
@@ -1636,7 +1621,7 @@ namespace GameLog_Backend.Seeders
             return null;
         }
 
-        private async Task<(string DevNome, string? PubNome)?> ResolverEstudioCompletoAsync(RawgGameItemDTO rawg, SemaphoreSlim detailSemaphore)
+        private static (string DevNome, string? PubNome) ResolverEstudioCompleto(RawgGameItemDTO rawg)
         {
             var studioCurado = ResolverEstudio(rawg);
             string? devEncontrado = studioCurado;
@@ -1644,43 +1629,10 @@ namespace GameLog_Backend.Seeders
 
             if (string.IsNullOrWhiteSpace(devEncontrado))
             {
-                await detailSemaphore.WaitAsync();
-                try
-                {
-                    var detail = await _rawgService.ObterDetalhesJogoExterno(rawg.Id);
-                    if (detail != null)
-                    {
-                        var dev = detail.Developers?.FirstOrDefault(d => !string.IsNullOrWhiteSpace(d.Name))?.Name?.Trim();
-                        if (!string.IsNullOrWhiteSpace(dev) && dev.Length > 1 && !dev.Contains("Independente", StringComparison.OrdinalIgnoreCase))
-                        {
-                            devEncontrado = dev.Length > 150 ? dev.Substring(0, 150).Trim() : dev;
-                        }
-
-                        var pub = detail.Publishers?.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.Name))?.Name?.Trim();
-                        if (!string.IsNullOrWhiteSpace(pub) && pub.Length > 1 && !pub.Contains("Independente", StringComparison.OrdinalIgnoreCase))
-                        {
-                            pubEncontrado = pub.Length > 150 ? pub.Substring(0, 150).Trim() : pub;
-                        }
-
-                        if (string.IsNullOrWhiteSpace(devEncontrado) && !string.IsNullOrWhiteSpace(pubEncontrado))
-                        {
-                            devEncontrado = pubEncontrado;
-                        }
-                    }
-                }
-                catch
-                {
-                    // Ignorar falha assíncrona
-                }
-                finally
-                {
-                    detailSemaphore.Release();
-                }
-            }
-
-            if (string.IsNullOrWhiteSpace(devEncontrado))
-            {
-                return null;
+                devEncontrado = CompanyNormalizer.ResolverEmpresaPorFranquia(rawg.Name)
+                    ?? rawg.Publishers?.FirstOrDefault()?.Name?.Trim()
+                    ?? rawg.Developers?.FirstOrDefault()?.Name?.Trim()
+                    ?? "Estúdio Independente";
             }
 
             var (devFinal, pubFinal) = CompanyNormalizer.ResolverParDesenvolvedoraPublicadora(rawg.Name, devEncontrado, pubEncontrado);

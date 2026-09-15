@@ -342,10 +342,22 @@ if (!app.Environment.IsEnvironment("Testing"))
                 var forceReseed = string.Equals(Environment.GetEnvironmentVariable("FORCE_RESEED"), "true", StringComparison.OrdinalIgnoreCase);
                 if (app.Environment.IsDevelopment() || forceReseed)
                 {
-                    Console.WriteLine("[GameLog] Verificando catálogo e integridade com a RAWG...");
-                    var massiveSeeder = services.GetRequiredService<MassiveCatalogSeeder>();
-                    massiveSeeder.CleanAndSeedRealGamesAsync().GetAwaiter().GetResult();
-                    Console.WriteLine("[GameLog] Povoamento/verificação de jogos finalizado com sucesso!");
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using var seedScope = app.Services.CreateScope();
+                            var seedLogger = seedScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                            seedLogger.LogInformation("[GameLog] Iniciando rotina de povoamento assíncrona com a RAWG em background...");
+                            var massiveSeeder = seedScope.ServiceProvider.GetRequiredService<MassiveCatalogSeeder>();
+                            await massiveSeeder.CleanAndSeedRealGamesAsync();
+                            seedLogger.LogInformation("[GameLog] Povoamento de jogos finalizado com sucesso!");
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "[GameLog] Erro durante o povoamento assíncrono do catálogo.");
+                        }
+                    });
                 }
                 else
                 {
