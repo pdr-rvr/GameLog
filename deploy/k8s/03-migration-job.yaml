@@ -1,0 +1,72 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gamelog-db-migration
+  namespace: gamelog
+  labels:
+    app.kubernetes.io/name: gamelog
+    app.kubernetes.io/component: migration
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gamelog
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migration-runner
+          image: postgres:16-alpine
+          command:
+            - "sh"
+            - "-c"
+            - |
+              echo "[K8s-Migration] Conectando ao PostgreSQL..."
+              until pg_isready -h $(DB_SERVER) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME); do
+                echo "[K8s-Migration] Aguardando banco de dados..."
+                sleep 2
+              done
+              echo "[K8s-Migration] Executando script SQL idempotente..."
+              psql -h $(DB_SERVER) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f /migrations/Migrations_Idempotent.sql
+              echo "[K8s-Migration] Migracao concluida com sucesso!"
+          env:
+            - name: DB_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  name: gamelog-config
+                  key: DB_SERVER
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: gamelog-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: gamelog-config
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: gamelog-config
+                  key: DB_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: gamelog-secrets
+                  key: DB_PASSWORD
+          volumeMounts:
+            - name: migration-sql-vol
+              mountPath: /migrations
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+      volumes:
+        - name: migration-sql-vol
+          configMap:
+            name: gamelog-migration-sql

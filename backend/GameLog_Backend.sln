@@ -5,6 +5,10 @@ VisualStudioVersion = 17.13.35919.96 d17.13
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameLog_Backend", "GameLog_Backend.csproj", "{8027F558-06CB-4408-9618-C24774AF79E9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameLog.Tests.Unit", "..\tests\GameLog.Tests.Unit\GameLog.Tests.Unit.csproj", "{C855DE19-2461-45C2-AD16-2D3005964CCB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameLog.Tests.Integration", "..\tests\GameLog.Tests.Integration\GameLog.Tests.Integration.csproj", "{35452D62-1294-40A0-99B0-E4A7CA8A0B29}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{8027F558-06CB-4408-9618-C24774AF79E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8027F558-06CB-4408-9618-C24774AF79E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8027F558-06CB-4408-9618-C24774AF79E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C855DE19-2461-45C2-AD16-2D3005964CCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C855DE19-2461-45C2-AD16-2D3005964CCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C855DE19-2461-45C2-AD16-2D3005964CCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C855DE19-2461-45C2-AD16-2D3005964CCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35452D62-1294-40A0-99B0-E4A7CA8A0B29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35452D62-1294-40A0-99B0-E4A7CA8A0B29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35452D62-1294-40A0-99B0-E4A7CA8A0B29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35452D62-1294-40A0-99B0-E4A7CA8A0B29}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
