@@ -1,0 +1,141 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gamelog-postgres-prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DB_NAME:-gamelog}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?Variavel de ambiente DB_PASSWORD obrigatoria}
+    expose:
+      - "5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-gamelog}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - gamelog-prod-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+        reservations:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  migration-runner:
+    image: postgres:16-alpine
+    container_name: gamelog-migration-prod
+    restart: "no"
+    environment:
+      - PGPASSWORD=${DB_PASSWORD:?Variavel de ambiente DB_PASSWORD obrigatoria}
+    volumes:
+      - ./backend/Database/Migrations_Idempotent.sql:/migrations/Migrations_Idempotent.sql:ro
+    entrypoint:
+      - "sh"
+      - "-c"
+      - |
+        echo "[Migration] Aguardando PostgreSQL inicializar..."
+        until pg_isready -h postgres -p 5432 -U ${DB_USER:-postgres} -d ${DB_NAME:-gamelog}; do
+          sleep 2
+        done
+        echo "[Migration] Executando script de migracao idempotente..."
+        psql -h postgres -p 5432 -U ${DB_USER:-postgres} -d ${DB_NAME:-gamelog} -f /migrations/Migrations_Idempotent.sql
+        echo "[Migration] Migracao concluida com sucesso!"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gamelog-prod-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gamelog-backend-prod
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - DB_SERVER=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-gamelog}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:?Variavel de ambiente DB_PASSWORD obrigatoria}
+      - JWT_SECRET=${JWT_SECRET:?Variavel de ambiente JWT_SECRET obrigatoria}
+      - RAWG_API_KEY=${RAWG_API_KEY:-}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - FORCE_RESEED=false
+    expose:
+      - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migration-runner:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - gamelog-prod-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+        reservations:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-/api}
+        - REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL:-/api}
+    container_name: gamelog-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "${PROD_HTTP_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - gamelog-prod-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
+        reservations:
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_prod_data:
+    name: gamelog_postgres_prod_data
+
+networks:
+  gamelog-prod-network:
+    name: gamelog_prod_network
+    driver: bridge

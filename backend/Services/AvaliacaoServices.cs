@@ -349,7 +349,7 @@ namespace GameLog_Backend.Services
         {
             var resposta = await _context.RespostasDeAvaliacao
                 .Include(r => r.Avaliacao)
-                    .ThenInclude(a => a.Usuario)
+                    .ThenInclude(a => a!.Usuario)
                 .FirstOrDefaultAsync(r => r.Id == respostaId && r.EstaAtivo);
 
             if (resposta == null)

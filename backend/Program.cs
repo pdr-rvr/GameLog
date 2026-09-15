@@ -4,6 +4,7 @@ using AutoMapper;
 using DotNetEnv;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using GameLog_Backend.BackgroundServices;
 using GameLog_Backend.Configurations;
 using GameLog_Backend.Database;
 using GameLog_Backend.Interceptors;
@@ -16,10 +17,12 @@ using GameLog_Backend.Services.Interfaces;
 using GameLog_Backend.Validators;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Metrics;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
@@ -115,6 +118,17 @@ builder.Services.AddCors(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 150,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
 
     options.AddPolicy("AuthLimiter", httpContext =>
         System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
@@ -267,15 +281,38 @@ builder.Services.AddScoped<IBibliotecaService, BibliotecaServices>();
 builder.Services.AddScoped<IListaService, ListaServices>();
 builder.Services.AddScoped<IBuscaGlobalService, BuscaGlobalService>();
 builder.Services.AddScoped<IComunidadeService, ComunidadeServices>();
+builder.Services.AddScoped<IAuditRetentionService, AuditRetentionService>();
+
+if (!isTesting)
+{
+    builder.Services.AddHostedService<AuditRetentionBackgroundService>();
+}
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<GameLogContext>("database");
+    .AddDbContextCheck<GameLogContext>("database", tags: new[] { "ready" });
+
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddAspNetCoreInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddPrometheusExporter();
+    });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
@@ -335,8 +372,11 @@ if (!app.Environment.IsEnvironment("Testing"))
     }
 }
 
-app.UseSwagger();
-app.UseSwaggerUI();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -345,6 +385,16 @@ app.MapControllers();
 
 app.MapGet("/", () => "API GameLog está online!").AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false
+}).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+}).AllowAnonymous();
+
+app.UseOpenTelemetryPrometheusScrapingEndpoint();
 
 try
 {

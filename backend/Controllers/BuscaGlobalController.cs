@@ -3,12 +3,14 @@ using GameLog_Backend.DTOs;
 using GameLog_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace GameLog_Backend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [AllowAnonymous]
+    [EnableRateLimiting("ExternalApiLimiter")]
     public class BuscaGlobalController : ControllerBase
     {
         private readonly IBuscaGlobalService _buscaGlobalService;

@@ -1126,7 +1126,7 @@ namespace GameLog_Backend.Seeders
             return $"{abertura} {corpo} {encerramento}";
         }
 
-        public static string ResolverEstudio(RawgGameItemDTO rawg)
+        public static string? ResolverEstudio(RawgGameItemDTO rawg)
         {
             if (rawg.Publishers != null && rawg.Publishers.Any())
             {

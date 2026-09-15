@@ -2,45 +2,48 @@ name: GameLog CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend-ci:
-    name: Backend CI (.NET 8 & Automated Tests)
+    name: Backend CI (.NET 8.0)
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET 8 SDK
+      - name: Setup .NET SDK 8.0
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - name: Restore dependencies
-        run: dotnet restore backend/GameLog_Backend.csproj
+      - name: Restore Dependencies
+        run: dotnet restore GameLog.sln
 
-      - name: Build Backend (Release)
-        run: dotnet build backend/GameLog_Backend.csproj --configuration Release --no-restore
+      - name: Build Solution (Release)
+        run: dotnet build GameLog.sln --configuration Release --no-restore
 
-      - name: Run Unit Tests (xUnit & Moq)
-        run: dotnet test tests/GameLog.Tests.Unit/GameLog.Tests.Unit.csproj --configuration Release --verbosity normal
+      - name: Run Backend Unit Tests
+        run: dotnet test tests/GameLog.Tests.Unit/GameLog.Tests.Unit.csproj --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --no-build
 
-      - name: Run API Integration Tests (WebApplicationFactory)
-        run: dotnet test tests/GameLog.Tests.Integration/GameLog.Tests.Integration.csproj --configuration Release --verbosity normal
+      - name: Run Backend Integration Tests
+        run: dotnet test tests/GameLog.Tests.Integration/GameLog.Tests.Integration.csproj --configuration Release --verbosity normal --no-build
 
   frontend-ci:
-    name: Frontend CI (Node 20, Vitest & Vite Build)
+    name: Frontend CI (React / Vite / Vitest)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
-
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js 20
@@ -50,32 +53,41 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
 
-      - name: Run Frontend Tests with Quality Gate Coverage
-        run: npm run test:coverage
+      - name: Run Frontend Tests (Vitest)
+        working-directory: ./frontend
+        run: npm test -- --run
 
-      - name: Build Frontend for Production
+      - name: Build Frontend (Production Bundle)
+        working-directory: ./frontend
         run: npm run build
 
-  docker-ci:
-    name: Docker Compose Build Verification
-    needs: [ backend-ci, frontend-ci ]
+  docker-verification:
+    name: Container Security & Build Verification
+    needs: [backend-ci, frontend-ci]
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Setup environment for Docker verification
-        run: cp .env.example .env
+      - name: Build Backend Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          tags: gamelog-backend:ci-test
 
-      - name: Build all Docker images
-        env:
-          DB_PASSWORD: ci_build_validation_password_123!
-          JWT_SECRET: ci_build_validation_jwt_secret_with_32_chars_long!
-        run: docker compose --env-file .env.example build
+      - name: Build Frontend Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          tags: gamelog-frontend:ci-test

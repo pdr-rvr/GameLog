@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gamelog
+  labels:
+    app.kubernetes.io/name: gamelog
+    app.kubernetes.io/part-of: gamelog-platform

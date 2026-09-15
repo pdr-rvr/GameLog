@@ -41,12 +41,13 @@ namespace GameLog.Tests.Unit.Services
             var result = await authService.AutenticarUsuario(loginDto, "127.0.0.1");
 
             // Assert
-            result.usuario.Should().NotBeNull();
-            result.token.Should().NotBeNullOrEmpty();
-            result.refreshToken.Should().NotBeNullOrEmpty();
-            result.usuario!.Email.Should().Be("gamerauth@gamelog.com");
+            result.Sucesso.Should().BeTrue();
+            result.Usuario.Should().NotBeNull();
+            result.Token.Should().NotBeNullOrEmpty();
+            result.RefreshToken.Should().NotBeNullOrEmpty();
+            result.Usuario!.Email.Should().Be("gamerauth@gamelog.com");
 
-            var tokenDb = await context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == result.refreshToken);
+            var tokenDb = await context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == result.RefreshToken);
             tokenDb.Should().NotBeNull();
             tokenDb!.UsuarioId.Should().Be(usuario.Id);
             tokenDb.RevogadoEm.Should().BeNull();
@@ -72,9 +73,10 @@ namespace GameLog.Tests.Unit.Services
             var result = await authService.AutenticarUsuario(loginDto, "127.0.0.1");
 
             // Assert
-            result.usuario.Should().BeNull();
-            result.token.Should().BeNull();
-            result.refreshToken.Should().BeNull();
+            result.Sucesso.Should().BeFalse();
+            result.Usuario.Should().BeNull();
+            result.Token.Should().BeNull();
+            result.RefreshToken.Should().BeNull();
         }
 
         [Fact]
@@ -102,24 +104,25 @@ namespace GameLog.Tests.Unit.Services
                 Senha = "Password123!"
             }, "127.0.0.1");
 
-            var oldToken = loginResult.refreshToken!;
+            var oldToken = loginResult.RefreshToken!;
 
             // Act
             var renewResult = await authService.RenovarTokenAsync(oldToken, "127.0.0.2");
 
             // Assert
-            renewResult.usuario.Should().NotBeNull();
-            renewResult.token.Should().NotBeNullOrEmpty();
-            renewResult.novoRefreshToken.Should().NotBeNullOrEmpty();
-            renewResult.novoRefreshToken.Should().NotBe(oldToken);
+            renewResult.Sucesso.Should().BeTrue();
+            renewResult.Usuario.Should().NotBeNull();
+            renewResult.Token.Should().NotBeNullOrEmpty();
+            renewResult.RefreshToken.Should().NotBeNullOrEmpty();
+            renewResult.RefreshToken.Should().NotBe(oldToken);
 
             var oldTokenDb = await context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == oldToken);
             oldTokenDb.Should().NotBeNull();
             oldTokenDb!.RevogadoEm.Should().NotBeNull();
-            oldTokenDb.SubstituidoPorToken.Should().Be(renewResult.novoRefreshToken);
+            oldTokenDb.SubstituidoPorToken.Should().Be(renewResult.RefreshToken);
             oldTokenDb.RevogadoPorIp.Should().Be("127.0.0.2");
 
-            var newTokenDb = await context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == renewResult.novoRefreshToken);
+            var newTokenDb = await context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == renewResult.RefreshToken);
             newTokenDb.Should().NotBeNull();
             newTokenDb!.RevogadoEm.Should().BeNull();
             newTokenDb.CriadoPorIp.Should().Be("127.0.0.2");
@@ -150,11 +153,11 @@ namespace GameLog.Tests.Unit.Services
                 Senha = "Password123!"
             }, "127.0.0.1");
 
-            var initialToken = loginResult.refreshToken!;
+            var initialToken = loginResult.RefreshToken!;
 
             // Primeira renovação legítima
             var firstRenewal = await authService.RenovarTokenAsync(initialToken, "127.0.0.1");
-            var legitNewToken = firstRenewal.novoRefreshToken;
+            var legitNewToken = firstRenewal.RefreshToken;
 
             // Act & Assert: Tentativa de replay com o token antigo deve lançar SecurityTokenException
             await Assert.ThrowsAsync<SecurityTokenException>(() => authService.RenovarTokenAsync(initialToken, "192.168.1.100"));
@@ -193,11 +196,11 @@ namespace GameLog.Tests.Unit.Services
             }, "127.0.0.1");
 
             // Act
-            var revoked = await authService.RevogarTokenAsync(loginResult.refreshToken!, "127.0.0.1");
+            var revoked = await authService.RevogarTokenAsync(loginResult.RefreshToken!, "127.0.0.1");
 
             // Assert
             revoked.Should().BeTrue();
-            var tokenDb = await context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == loginResult.refreshToken);
+            var tokenDb = await context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == loginResult.RefreshToken);
             tokenDb.Should().NotBeNull();
             tokenDb!.RevogadoEm.Should().NotBeNull();
         }

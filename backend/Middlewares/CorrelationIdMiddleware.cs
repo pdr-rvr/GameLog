@@ -19,12 +19,11 @@ namespace GameLog_Backend.Middlewares
 
         public async Task InvokeAsync(HttpContext context)
         {
-            var correlationId = context.Request.Headers[CorrelationIdHeaderName].FirstOrDefault();
+            var rawCorrelationId = context.Request.Headers[CorrelationIdHeaderName].FirstOrDefault();
 
-            if (string.IsNullOrWhiteSpace(correlationId))
-            {
-                correlationId = Guid.NewGuid().ToString("D");
-            }
+            var correlationId = IsValidCorrelationId(rawCorrelationId)
+                ? rawCorrelationId!
+                : Guid.NewGuid().ToString("D");
 
             context.Items[CorrelationIdHeaderName] = correlationId;
 
@@ -44,6 +43,20 @@ namespace GameLog_Backend.Middlewares
             {
                 await _next(context);
             }
+        }
+
+        private static bool IsValidCorrelationId(string? correlationId)
+        {
+            if (string.IsNullOrWhiteSpace(correlationId) || correlationId.Length > 64)
+                return false;
+
+            foreach (var c in correlationId)
+            {
+                if (!char.IsLetterOrDigit(c) && c != '-' && c != '_')
+                    return false;
+            }
+
+            return true;
         }
     }
 }

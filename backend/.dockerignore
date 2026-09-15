@@ -1,10 +1,10 @@
 bin/
 obj/
+*.user
+*.suo
 .vs/
 .vscode/
 .git/
-.env
-.env.*
-*.user
-*.suo
-TestResults/
+.gitignore
+appsettings.Development.json
+*.md
