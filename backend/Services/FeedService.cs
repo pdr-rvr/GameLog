@@ -70,12 +70,12 @@ namespace GameLog_Backend.Services
                 .AsNoTracking()
                 .Include(r => r.Usuario)
                 .Include(r => r.Avaliacao)
-                    .ThenInclude(a => a.Usuario)
+                    .ThenInclude(a => a!.Usuario)
                 .Include(r => r.Avaliacao)
-                    .ThenInclude(a => a.Jogo)
+                    .ThenInclude(a => a!.Jogo)
                         .ThenInclude(j => j.Empresa)
                 .Include(r => r.CurtidasDeRespostas)
-                .Where(r => r.UsuarioId.HasValue && seguindoIds.Contains(r.UsuarioId.Value) && r.EstaAtivo && r.Avaliacao != null && r.Avaliacao.EstaAtivo)
+                .Where(r => r.UsuarioId.HasValue && seguindoIds.Contains(r.UsuarioId.Value) && r.EstaAtivo && r.Avaliacao != null && r.Avaliacao.EstaAtivo && r.Avaliacao.Jogo != null && r.Avaliacao.Usuario != null)
                 .OrderByDescending(r => r.DataCriacao)
                 .Take(itensPorPagina * 2)
                 .Select(r => new ItemFeedSocialDTO
@@ -86,15 +86,15 @@ namespace GameLog_Backend.Services
                     AutorId = r.UsuarioId!.Value,
                     AutorNome = r.Usuario != null ? r.Usuario.NomeUsuario : "Gamer",
                     AutorFoto = r.Usuario != null ? r.Usuario.FotoDePerfil : null,
-                    JogoId = r.Avaliacao!.Jogo.Id,
-                    JogoTitulo = r.Avaliacao.Jogo.Titulo,
-                    JogoImagem = r.Avaliacao.Jogo.Imagem,
-                    NomeEmpresa = r.Avaliacao.Jogo.Empresa != null ? r.Avaliacao.Jogo.Empresa.NomeEmpresa : null,
+                    JogoId = r.Avaliacao != null && r.Avaliacao.Jogo != null ? r.Avaliacao.Jogo.Id : Guid.Empty,
+                    JogoTitulo = r.Avaliacao != null && r.Avaliacao.Jogo != null ? r.Avaliacao.Jogo.Titulo : "Jogo",
+                    JogoImagem = r.Avaliacao != null && r.Avaliacao.Jogo != null ? r.Avaliacao.Jogo.Imagem : null,
+                    NomeEmpresa = r.Avaliacao != null && r.Avaliacao.Jogo != null && r.Avaliacao.Jogo.Empresa != null ? r.Avaliacao.Jogo.Empresa.NomeEmpresa : null,
                     AvaliacaoId = r.AvaliacaoId,
                     ComentarioTexto = r.Comentario,
-                    AutorAvaliacaoRespondidaId = r.Avaliacao.Usuario.Id,
-                    AutorAvaliacaoRespondidaNome = r.Avaliacao.Usuario.NomeUsuario,
-                    AvaliacaoOriginalTexto = r.Avaliacao.TextoAvaliacao,
+                    AutorAvaliacaoRespondidaId = r.Avaliacao != null && r.Avaliacao.Usuario != null ? r.Avaliacao.Usuario.Id : Guid.Empty,
+                    AutorAvaliacaoRespondidaNome = r.Avaliacao != null && r.Avaliacao.Usuario != null ? r.Avaliacao.Usuario.NomeUsuario : "Gamer",
+                    AvaliacaoOriginalTexto = r.Avaliacao != null ? r.Avaliacao.TextoAvaliacao : null,
                     TotalCurtidas = r.CurtidasDeRespostas.Count(c => c.EstaAtivo && c.Curtida),
                     CurtidaPorMim = r.CurtidasDeRespostas.Any(c => c.UsuarioId == usuarioId && c.EstaAtivo && c.Curtida)
                 })
@@ -117,8 +117,8 @@ namespace GameLog_Backend.Services
                 TipoAtividade = "ListaCriada",
                 DataAtividade = l.DataCriacao,
                 AutorId = l.UsuarioId,
-                AutorNome = l.Usuario.NomeUsuario,
-                AutorFoto = l.Usuario.FotoDePerfil,
+                AutorNome = l.Usuario != null ? l.Usuario.NomeUsuario : "Gamer",
+                AutorFoto = l.Usuario != null ? l.Usuario.FotoDePerfil : null,
                 ListaId = l.Id,
                 ListaTitulo = l.Titulo,
                 ListaDescricao = l.Descricao,
@@ -126,7 +126,7 @@ namespace GameLog_Backend.Services
                 CapasPreviewLista = l.Itens
                     .Where(i => i.EstaAtivo && i.Jogo != null && !string.IsNullOrEmpty(i.Jogo.Imagem))
                     .OrderBy(i => i.Ordem)
-                    .Select(i => i.Jogo.Imagem)
+                    .Select(i => i.Jogo!.Imagem)
                     .Take(4)
                     .ToList()
             }).ToList();
@@ -226,10 +226,10 @@ namespace GameLog_Backend.Services
                 .AsNoTracking()
                 .Include(r => r.Usuario)
                 .Include(r => r.Avaliacao)
-                    .ThenInclude(a => a.Usuario)
+                    .ThenInclude(a => a!.Usuario)
                 .Include(r => r.Avaliacao)
-                    .ThenInclude(a => a.Jogo)
-                .Where(r => r.UsuarioId.HasValue && seguindoIds.Contains(r.UsuarioId.Value) && r.EstaAtivo && r.Avaliacao != null && r.Avaliacao.EstaAtivo)
+                    .ThenInclude(a => a!.Jogo)
+                .Where(r => r.UsuarioId.HasValue && seguindoIds.Contains(r.UsuarioId.Value) && r.EstaAtivo && r.Avaliacao != null && r.Avaliacao.EstaAtivo && r.Avaliacao.Jogo != null && r.Avaliacao.Usuario != null)
                 .OrderByDescending(r => r.DataCriacao)
                 .Take(itensPorPagina * 2)
                 .Select(r => new ItemAtividadeTimelineDTO
@@ -240,11 +240,11 @@ namespace GameLog_Backend.Services
                     UsuarioId = r.UsuarioId!.Value,
                     UsuarioNome = r.Usuario != null ? r.Usuario.NomeUsuario : "Gamer",
                     UsuarioFoto = r.Usuario != null ? r.Usuario.FotoDePerfil : null,
-                    JogoId = r.Avaliacao!.Jogo.Id,
-                    JogoTitulo = r.Avaliacao.Jogo.Titulo,
-                    JogoImagem = r.Avaliacao.Jogo.Imagem,
+                    JogoId = r.Avaliacao != null && r.Avaliacao.Jogo != null ? r.Avaliacao.Jogo.Id : Guid.Empty,
+                    JogoTitulo = r.Avaliacao != null && r.Avaliacao.Jogo != null ? r.Avaliacao.Jogo.Titulo : "Jogo",
+                    JogoImagem = r.Avaliacao != null && r.Avaliacao.Jogo != null ? r.Avaliacao.Jogo.Imagem : null,
                     AvaliacaoId = r.AvaliacaoId,
-                    AutorAvaliacaoRespondidaNome = r.Avaliacao.Usuario.NomeUsuario,
+                    AutorAvaliacaoRespondidaNome = r.Avaliacao != null && r.Avaliacao.Usuario != null ? r.Avaliacao.Usuario.NomeUsuario : "Gamer",
                     ComentarioTexto = r.Comentario,
                     TextoCurto = !string.IsNullOrEmpty(r.Comentario)
                         ? (r.Comentario.Length > 80 ? r.Comentario.Substring(0, 80) + "..." : r.Comentario)
@@ -265,9 +265,9 @@ namespace GameLog_Backend.Services
                     Id = "act-list-" + l.Id,
                     Tipo = "CriouLista",
                     DataAtividade = l.DataCriacao,
-                    UsuarioId = l.Usuario.Id,
-                    UsuarioNome = l.Usuario.NomeUsuario,
-                    UsuarioFoto = l.Usuario.FotoDePerfil,
+                    UsuarioId = l.UsuarioId,
+                    UsuarioNome = l.Usuario != null ? l.Usuario.NomeUsuario : "Gamer",
+                    UsuarioFoto = l.Usuario != null ? l.Usuario.FotoDePerfil : null,
                     ListaId = l.Id,
                     ListaTitulo = l.Titulo,
                     TotalJogos = l.Itens.Count(i => i.EstaAtivo)
@@ -278,9 +278,9 @@ namespace GameLog_Backend.Services
             var itensLista = await _context.ItensDeListas
                 .AsNoTracking()
                 .Include(i => i.ListaDeJogos)
-                    .ThenInclude(l => l.Usuario)
+                    .ThenInclude(l => l!.Usuario)
                 .Include(i => i.Jogo)
-                .Where(i => i.EstaAtivo && i.ListaDeJogos.EstaPublica && i.ListaDeJogos.EstaAtivo && seguindoIds.Contains(i.ListaDeJogos.UsuarioId))
+                .Where(i => i.EstaAtivo && i.ListaDeJogos != null && i.ListaDeJogos.EstaPublica && i.ListaDeJogos.EstaAtivo && i.ListaDeJogos.Usuario != null && i.Jogo != null && seguindoIds.Contains(i.ListaDeJogos.UsuarioId))
                 .OrderByDescending(i => i.DataAdicionado)
                 .Take(itensPorPagina * 2)
                 .Select(i => new ItemAtividadeTimelineDTO
@@ -288,14 +288,14 @@ namespace GameLog_Backend.Services
                     Id = "act-listitem-" + i.Id,
                     Tipo = "AdicionouJogoLista",
                     DataAtividade = i.DataAdicionado,
-                    UsuarioId = i.ListaDeJogos.UsuarioId,
-                    UsuarioNome = i.ListaDeJogos.Usuario.NomeUsuario,
-                    UsuarioFoto = i.ListaDeJogos.Usuario.FotoDePerfil,
-                    JogoId = i.Jogo.Id,
-                    JogoTitulo = i.Jogo.Titulo,
-                    JogoImagem = i.Jogo.Imagem,
+                    UsuarioId = i.ListaDeJogos != null ? i.ListaDeJogos.UsuarioId : Guid.Empty,
+                    UsuarioNome = i.ListaDeJogos != null && i.ListaDeJogos.Usuario != null ? i.ListaDeJogos.Usuario.NomeUsuario : "Gamer",
+                    UsuarioFoto = i.ListaDeJogos != null && i.ListaDeJogos.Usuario != null ? i.ListaDeJogos.Usuario.FotoDePerfil : null,
+                    JogoId = i.Jogo != null ? i.Jogo.Id : Guid.Empty,
+                    JogoTitulo = i.Jogo != null ? i.Jogo.Titulo : "Jogo",
+                    JogoImagem = i.Jogo != null ? i.Jogo.Imagem : null,
                     ListaId = i.ListaDeJogosId,
-                    ListaTitulo = i.ListaDeJogos.Titulo
+                    ListaTitulo = i.ListaDeJogos != null ? i.ListaDeJogos.Titulo : "Lista"
                 })
                 .ToListAsync();
 

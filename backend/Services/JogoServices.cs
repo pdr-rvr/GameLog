@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using GameLog_Backend.Database;
 using GameLog_Backend.DTOs;
+using GameLog_Backend.Enums;
 using GameLog_Backend.Helpers;
 using GameLog_Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -168,13 +169,13 @@ namespace GameLog_Backend.Services
 
             var totalItens = await jogosQuery.CountAsync();
 
-            jogosQuery = (ordenacao ?? "melhores").ToLower() switch
+            jogosQuery = (ordenacao ?? OrdenacaoJogos.Melhores).ToLower() switch
             {
-                "recentes" => jogosQuery.OrderByDescending(j => j.DataLancamento).ThenByDescending(j => j.MediaAvaliacoes ?? 0),
-                "antigos" => jogosQuery.OrderBy(j => j.DataLancamento).ThenByDescending(j => j.MediaAvaliacoes ?? 0),
-                "az" => jogosQuery.OrderBy(j => j.Titulo),
-                "za" => jogosQuery.OrderByDescending(j => j.Titulo),
-                "populares" => jogosQuery.OrderByDescending(j => j.TotalAvaliacoes).ThenByDescending(j => j.MediaAvaliacoes ?? 0),
+                OrdenacaoJogos.Recentes => jogosQuery.OrderByDescending(j => j.DataLancamento).ThenByDescending(j => j.MediaAvaliacoes ?? 0),
+                OrdenacaoJogos.Antigos => jogosQuery.OrderBy(j => j.DataLancamento).ThenByDescending(j => j.MediaAvaliacoes ?? 0),
+                OrdenacaoJogos.Az => jogosQuery.OrderBy(j => j.Titulo),
+                OrdenacaoJogos.Za => jogosQuery.OrderByDescending(j => j.Titulo),
+                OrdenacaoJogos.Populares => jogosQuery.OrderByDescending(j => j.TotalAvaliacoes).ThenByDescending(j => j.MediaAvaliacoes ?? 0),
                 _ => jogosQuery.OrderByDescending(j => j.MediaAvaliacoes ?? 0).ThenByDescending(j => j.TotalAvaliacoes).ThenByDescending(j => j.DataLancamento)
             };
 

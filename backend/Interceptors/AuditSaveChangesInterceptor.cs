@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using GameLog_Backend.Database;
 using GameLog_Backend.Entities;
+using GameLog_Backend.Enums;
 using GameLog_Backend.Helpers;
 using GameLog_Backend.Middlewares;
 using Microsoft.AspNetCore.Http;
@@ -125,7 +126,7 @@ namespace GameLog_Backend.Interceptors
             switch (entry.State)
             {
                 case EntityState.Added:
-                    actionType = "INSERT";
+                    actionType = TipoAcaoAudit.Insert;
                     foreach (var prop in entry.Properties)
                     {
                         var propName = prop.Metadata.Name;
@@ -151,7 +152,7 @@ namespace GameLog_Backend.Interceptors
                     break;
 
                 case EntityState.Modified:
-                    actionType = "UPDATE";
+                    actionType = TipoAcaoAudit.Update;
                     foreach (var prop in entry.Properties)
                     {
                         if (prop.IsModified)
@@ -176,7 +177,7 @@ namespace GameLog_Backend.Interceptors
                     break;
 
                 case EntityState.Deleted:
-                    actionType = "DELETE";
+                    actionType = TipoAcaoAudit.Delete;
                     foreach (var prop in entry.Properties)
                     {
                         var propName = prop.Metadata.Name;

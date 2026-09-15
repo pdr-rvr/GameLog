@@ -62,4 +62,25 @@ namespace GameLog_Backend.DTOs
         public string? MotivoRecomendacao { get; set; }
         public double Score { get; set; }
     }
+
+    public class AuthResultDTO
+    {
+        public UsuarioDTO? Usuario { get; set; }
+        public string? Token { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime ExpiraEm { get; set; }
+        public bool Sucesso => Usuario != null && !string.IsNullOrEmpty(Token);
+
+        public AuthResultDTO() { }
+
+        public AuthResultDTO(UsuarioDTO? usuario, string? token, string? refreshToken, DateTime expiraEm)
+        {
+            Usuario = usuario;
+            Token = token;
+            RefreshToken = refreshToken;
+            ExpiraEm = expiraEm;
+        }
+
+        public static AuthResultDTO Falha() => new(null, null, null, DateTime.MinValue);
+    }
 }

@@ -76,23 +76,23 @@ namespace GameLog_Backend.Controllers
         public async Task<IActionResult> Login([FromBody] UsuarioLoginDTO loginDTO)
         {
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-            var (usuario, token, refreshToken, expiraEm) = await _authService.AutenticarUsuario(loginDTO, ipAddress);
+            var authResult = await _authService.AutenticarUsuario(loginDTO, ipAddress);
 
-            if (usuario == null || token == null)
+            if (!authResult.Sucesso)
             {
                 return Unauthorized(new { message = "Credenciais inválidas ou usuário desativado" });
             }
 
-            if (!string.IsNullOrEmpty(refreshToken))
+            if (!string.IsNullOrEmpty(authResult.RefreshToken))
             {
-                DefinirCookieRefreshToken(refreshToken);
+                DefinirCookieRefreshToken(authResult.RefreshToken);
             }
 
             return Ok(new
             {
-                Usuario = usuario,
-                Token = token,
-                ExpiraEm = expiraEm
+                Usuario = authResult.Usuario,
+                Token = authResult.Token,
+                ExpiraEm = authResult.ExpiraEm
             });
         }
 
@@ -112,14 +112,17 @@ namespace GameLog_Backend.Controllers
 
             try
             {
-                var (usuario, novoToken, novoRefreshToken, expiraEm) = await _authService.RenovarTokenAsync(refreshToken, ipAddress);
-                DefinirCookieRefreshToken(novoRefreshToken);
+                var authResult = await _authService.RenovarTokenAsync(refreshToken, ipAddress);
+                if (!string.IsNullOrEmpty(authResult.RefreshToken))
+                {
+                    DefinirCookieRefreshToken(authResult.RefreshToken);
+                }
 
                 return Ok(new
                 {
-                    Usuario = usuario,
-                    Token = novoToken,
-                    ExpiraEm = expiraEm
+                    Usuario = authResult.Usuario,
+                    Token = authResult.Token,
+                    ExpiraEm = authResult.ExpiraEm
                 });
             }
             catch (SecurityTokenException ex)

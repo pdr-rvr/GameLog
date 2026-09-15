@@ -30,11 +30,11 @@ namespace GameLog_Backend.Services
             _jwtSettings = jwtOptions.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
         }
 
-        public async Task<(UsuarioDTO? usuario, string? token, string? refreshToken, DateTime expiraEm)> AutenticarUsuario(UsuarioLoginDTO loginDTO, string? ipAddress = null)
+        public async Task<AuthResultDTO> AutenticarUsuario(UsuarioLoginDTO loginDTO, string? ipAddress = null)
         {
             if (string.IsNullOrWhiteSpace(loginDTO.Email) || string.IsNullOrWhiteSpace(loginDTO.Senha))
             {
-                return (null, null, null, DateTime.MinValue);
+                return AuthResultDTO.Falha();
             }
 
             var email = loginDTO.Email.Trim().ToLower();
@@ -42,11 +42,11 @@ namespace GameLog_Backend.Services
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == email && u.EstaAtivo);
 
             if (usuario == null)
-                return (null, null, null, DateTime.MinValue);
+                return AuthResultDTO.Falha();
 
             var (valida, precisaMigrar) = VerificarEMigrarSenha(loginDTO.Senha, usuario.Senha);
             if (!valida)
-                return (null, null, null, DateTime.MinValue);
+                return AuthResultDTO.Falha();
 
             // Migração transparente de hash legado SHA-256 para BCrypt
             if (precisaMigrar)
@@ -64,7 +64,7 @@ namespace GameLog_Backend.Services
             _context.RefreshTokens.Add(novoRefreshToken);
             await _context.SaveChangesAsync();
 
-            return (usuarioDTO, token, novoRefreshToken.Token, expiraEm);
+            return new AuthResultDTO(usuarioDTO, token, novoRefreshToken.Token, expiraEm);
         }
 
         public async Task<UsuarioDTO> RegistrarUsuario(CriarUsuarioDTO usuarioDTO)
@@ -127,7 +127,7 @@ namespace GameLog_Backend.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public async Task<(UsuarioDTO usuario, string token, string novoRefreshToken, DateTime expiraEm)> RenovarTokenAsync(string refreshToken, string? ipAddress = null)
+        public async Task<AuthResultDTO> RenovarTokenAsync(string refreshToken, string? ipAddress = null)
         {
             if (string.IsNullOrWhiteSpace(refreshToken))
                 throw new SecurityTokenException("Token de atualização inválido.");
@@ -186,7 +186,7 @@ namespace GameLog_Backend.Services
             var expiraEm = DateTime.UtcNow.AddMinutes(expireMinutes);
             var usuarioDTO = _mapper.Map<UsuarioDTO>(tokenExistente.Usuario);
 
-            return (usuarioDTO, novoJwt, novoRefreshToken.Token, expiraEm);
+            return new AuthResultDTO(usuarioDTO, novoJwt, novoRefreshToken.Token, expiraEm);
         }
 
         public async Task<bool> RevogarTokenAsync(string refreshToken, string? ipAddress = null)

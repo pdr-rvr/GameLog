@@ -42,8 +42,8 @@ namespace GameLog_Backend.Services
 
         public async Task<(UsuarioDTO? usuario, string? token, DateTime expiraEm)> AutenticarUsuario(UsuarioLoginDTO loginDTO)
         {
-            var (usuario, token, _, expiraEm) = await _authService.AutenticarUsuario(loginDTO);
-            return (usuario, token, expiraEm);
+            var result = await _authService.AutenticarUsuario(loginDTO);
+            return (result.Usuario, result.Token, result.ExpiraEm);
         }
 
         public async Task<IEnumerable<UsuarioDTO>> ListarUsuarios()
